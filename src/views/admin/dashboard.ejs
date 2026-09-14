@@ -8,6 +8,7 @@
 <% if (leagues.length === 0) { %>
   <p>No leagues yet — create the first one below.</p>
 <% } else { %>
+  <div class="table-scroll">
   <table class="admin-table">
     <thead><tr><th>Name</th><th>Season</th><th>Status</th><th>Teams</th><th>Pitches</th><th></th></tr></thead>
     <tbody>
@@ -28,6 +29,7 @@
       <% }) %>
     </tbody>
   </table>
+  </div>
 <% } %>
 
 <h2>Create a new league</h2>

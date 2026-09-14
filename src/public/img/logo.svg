@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 232" role="img" aria-label="Bream Bay United crest">
+  <defs>
+    <path id="crest-arc" d="M28,53 A241,241 0 0 1 172,53" />
+  </defs>
+
+  <!-- outer wine border -->
+  <path d="M100,8 L184,32 L184,114 C184,167 142,203 100,224 C58,203 16,167 16,114 L16,32 Z" fill="#6e1b2e"/>
+  <!-- cream field -->
+  <path d="M100,19 L173,41 L173,113 C173,158 137,191 100,211 C63,191 27,158 27,113 L27,41 Z" fill="#f7f1e6"/>
+
+  <!-- mountain range -->
+  <path d="M25,120 L48,80 L62,100 L86,58 L104,92 L126,66 L152,102 L175,120 L175,124 L25,124 Z" fill="#1c1214"/>
+
+  <!-- road / ribbon of hillside -->
+  <path d="M20,150 C58,128 84,154 118,128 C142,110 158,116 175,104 L175,116 C160,126 146,118 122,140 C90,168 60,140 20,162 Z" fill="#b8b3ad"/>
+
+  <!-- AFC banner -->
+  <path d="M18,140 L182,140 L173,158 L27,158 Z" fill="#6e1b2e"/>
+  <text x="100" y="153" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="15" letter-spacing="2" fill="#f7f1e6">AFC</text>
+
+  <!-- soccer ball -->
+  <g transform="translate(100,185)">
+    <circle r="21" fill="#f7f1e6" stroke="#1c1214" stroke-width="2.5"/>
+    <path d="M0,-9 L8.6,-2.8 L5.3,7.3 L-5.3,7.3 L-8.6,-2.8 Z" fill="#1c1214"/>
+    <path d="M0,-9 C-3,-13 -8,-15 -13,-15.5 M8.6,-2.8 C12,-6 14,-11 13.7,-16 M5.3,7.3 C9,9 14,9 18,7 M-5.3,7.3 C-9,9 -14,9 -18,7 M-13,-15.5 C-16,-11 -18,-6 -18,0" stroke="#1c1214" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <circle cx="-13.4" cy="-15.7" r="1.6" fill="#1c1214"/>
+    <circle cx="13.7" cy="-16" r="1.6" fill="#1c1214"/>
+    <circle cx="18.3" cy="6.7" r="1.6" fill="#1c1214"/>
+    <circle cx="-18.3" cy="6.7" r="1.6" fill="#1c1214"/>
+    <circle cx="-18.2" cy="-0.2" r="1.6" fill="#1c1214"/>
+  </g>
+
+  <!-- curved club name -->
+  <text font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="12" letter-spacing="0.3" fill="#6e1b2e">
+    <textPath href="#crest-arc" startOffset="50%" text-anchor="middle">BREAM BAY UNITED</textPath>
+  </text>
+</svg>

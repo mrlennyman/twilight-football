@@ -1,12 +1,7 @@
 <%- include('../partials/header', { title: league.name + ' — Cup / Plate' }) %>
 <h1><%= league.name %></h1>
 
-<nav class="subnav">
-  <a href="/league/<%= league.id %>">Standings</a>
-  <a href="/league/<%= league.id %>/teams">Teams</a>
-  <a href="/league/<%= league.id %>/fixtures">Fixtures</a>
-  <a href="/league/<%= league.id %>/bracket">Cup / Plate</a>
-</nav>
+<%- include('../partials/nav', { league, active: 'bracket' }) %>
 
 <% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
   <p>The Cup and Plate knockouts haven't started yet — they'll appear here once the group stage is complete.</p>

@@ -1,12 +1,7 @@
 <%- include('../partials/header', { title: league.name + ' — Fixtures' }) %>
 <h1><%= league.name %></h1>
 
-<nav class="subnav">
-  <a href="/league/<%= league.id %>">Standings</a>
-  <a href="/league/<%= league.id %>/teams">Teams</a>
-  <a href="/league/<%= league.id %>/fixtures">Fixtures</a>
-  <a href="/league/<%= league.id %>/bracket">Cup / Plate</a>
-</nav>
+<%- include('../partials/nav', { league, active: 'fixtures' }) %>
 
 <h2>Fixtures</h2>
 

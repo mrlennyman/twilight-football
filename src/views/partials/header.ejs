@@ -2,8 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title><%= typeof title !== 'undefined' ? title + ' — ' : '' %>Bream Bay Twilight Football</title>
+
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#6e1b2e">
+  <link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BB Twilight">
+
   <link rel="stylesheet" href="/css/style.css">
   <% if (typeof printCss !== 'undefined' && printCss) { %>
     <link rel="stylesheet" href="/css/print.css" media="all">
@@ -12,7 +21,10 @@
 <body>
 <header class="site-header no-print">
   <div class="container">
-    <a class="brand" href="/">Bream Bay Twilight Football</a>
+    <a class="brand" href="/">
+      <img src="/img/logo.svg" alt="" width="30" height="35">
+      <span>Bream Bay Twilight Football</span>
+    </a>
   </div>
 </header>
 <main class="container">
