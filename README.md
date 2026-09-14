@@ -36,3 +36,7 @@ Back it up before any schema changes if this is running in production.
 Any host that runs Node 22.5+ works (Vultr/RunCloud, a VPS, etc). Set
 `ADMIN_PASSWORD` and `SESSION_SECRET` to real values in the server's
 environment — don't reuse the ones generated for local development.
+
+The app is a PWA (installable, works offline for already-visited pages),
+which requires HTTPS in production — `localhost` is exempt for dev, but
+the service worker will not register over plain HTTP on a real domain.
