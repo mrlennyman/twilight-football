@@ -1,0 +1,24 @@
+<%- include('../partials/header', { title: league.name + ' — Fixtures' }) %>
+<h1><%= league.name %></h1>
+
+<nav class="subnav">
+  <a href="/league/<%= league.id %>">Standings</a>
+  <a href="/league/<%= league.id %>/teams">Teams</a>
+  <a href="/league/<%= league.id %>/fixtures">Fixtures</a>
+  <a href="/league/<%= league.id %>/bracket">Cup / Plate</a>
+</nav>
+
+<h2>Fixtures</h2>
+
+<% if (weekNumbers.length === 0) { %>
+  <p>The schedule hasn't been published yet — check back soon.</p>
+<% } else { %>
+  <nav class="week-tabs">
+    <% weekNumbers.forEach(w => { %>
+      <a href="?week=<%= w %>" class="<%= w === selectedWeek ? 'active' : '' %>">Week <%= w %></a>
+    <% }) %>
+  </nav>
+  <%- include('../partials/round-list', { rounds, editable: false }) %>
+<% } %>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,18 @@
+<%- include('../partials/header', { title: 'Leagues' }) %>
+<h1>Leagues</h1>
+
+<% if (leagues.length === 0) { %>
+  <p>No leagues are running yet — check back soon.</p>
+<% } else { %>
+  <ul class="league-list">
+    <% leagues.forEach(league => { %>
+      <li>
+        <a href="/league/<%= league.id %>"><%= league.name %></a>
+        <span class="tag tag-<%= league.status %>"><%= league.status.replace('_', ' ') %></span>
+        <div class="muted"><%= league.season %></div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('../partials/footer') %>

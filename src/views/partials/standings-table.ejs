@@ -1,0 +1,32 @@
+<%
+// Expects: standings (array from computeStandings)
+// Optional: highlightSplit (boolean) - draws a line between rank 4 and 5
+%>
+<table class="standings-table">
+  <thead>
+    <tr>
+      <th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% standings.forEach((row, i) => { %>
+      <tr class="<%= (typeof highlightSplit !== 'undefined' && highlightSplit && i === 4) ? 'split-row' : '' %>">
+        <td><%= i + 1 %></td>
+        <td>
+          <%= row.name %>
+          <% if (row.tied && !row.tieResolved) { %>
+            <span class="tag tag-tie" title="Tied on points and goal difference — needs a shootout to settle">tied</span>
+          <% } %>
+        </td>
+        <td><%= row.played %></td>
+        <td><%= row.won %></td>
+        <td><%= row.drawn %></td>
+        <td><%= row.lost %></td>
+        <td><%= row.goalsFor %></td>
+        <td><%= row.goalsAgainst %></td>
+        <td><%= row.goalDifference %></td>
+        <td><strong><%= row.points %></strong></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>

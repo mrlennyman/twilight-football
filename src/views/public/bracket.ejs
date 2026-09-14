@@ -1,0 +1,42 @@
+<%- include('../partials/header', { title: league.name + ' — Cup / Plate' }) %>
+<h1><%= league.name %></h1>
+
+<nav class="subnav">
+  <a href="/league/<%= league.id %>">Standings</a>
+  <a href="/league/<%= league.id %>/teams">Teams</a>
+  <a href="/league/<%= league.id %>/fixtures">Fixtures</a>
+  <a href="/league/<%= league.id %>/bracket">Cup / Plate</a>
+</nav>
+
+<% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
+  <p>The Cup and Plate knockouts haven't started yet — they'll appear here once the group stage is complete.</p>
+<% } else { %>
+  <% [{ label: 'Cup', rounds: cupRounds }, { label: 'Plate', rounds: plateRounds }].forEach(bracket => { %>
+    <h2><%= bracket.label %></h2>
+    <div class="bracket">
+      <% bracket.rounds.forEach(round => { %>
+        <div class="bracket-round">
+          <h4><%= round.matches.length > 1 ? 'Semi-finals' : 'Final' %></h4>
+          <% round.matches.forEach(match => { %>
+            <div class="bracket-match">
+              <div><%= match.home_team_name || 'TBD' %></div>
+              <div class="bracket-score">
+                <% if (match.status === 'played') { %>
+                  <%= match.home_score %> - <%= match.away_score %>
+                  <% if (match.penalty_winner_id) { %>
+                    <div class="muted small">(<%= match.penalty_winner_id === match.home_team_id ? match.home_team_name : match.away_team_name %> won on pens)</div>
+                  <% } %>
+                <% } else { %>
+                  v
+                <% } %>
+              </div>
+              <div><%= match.away_team_name || 'TBD' %></div>
+            </div>
+          <% }) %>
+        </div>
+      <% }) %>
+    </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/footer') %>

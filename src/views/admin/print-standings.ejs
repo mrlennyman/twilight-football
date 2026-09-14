@@ -1,0 +1,4 @@
+<%- include('../partials/header', { title: league.name + ' — Standings', printCss: true }) %>
+<h1><%= league.name %> — Standings</h1>
+<%- include('../partials/standings-table', { standings, highlightSplit: true }) %>
+<%- include('../partials/footer') %>

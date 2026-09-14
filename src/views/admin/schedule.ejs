@@ -1,0 +1,44 @@
+<%- include('../partials/header', { title: league.name + ' — Schedule' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Schedule</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+
+<% if (groupRounds.length === 0) { %>
+  <p>No schedule generated yet. This will create the full double round-robin group stage across your <%= pitches.length %> pitches, split into weeks of <%= league.rounds_per_week %> rounds.</p>
+  <form method="POST" action="/admin/league/<%= league.id %>/schedule/generate" class="admin-form">
+    <label>First match night
+      <input type="date" name="start_date" required>
+    </label>
+    <label>Kickoff time (first round of the night)
+      <input type="time" name="kickoff_start_time" value="17:30" required>
+    </label>
+    <label>Minutes per round (time between kickoffs)
+      <input type="number" name="slot_minutes" value="45" min="10" required>
+    </label>
+    <button type="submit">Generate schedule</button>
+  </form>
+<% } else { %>
+  <p class="muted">Schedule generated. Enter results on the <a href="/admin/league/<%= league.id %>/results">Results</a> page.</p>
+
+  <details>
+    <summary>Regenerate schedule (this deletes all group-stage matches and results entered so far)</summary>
+    <form method="POST" action="/admin/league/<%= league.id %>/schedule/generate" class="admin-form">
+      <label>First match night
+        <input type="date" name="start_date" value="<%= league.start_date %>" required>
+      </label>
+      <label>Kickoff time (first round of the night)
+        <input type="time" name="kickoff_start_time" value="<%= league.kickoff_start_time %>" required>
+      </label>
+      <label>Minutes per round
+        <input type="number" name="slot_minutes" value="<%= league.slot_minutes %>" min="10" required>
+      </label>
+      <button type="submit">Regenerate schedule</button>
+    </form>
+  </details>
+
+  <h2>Full schedule</h2>
+  <%- include('../partials/round-list', { rounds: groupRounds, editable: false }) %>
+<% } %>
+
+<%- include('../partials/footer') %>

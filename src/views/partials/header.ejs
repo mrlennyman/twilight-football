@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' — ' : '' %>Bream Bay Twilight Football</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <% if (typeof printCss !== 'undefined' && printCss) { %>
+    <link rel="stylesheet" href="/css/print.css" media="all">
+  <% } %>
+</head>
+<body>
+<header class="site-header no-print">
+  <div class="container">
+    <a class="brand" href="/">Bream Bay Twilight Football</a>
+  </div>
+</header>
+<main class="container">

@@ -1,0 +1,64 @@
+<%- include('../partials/header', { title: league.name + ' — Results' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Results</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+
+<h2>Group stage</h2>
+<% if (weekNumbers.length === 0) { %>
+  <p>No schedule yet — go to <a href="/admin/league/<%= league.id %>/schedule">Schedule</a> to generate it.</p>
+<% } else { %>
+  <nav class="week-tabs">
+    <% weekNumbers.forEach(w => { %>
+      <a href="?week=<%= w %>" class="<%= w === selectedWeek ? 'active' : '' %>">Week <%= w %></a>
+    <% }) %>
+  </nav>
+  <%- include('../partials/round-list', { rounds, editable: true, league }) %>
+<% } %>
+
+<h2>Standings</h2>
+<%- include('../partials/standings-table', { standings, highlightSplit: true }) %>
+
+<% const unresolvedTies = standings.filter(s => s.tied && !s.tieResolved); %>
+<% if (unresolvedTies.length > 0) { %>
+  <div class="callout">
+    <h3>Record a shootout result</h3>
+    <p>These teams are tied on points and goal difference: <strong><%= unresolvedTies.map(t => t.name).join(', ') %></strong>. Record the manual shootout winner to settle the order.</p>
+    <form method="POST" action="/admin/league/<%= league.id %>/tie-break" class="admin-form">
+      <label>Team A
+        <select name="team_a_id" required>
+          <% teams.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+        </select>
+      </label>
+      <label>Team B
+        <select name="team_b_id" required>
+          <% teams.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+        </select>
+      </label>
+      <label>Shootout winner
+        <select name="winner_team_id" required>
+          <% teams.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+        </select>
+      </label>
+      <button type="submit">Save shootout result</button>
+    </form>
+  </div>
+<% } %>
+
+<h2>Cup &amp; Plate knockouts</h2>
+<% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
+  <% if (stageComplete) { %>
+    <form method="POST" action="/admin/league/<%= league.id %>/generate-knockouts">
+      <button type="submit">Generate Cup &amp; Plate brackets</button>
+    </form>
+  <% } else { %>
+    <p class="muted">Available once every group-stage match has a result.</p>
+  <% } %>
+<% } else { %>
+  <h3>Cup (top 4)</h3>
+  <%- include('../partials/round-list', { rounds: cupRounds, editable: true, knockout: true, league }) %>
+  <h3>Plate (bottom 4)</h3>
+  <%- include('../partials/round-list', { rounds: plateRounds, editable: true, knockout: true, league }) %>
+<% } %>
+
+<%- include('../partials/footer') %>

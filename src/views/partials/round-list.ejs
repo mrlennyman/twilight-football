@@ -1,0 +1,51 @@
+<%
+// Expects: rounds (array with .matches from getRoundsForWeek/getRoundsWithMatches)
+// Optional: editable (boolean), league (for form action), knockout (boolean - shows penalty field on draws)
+%>
+<% rounds.forEach(round => { %>
+  <div class="round-block">
+    <h3>
+      <%= round.stage === 'group' ? 'Round ' + round.round_number : (round.matches.length > 1 ? 'Semi-finals' : 'Final') %>
+      <span class="muted"><%= round.date %> — <%= round.kickoff_time %></span>
+    </h3>
+    <table class="fixtures-table">
+      <thead>
+        <tr><th>Pitch</th><th>Home</th><th></th><th>Away</th><th>Result</th></tr>
+      </thead>
+      <tbody>
+        <% round.matches.forEach(match => { %>
+          <tr>
+            <td><%= match.pitch_label || '—' %></td>
+            <td><%= match.home_team_name || 'TBD' %></td>
+            <td>v</td>
+            <td><%= match.away_team_name || 'TBD' %></td>
+            <td>
+              <% if (typeof editable !== 'undefined' && editable && match.home_team_id && match.away_team_id) { %>
+                <form method="POST" action="/admin/league/<%= league.id %>/<%= typeof knockout !== 'undefined' && knockout ? 'knockout-results' : 'results' %>/match/<%= match.id %>" class="score-form">
+                  <input type="number" min="0" name="home_score" value="<%= match.home_score %>" required>
+                  <span>-</span>
+                  <input type="number" min="0" name="away_score" value="<%= match.away_score %>" required>
+                  <% if (typeof knockout !== 'undefined' && knockout) { %>
+                    <select name="penalty_winner_id">
+                      <option value="">No shootout</option>
+                      <option value="<%= match.home_team_id %>" <%= match.penalty_winner_id === match.home_team_id ? 'selected' : '' %>><%= match.home_team_name %> won pens</option>
+                      <option value="<%= match.away_team_id %>" <%= match.penalty_winner_id === match.away_team_id ? 'selected' : '' %>><%= match.away_team_name %> won pens</option>
+                    </select>
+                  <% } %>
+                  <button type="submit"><%= match.status === 'played' ? 'Update' : 'Save' %></button>
+                </form>
+              <% } else if (match.status === 'played') { %>
+                <strong><%= match.home_score %> - <%= match.away_score %></strong>
+                <% if (match.penalty_winner_id) { %>
+                  <div class="muted">(<%= match.penalty_winner_id === match.home_team_id ? match.home_team_name : match.away_team_name %> won on pens)</div>
+                <% } %>
+              <% } else { %>
+                <span class="muted">vs</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% }) %>

@@ -1,0 +1,4 @@
+<%- include('../partials/header', { title: league.name + ' — Week ' + weekNumber + ' Fixtures', printCss: true }) %>
+<h1><%= league.name %> — Week <%= weekNumber %> Fixtures</h1>
+<%- include('../partials/round-list', { rounds, editable: false }) %>
+<%- include('../partials/footer') %>

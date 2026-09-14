@@ -1,0 +1,35 @@
+<%- include('../partials/header', { title: league.name + ' — Teams' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Teams &amp; rosters</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+
+<div class="team-grid">
+  <% teams.forEach(team => { %>
+    <div class="team-card">
+      <form method="POST" action="/admin/league/<%= league.id %>/teams/<%= team.id %>" class="inline-form">
+        <input type="text" name="name" value="<%= team.name %>" required>
+        <input type="text" name="kit_colour" value="<%= team.kit_colour || '' %>" placeholder="Kit colour">
+        <button type="submit">Save</button>
+      </form>
+
+      <h4>Roster</h4>
+      <ul class="roster">
+        <% team.players.forEach(player => { %>
+          <li>
+            <%= player.name %>
+            <form method="POST" action="/admin/league/<%= league.id %>/teams/<%= team.id %>/players/<%= player.id %>/delete" class="inline-form">
+              <button type="submit" class="link-button">remove</button>
+            </form>
+          </li>
+        <% }) %>
+      </ul>
+      <form method="POST" action="/admin/league/<%= league.id %>/teams/<%= team.id %>/players" class="inline-form">
+        <input type="text" name="name" placeholder="Player full name" required>
+        <button type="submit">Add player</button>
+      </form>
+    </div>
+  <% }) %>
+</div>
+
+<%- include('../partials/footer') %>

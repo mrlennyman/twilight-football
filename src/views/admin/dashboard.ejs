@@ -1,0 +1,53 @@
+<%- include('../partials/header', { title: 'Admin dashboard' }) %>
+<div class="admin-bar">
+  <h1>Admin dashboard</h1>
+  <form method="POST" action="/admin/logout"><button type="submit" class="link-button">Log out</button></form>
+</div>
+
+<h2>Leagues</h2>
+<% if (leagues.length === 0) { %>
+  <p>No leagues yet — create the first one below.</p>
+<% } else { %>
+  <table class="admin-table">
+    <thead><tr><th>Name</th><th>Season</th><th>Status</th><th>Teams</th><th>Pitches</th><th></th></tr></thead>
+    <tbody>
+      <% leagues.forEach(league => { %>
+        <tr>
+          <td><%= league.name %></td>
+          <td><%= league.season %></td>
+          <td><span class="tag tag-<%= league.status %>"><%= league.status.replace('_', ' ') %></span></td>
+          <td><%= league.num_teams %></td>
+          <td><%= league.num_pitches %></td>
+          <td class="admin-actions">
+            <a href="/admin/league/<%= league.id %>/teams">Teams</a>
+            <a href="/admin/league/<%= league.id %>/schedule">Schedule</a>
+            <a href="/admin/league/<%= league.id %>/results">Results</a>
+            <a href="/league/<%= league.id %>" target="_blank">View public page</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<h2>Create a new league</h2>
+<form method="POST" action="/admin/leagues" class="admin-form">
+  <label>League name
+    <input type="text" name="name" placeholder="e.g. 7–9s Summer Tournament" required>
+  </label>
+  <label>Season
+    <input type="text" name="season" placeholder="e.g. Summer 2026/27" required>
+  </label>
+  <label>Number of teams
+    <input type="number" name="num_teams" value="8" min="2" step="2" required>
+  </label>
+  <label>Number of pitches
+    <input type="number" name="num_pitches" value="4" min="1" required>
+  </label>
+  <label>Rounds per week
+    <input type="number" name="rounds_per_week" value="3" min="1" required>
+  </label>
+  <button type="submit">Create league</button>
+</form>
+
+<%- include('../partials/footer') %>

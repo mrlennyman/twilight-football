@@ -1,0 +1,20 @@
+<%- include('../partials/header', { title: league.name }) %>
+<h1><%= league.name %></h1>
+<p class="muted"><%= league.season %></p>
+
+<nav class="subnav">
+  <a href="/league/<%= league.id %>">Standings</a>
+  <a href="/league/<%= league.id %>/teams">Teams</a>
+  <a href="/league/<%= league.id %>/fixtures">Fixtures</a>
+  <a href="/league/<%= league.id %>/bracket">Cup / Plate</a>
+</nav>
+
+<h2>Standings</h2>
+<%- include('../partials/standings-table', { standings, highlightSplit: false }) %>
+
+<% if (thisWeekRounds.length > 0) { %>
+  <h2>This Week (Week <%= currentWeek %>)</h2>
+  <%- include('../partials/round-list', { rounds: thisWeekRounds, editable: false }) %>
+<% } %>
+
+<%- include('../partials/footer') %>
