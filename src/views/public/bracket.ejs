@@ -1,6 +1,4 @@
 <%- include('../partials/header', { title: league.name + ' — Cup / Plate' }) %>
-<h1><%= league.name %></h1>
-
 <%- include('../partials/nav', { league, active: 'bracket' }) %>
 
 <% if (cupRounds.length === 0 && plateRounds.length === 0) { %>

@@ -73,38 +73,19 @@ h1, h2, h3 { color: var(--wine-900); }
 a { color: var(--wine-700); }
 
 /* ---------- Per-league tab navigation (app shell) ---------- */
-.top-tabs {
-  background: var(--wine-900);
-  display: none;
-}
-.top-tabs-inner {
-  display: flex;
-  gap: 4px;
-  padding: 0;
-}
-.top-tabs a {
-  color: rgba(255,255,255,0.72);
-  text-decoration: none;
-  padding: 12px 16px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  border-bottom: 3px solid transparent;
-}
-.top-tabs a.active {
-  color: #fff;
-  border-bottom-color: var(--gold);
-}
-
-.bottom-nav {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
+/* Sits directly under the site header, on every screen size - icons+label,
+   not fixed/pinned, so it scrolls away with the page like the rest of the
+   app chrome instead of floating over content. */
+.app-nav {
   display: flex;
   background: var(--wine-900);
-  padding-bottom: env(safe-area-inset-bottom);
-  z-index: 20;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  /* Break out of the centered .container it's nested in so it spans the
+     full viewport edge-to-edge, like the header bar above it. */
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
-.bottom-nav a {
+.app-nav a {
   flex: 0 0 25%;
   width: 25%;
   overflow: hidden;
@@ -118,7 +99,7 @@ a { color: var(--wine-700); }
   font-size: 0.62rem;
   font-weight: 600;
 }
-.bottom-nav-label {
+.app-nav-label {
   display: block;
   width: 100%;
   overflow: hidden;
@@ -126,18 +107,20 @@ a { color: var(--wine-700); }
   white-space: nowrap;
   text-align: center;
 }
-.bottom-nav a.active { color: #fff; }
-.bottom-nav-icon { width: 22px; height: 22px; }
-.bottom-nav-icon svg { width: 100%; height: 100%; }
-.bottom-nav a.active .bottom-nav-icon { color: var(--gold); }
-.bottom-nav-spacer { display: none; }
+.app-nav a.active { color: #fff; }
+.app-nav-icon { width: 22px; height: 22px; }
+.app-nav-icon svg { width: 100%; height: 100%; }
+.app-nav a.active .app-nav-icon { color: var(--gold); }
 
 @media (min-width: 768px) {
-  .top-tabs { display: block; }
-  .bottom-nav, .bottom-nav-spacer { display: none !important; }
-}
-@media (max-width: 767px) {
-  .bottom-nav-spacer { display: block; height: calc(58px + env(safe-area-inset-bottom)); }
+  .app-nav a {
+    flex-direction: row;
+    font-size: 0.85rem;
+    padding: 12px 16px;
+    gap: 8px;
+    justify-content: center;
+  }
+  .app-nav-icon { width: 18px; height: 18px; }
 }
 
 /* Old flat subnav still used on admin pages that don't have per-league tabs */
@@ -217,6 +200,11 @@ th {
 tbody tr:last-child td { border-bottom: none; }
 .standings-table td:nth-child(n+3), .standings-table th:nth-child(n+3) { text-align: center; }
 .split-row td { border-bottom: 2px solid var(--gold); }
+
+@media (max-width: 400px) {
+  .standings-table th, .standings-table td { padding: 8px 5px; }
+  .standings-table { font-size: 0.92rem; }
+}
 
 /* ---------- Match cards (fixtures/results) ---------- */
 .round-block { margin-bottom: 26px; }

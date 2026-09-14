@@ -15,8 +15,24 @@ const {
 
 const router = express.Router();
 
+function renderLeagueHome(league, res) {
+  const standings = computeStandings(db, league.id);
+  const currentWeek = getCurrentWeek(db, league.id);
+  const thisWeekRounds = currentWeek ? getRoundsForWeek(db, league.id, currentWeek) : [];
+
+  res.render('public/league', { league, standings, currentWeek, thisWeekRounds });
+}
+
 router.get('/', (req, res) => {
   const leagues = getAllLeagues(db).filter((l) => l.status !== 'setup');
+
+  // With a single active league, skip the "list of leagues" screen entirely
+  // and land straight on its standings - the leagues list is only useful
+  // once there's actually a choice to make.
+  if (leagues.length === 1) {
+    return renderLeagueHome(leagues[0], res);
+  }
+
   res.render('public/home', { leagues });
 });
 
@@ -24,11 +40,7 @@ router.get('/league/:id', (req, res) => {
   const league = getLeague(db, req.params.id);
   if (!league) return res.status(404).render('404');
 
-  const standings = computeStandings(db, league.id);
-  const currentWeek = getCurrentWeek(db, league.id);
-  const thisWeekRounds = currentWeek ? getRoundsForWeek(db, league.id, currentWeek) : [];
-
-  res.render('public/league', { league, standings, currentWeek, thisWeekRounds });
+  renderLeagueHome(league, res);
 });
 
 router.get('/league/:id/teams', (req, res) => {

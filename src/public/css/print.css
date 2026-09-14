@@ -1,5 +1,5 @@
 @media print {
-  .no-print, .site-header, .site-footer, .top-tabs, .bottom-nav, .bottom-nav-spacer, .week-tabs { display: none !important; }
+  .no-print, .site-header, .site-footer, .app-nav, .week-tabs { display: none !important; }
   body { background: #fff; color: #000; }
   main { padding: 0; }
   .container { max-width: 100%; padding: 0; }

@@ -13,20 +13,11 @@ const icons = {
   bracket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H4v6h4M8 14H4v6h4M8 7h4v10H8"/><path d="M12 12h3a2 2 0 0 0 2-2V7M12 12h3a2 2 0 0 1 2 2v3"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/></svg>',
 };
 %>
-<nav class="top-tabs no-print">
-  <div class="container top-tabs-inner">
-    <% items.forEach(item => { %>
-      <a href="<%= item.href %>" class="<%= active === item.key ? 'active' : '' %>"><%= item.label %></a>
-    <% }) %>
-  </div>
-</nav>
-
-<nav class="bottom-nav no-print">
+<nav class="app-nav no-print">
   <% items.forEach(item => { %>
     <a href="<%= item.href %>" class="<%= active === item.key ? 'active' : '' %>">
-      <span class="bottom-nav-icon"><%- icons[item.key] %></span>
-      <span class="bottom-nav-label"><%= item.label %></span>
+      <span class="app-nav-icon"><%- icons[item.key] %></span>
+      <span class="app-nav-label"><%= item.label %></span>
     </a>
   <% }) %>
 </nav>
-<div class="bottom-nav-spacer no-print"></div>
