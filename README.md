@@ -7,106 +7,84 @@ Installable as a phone app (PWA). Node + Express + EJS + SQLite (built-in `node:
 
 ```bash
 npm install
-cp .env.example .env   # then edit ADMIN_PASSWORD and SESSION_SECRET
+cp .env.example .env   # then edit ADMIN_PASSWORD
 npm run dev
 ```
 
 Needs **Node.js 22.13 or newer** (24 LTS recommended). Public site: `http://localhost:3000`, admin: `/admin`.
 Tests: `npm test`.
 
-## Putting it online on RunCloud - step by step
+## Putting it online on RunCloud - no terminal needed
 
-**You upload one file:** `bream-bay-twilight-football-deploy.zip`. It already contains everything the app
-needs (no installing packages on the server) and none of your private data.
+**You upload one file:** `bream-bay-twilight-football-deploy.zip` (about 55 MB). It already contains the app,
+its packages, **and Node itself** (so nothing is installed on the server) - but none of your private data.
 
-**Before you start, have these ready:**
-- A web address for the app, e.g. `twilight.yourclub.nz` (a subdomain is easiest), and access to wherever
-  that domain's DNS is managed.
-- Your RunCloud login.
-- An admin password you choose: **10+ characters, letters and numbers only** (a dot, dash or underscore is
-  fine too), e.g. `KickOff-Wed-2026`.
+In these steps the web app is `kids-twilight` and its folder is `/home/runcloud/webapps/kids-twilight`.
+Use your own names/paths if they differ (File Manager shows the path at the top).
 
-### Step 1 - Point the web address at your server
-Where you manage the domain, add an **A record**: name `twilight` (or whatever you chose), value = your
-server's IP address (shown on the server's page in RunCloud). It can take a few minutes to an hour to work.
+### Step 1 - Point the web address at your server (DNS)
+Where you manage the domain, add an **A record** for your subdomain pointing at the server's IP address.
 
 ### Step 2 - Create the web app in RunCloud
-*Web Applications -> Create Web Application* -> choose **Empty Web App** (not "Script Installer" or
-"One-Click" - those are for ready-made apps like WordPress):
-- Name: `bream-bay` (anything)
-- Domain name: your address from step 1
-- System user: pick or create one, and **write its name down** - called `APPUSER` below
-- PHP version and database: ignore (the app uses neither)
-- Environment: Production -> *Deploy*
+*Web Applications -> Create Web Application -> **Empty Web App*** (not "Script Installer" or "One-Click").
+Choose a name, your domain and a system user. Ignore PHP and database. *Deploy*.
 
-### Step 3 - Connect website traffic to the app
-This is where the server type matters. (Do it before uploading.)
-
-**OpenLiteSpeed server** (RunCloud's docs: <https://runcloud.io/docs/install-and-run-nodejs>) - open the web
-app -> **LiteSpeed Config**, then:
-1. Find the block that starts `extprocessor something {` and **note down that name** (e.g. `bream-bay`).
-2. Inside that block, put a `#` at the start of the line beginning `type` and the line beginning `address`.
-3. Directly under those two lines, add:
+### Step 3 - Connect the web address to the app (OpenLiteSpeed server)
+Open the web app -> **LiteSpeed Config**:
+1. In the block `extprocessor kids-twilight { ... }`, put a `#` in front of the lines beginning `type` and `address`.
+2. Directly under them add:
    ```
    type                    proxy
    address                 127.0.0.1:3000
    ```
-4. Somewhere else in the file (not inside another `{ }` block), add - replacing `NAME` with the name from step 1:
+3. Outside any other `{ }` block add (use your extprocessor name after `handler`):
    ```
    context / {
      type                    proxy
-     handler                 NAME
+     handler                 kids-twilight
      addDefaultCharset       off
    }
    ```
-5. Click **Update Config** (this restarts OpenLiteSpeed).
+4. Click **Update Config**.
 
-**Nginx server** instead: web app -> *Settings -> NGINX Config -> Add a New Config -> Predefined Config ->
-Proxy configuration*, port **3000**, *Run and Debug*, then *Create Config*.
+(On an Nginx server instead: *Settings -> NGINX Config -> Add a New Config -> Predefined -> Proxy*, port 3000.)
 
-### Step 4 - Upload the app
-Open the web app -> **File Manager**. Upload `bream-bay-twilight-football-deploy.zip` into the web app's main
-folder (File Manager shows the path at the top - usually `/home/APPUSER/webapps/bream-bay`).
-Tick the zip file -> *Unzip* -> destination = that same folder.
-You should now see folders named `src`, `scripts` and `node_modules`, and a file called `package.json`.
+### Step 4 - Upload and unzip the app
+Web app -> **File Manager** -> upload the zip into the web app's main folder -> tick it -> *Unzip*.
+Afterwards `src`, `scripts`, `node_modules`, `node-runtime` and `package.json` must sit **directly inside the
+web app's main folder** (not inside another folder). If your Unzip box asks for a destination, use that folder.
 
-### Step 5 - Open a terminal on the server (one time only)
-RunCloud has no built-in terminal, so use one of these:
-- **Vultr** (if that's your host): Vultr dashboard -> your server -> *View Console*. Log in as `root`
-  (the password is on the server's Overview page).
-- **SSH from your PC**: open PowerShell and type `ssh root@YOUR-SERVER-IP`. RunCloud servers usually need an
-  SSH key added first (RunCloud's SSH key settings).
-
-If you get stuck on this step, that's normal - tell me what you see on screen.
-
-### Step 6 - Install Node (skip if `node -v` already shows v22.13 or higher)
-Paste these three lines, one after the other:
+### Step 5 - Create your settings file
+In File Manager, inside the same main folder, click **New File**, name it exactly `.env`, and put in it:
 ```
-curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
-apt-get install -y nodejs
-node -v
+NODE_ENV=production
+HOST=127.0.0.1
+PORT=3000
+ADMIN_PASSWORD=ChooseYourOwnPasswordHere
 ```
-The last one should print something like `v24.x.x`.
+Pick your own admin password: **10+ characters, letters and numbers only**. Save. (The app creates its own
+secret keys automatically.)
 
-### Step 7 - Run the one-command setup
-Replace `APPUSER` (twice) and the password, and use your app's folder if it differs:
-```
-cd /home/APPUSER/webapps/bream-bay
-node scripts/setup-production.js 'YOUR-PASSWORD' --user APPUSER
-```
-It creates your private settings (password plus a random session secret, stored in
-`/home/APPUSER/bream-bay-data/`), installs a service that keeps the app running (it restarts after crashes
-and server reboots), starts it, and prints **SUCCESS**. If it says port 3000 is already used by another app on
-your server, add `--port 3010` and use `3010` in step 3 too.
+### Step 6 - Start the app with RunCloud Supervisor
+RunCloud -> **Supervisor** -> create a job:
+- **Name:** `kids-twilight-app`
+- **Vendor Binary:** none / blank / custom (not a PHP version)
+- **Command:** (one line)
+  `/lib64/ld-linux-x86-64.so.2 /home/runcloud/webapps/kids-twilight/node-runtime/node /home/runcloud/webapps/kids-twilight/src/server.js`
+- **Directory:** `/home/runcloud/webapps/kids-twilight`
+- **User:** `runcloud` (the web app's system user)
+- **Auto start** and **Auto restart:** on
 
-### Step 8 - Turn on HTTPS
-Web app -> *SSL/TLS* -> *Let's Encrypt* -> *Deploy*. (This needs step 1's DNS to be working. HTTPS is what
-lets phones install it as an app.)
+Save. The job should show as running. It restarts itself after crashes and server reboots.
 
-### Step 9 - Check it
-- Open your address - you should see the site.
+### Step 7 - Turn on HTTPS
+Web app -> *SSL/TLS* -> *Let's Encrypt* -> *Deploy* (needs step 1's DNS working). HTTPS is what lets phones
+install it as an app.
+
+### Step 8 - Check it
+- Open your address - you should see the site (until a league is created it just says so).
 - Open `/admin` and log in with your password.
-- On a phone: open the site -> browser menu -> *Add to Home Screen*.
+- On a phone: browser menu -> *Add to Home Screen*.
 
 ## First-night setup (in `/admin`)
 
@@ -119,24 +97,28 @@ lets phones install it as an app.)
 
 ## After launch
 
-- **Updating the app**: upload the new zip over the old one (File Manager -> Unzip, overwrite), then in a
-  terminal run `systemctl restart bb-twilight`. Your data is stored outside the app folder, so it is untouched.
-- **Backups** (recommended): RunCloud -> *Cron Job* -> create a nightly job, running as `APPUSER`, with the command
-  `cd /home/APPUSER/webapps/bream-bay && node --env-file=/home/APPUSER/bream-bay-data/.env scripts/backup.js`
-  It keeps the latest 30 dated copies in `/home/APPUSER/bream-bay-data/backups`. Download that folder
-  occasionally.
+- **Updating the app**: upload the new zip over the old one (File Manager -> Unzip, overwrite), then in RunCloud
+  Supervisor restart the job. Your data lives in the `data` folder, which updates never touch.
+- **Backups** (recommended): RunCloud -> *Cron Job* -> nightly, user `runcloud`, command (one line)
+  `/lib64/ld-linux-x86-64.so.2 /home/runcloud/webapps/kids-twilight/node-runtime/node /home/runcloud/webapps/kids-twilight/scripts/backup.js`
+  It keeps the latest 30 dated copies in `data/backups`. Download that folder occasionally.
 
 ## If something goes wrong
 
-- **"502 Bad Gateway"** - the app isn't running. In the terminal: `systemctl status bb-twilight`, and
-  `journalctl -u bb-twilight -n 40 --no-pager` shows why.
-- **You see a RunCloud default page, not the app** - step 3 (the proxy) isn't set up, or the domain isn't
-  pointing at the server yet.
+- **502 Bad Gateway** - the app isn't running. Open the Supervisor job in RunCloud and look at its status/log.
+  Common causes: the settings file isn't named exactly `.env`, or the password is shorter than 10 characters
+  (the log then says so).
+- **You see a RunCloud default page, not the app** - step 3 isn't applied, or the domain isn't pointing at the
+  server yet.
 - **Login says "Too many failed attempts"** - ten wrong passwords locks an address out for 15 minutes.
-  If it happens to everybody, tell me (the proxy may not be passing visitors' addresses through). Restarting
-  the app also clears it.
-- **Forgot the admin password** - as root: `rm /home/APPUSER/bream-bay-data/.env`, run step 7 again with a new
-  password, and your data is kept.
+  Restarting the app clears it.
+- **Forgot the admin password** - edit `.env` in File Manager, then restart the Supervisor job. Data is kept.
+
+## Advanced: with a terminal instead
+
+If you have root SSH access you can instead install Node 22.13+ yourself and run
+`node scripts/setup-production.js 'PASSWORD' --user APPUSER`, which writes the settings and installs a
+systemd service.
 
 ## Good to know
 

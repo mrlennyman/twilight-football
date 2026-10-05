@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
+const { resolveDbPath } = require('../lib/paths');
 
-const dbPath = process.env.DATABASE_PATH || './data/bream-bay.sqlite';
-const resolvedPath = path.resolve(dbPath);
+const resolvedPath = resolveDbPath(process.env.DATABASE_PATH);
 fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
 
 const db = new DatabaseSync(resolvedPath);

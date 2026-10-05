@@ -1,11 +1,17 @@
-require('dotenv').config();
+const path = require('path');
+// Read settings from the app folder's .env whatever directory the app was started from.
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-const { ADMIN_PASSWORD, SESSION_SECRET, NODE_ENV } = process.env;
+const { resolveDbPath } = require('./lib/paths');
+const { ensureSessionSecret } = require('./lib/secrets');
 
-if (!ADMIN_PASSWORD || !SESSION_SECRET) {
-  console.error('ADMIN_PASSWORD and SESSION_SECRET must be set (see .env.example).');
+if (!process.env.ADMIN_PASSWORD) {
+  console.error('ADMIN_PASSWORD must be set (see .env.example).');
   process.exit(1);
 }
+ensureSessionSecret(process.env, resolveDbPath(process.env.DATABASE_PATH));
+
+const { ADMIN_PASSWORD, SESSION_SECRET, NODE_ENV } = process.env;
 
 if (NODE_ENV === 'production') {
   const placeholders = ['change-me', 'change-me-too'];
