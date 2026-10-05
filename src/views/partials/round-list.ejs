@@ -6,7 +6,7 @@
   <div class="round-block">
     <h3>
       <%= round.stage === 'group' ? 'Round ' + round.round_number : (round.matches.length > 1 ? 'Semi-finals' : 'Final') %>
-      <span class="muted"><%= round.date %> — <%= round.kickoff_time %></span>
+      <span class="muted"><%= formatDate(round.date) %> &middot; <%= formatTime(round.kickoff_time) %></span>
     </h3>
     <div class="match-list">
       <% round.matches.forEach(match => { %>

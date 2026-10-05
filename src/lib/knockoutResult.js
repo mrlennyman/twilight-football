@@ -31,7 +31,9 @@ function tryFillFinal(db, roundLeagueId, stage) {
     )
     .get(roundLeagueId, stage);
 
-  if (!final || final.home_team_id) return; // already filled
+  // Re-fill on every semi edit so a corrected score flows through, but never
+  // rewrite a final that has already been played.
+  if (!final || final.status === 'played') return;
 
   const semi1 = semis.find((m) => m.bracket_slot === 'semi_1');
   const semi2 = semis.find((m) => m.bracket_slot === 'semi_2');

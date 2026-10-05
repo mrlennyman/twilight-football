@@ -60,7 +60,8 @@ router.get('/league/:id/fixtures', (req, res) => {
   if (!league) return res.status(404).render('404');
 
   const weekNumbers = getWeekNumbers(db, league.id);
-  const selectedWeek = req.query.week ? Number(req.query.week) : weekNumbers[0];
+  const requestedWeek = Number.parseInt(req.query.week, 10);
+  const selectedWeek = weekNumbers.includes(requestedWeek) ? requestedWeek : weekNumbers[0];
   const rounds = selectedWeek ? getRoundsForWeek(db, league.id, selectedWeek) : [];
 
   res.render('public/fixtures', { league, weekNumbers, selectedWeek, rounds });

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bb-twilight-shell-v1';
+const CACHE_NAME = 'bb-twilight-shell-v2';
 const APP_SHELL = [
   '/css/style.css',
   '/css/print.css',
@@ -36,9 +36,21 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin || event.request.method !== 'GET') return;
 
   if (isStaticAsset(url)) {
-    // Cache-first: these rarely change, and it keeps the app-shell instant.
+    // Stale-while-revalidate: instant from cache, but always refresh in the
+    // background so a deploy reaches phones on their next visit (a pure
+    // cache-first strategy would pin old CSS forever).
     event.respondWith(
-      caches.match(event.request).then((cached) => cached || fetch(event.request))
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.match(event.request).then((cached) => {
+          const refreshed = fetch(event.request)
+            .then((response) => {
+              if (response.ok) cache.put(event.request, response.clone());
+              return response;
+            })
+            .catch(() => cached);
+          return cached || refreshed;
+        })
+      )
     );
     return;
   }
