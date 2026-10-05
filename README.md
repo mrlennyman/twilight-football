@@ -31,17 +31,38 @@ Where you manage the domain, add an **A record**: name `twilight` (or whatever y
 server's IP address (shown on the server's page in RunCloud). It can take a few minutes to an hour to work.
 
 ### Step 2 - Create the web app in RunCloud
-*Web Applications -> Create Web Application*:
+*Web Applications -> Create Web Application* -> choose **Empty Web App** (not "Script Installer" or
+"One-Click" - those are for ready-made apps like WordPress):
 - Name: `bream-bay` (anything)
 - Domain name: your address from step 1
 - System user: pick or create one, and **write its name down** - called `APPUSER` below
-- Stack: **Native NGINX + Custom Config**
+- PHP version and database: ignore (the app uses neither)
 - Environment: Production -> *Deploy*
 
 ### Step 3 - Connect website traffic to the app
-Open the web app -> *Settings -> NGINX Config -> Add a New Config -> Predefined Config ->
-Proxy configuration*. Enter port **3000**, click *Run and Debug*, then *Create Config*.
-(Do this before uploading, so the app's files are never shown as ordinary website files.)
+This is where the server type matters. (Do it before uploading.)
+
+**OpenLiteSpeed server** (RunCloud's docs: <https://runcloud.io/docs/install-and-run-nodejs>) - open the web
+app -> **LiteSpeed Config**, then:
+1. Find the block that starts `extprocessor something {` and **note down that name** (e.g. `bream-bay`).
+2. Inside that block, put a `#` at the start of the line beginning `type` and the line beginning `address`.
+3. Directly under those two lines, add:
+   ```
+   type                    proxy
+   address                 127.0.0.1:3000
+   ```
+4. Somewhere else in the file (not inside another `{ }` block), add - replacing `NAME` with the name from step 1:
+   ```
+   context / {
+     type                    proxy
+     handler                 NAME
+     addDefaultCharset       off
+   }
+   ```
+5. Click **Update Config** (this restarts OpenLiteSpeed).
+
+**Nginx server** instead: web app -> *Settings -> NGINX Config -> Add a New Config -> Predefined Config ->
+Proxy configuration*, port **3000**, *Run and Debug*, then *Create Config*.
 
 ### Step 4 - Upload the app
 Open the web app -> **File Manager**. Upload `bream-bay-twilight-football-deploy.zip` into the web app's main

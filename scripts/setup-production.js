@@ -124,7 +124,8 @@ async function main() {
 SUCCESS - the app is running on this server (port ${args.port}).
 
 Next in RunCloud:
-  1. Web app -> Settings -> NGINX Config -> Add a New Config -> Predefined -> Proxy, port ${args.port}
+  1. Send the web address to the app on port ${args.port} (see step 3 of the README: "LiteSpeed Config" on an
+     OpenLiteSpeed server, or "NGINX Config -> Proxy" on an Nginx server). Address: 127.0.0.1:${args.port}
   2. Web app -> SSL/TLS -> Let's Encrypt -> Deploy
   3. Open your site and log in at /admin with the password you just chose.
 
