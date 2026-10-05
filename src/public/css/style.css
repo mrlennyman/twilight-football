@@ -86,8 +86,8 @@ a { color: var(--wine-700); }
   margin-right: calc(50% - 50vw);
 }
 .app-nav a {
-  flex: 0 0 25%;
-  width: 25%;
+  flex: 1 1 0;
+  min-width: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -341,15 +341,20 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .inline-form input { padding: 6px; border: 1px solid var(--border); border-radius: 6px; }
 
-.link-button {
+/* Text-style buttons (log out, remove, delete). Selectors are as specific as the
+   generic pill-button rule above so they actually win. */
+button.link-button, form button[type="submit"].link-button {
   background: none;
-  border: none;
-  color: var(--error);
+  border-radius: 0;
+  color: var(--wine-700);
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
   font-size: 0.85rem;
+  font-weight: 400;
 }
+form button[type="submit"].link-button:hover { background: none; color: var(--wine-500); }
+button.link-button.danger, form button[type="submit"].link-button.danger { color: var(--error); }
 
 .admin-table { font-size: 0.95rem; }
 .admin-actions a { margin-right: 10px; font-size: 0.85rem; }
@@ -363,6 +368,42 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 .error { color: var(--error); }
+
+/* ---------- Info pages ---------- */
+.info-list { list-style: none; padding: 0; }
+.info-list li { margin-bottom: 10px; }
+.info-list a {
+  display: block;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--wine-900);
+}
+.page-title { margin-top: 4px; }
+.prose { max-width: 680px; line-height: 1.6; }
+.prose h2 { margin: 1.4em 0 0.4em; font-size: 1.25rem; }
+.prose h3 { margin: 1.3em 0 0.3em; font-size: 1.05rem; color: var(--wine-700); }
+.prose p { margin: 0 0 0.9em; }
+.prose ul, .prose ol { margin: 0 0 1em; padding-left: 1.3em; }
+.prose li { margin-bottom: 0.35em; }
+.admin-form-wide { max-width: 760px; }
+.admin-form textarea {
+  width: 100%;
+  min-height: 360px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.admin-form .check-row { flex-direction: row; align-items: center; gap: 8px; }
+.admin-form .check-row input { width: auto; }
+.help { font-size: 0.82rem; color: var(--muted); margin: 0; }
 
 .bracket {
   display: flex;

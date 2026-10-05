@@ -1,0 +1,12 @@
+<%- include('../partials/header', { title: page.title }) %>
+<%- include('../partials/nav', { league, active: 'info' }) %>
+
+<% if (preview && !page.published) { %>
+  <div class="callout"><strong>Draft preview.</strong> Parents can't see this page until you tick <em>Published</em>.</div>
+<% } %>
+
+<p><a href="/league/<%= league.id %>/info">&larr; All info</a></p>
+<h2 class="page-title"><%= page.title %></h2>
+<div class="prose"><%- html %></div>
+
+<%- include('../partials/footer') %>

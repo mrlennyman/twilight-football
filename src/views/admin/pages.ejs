@@ -1,0 +1,45 @@
+<%- include('../partials/header', { title: league.name + ' — Info pages' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Info pages</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p class="muted">Rules, referee guide, parent code of conduct - anything you want families to read. Pages stay hidden from the public until you tick <strong>Published</strong>. The <em>Info</em> tab appears on the site once one page is published.</p>
+
+<% if (pages.length === 0) { %>
+  <form method="POST" action="/admin/league/<%= league.id %>/pages/seed" class="admin-form">
+    <p>No pages yet. Start with drafts for <strong>Rules</strong>, <strong>Referee guide</strong> and <strong>Parents and supporters</strong> - you can edit or delete them.</p>
+    <button type="submit">Add the starter pages (as drafts)</button>
+  </form>
+<% } else { %>
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead><tr><th>Order</th><th>Title</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% pages.forEach(page => { %>
+        <tr>
+          <td><%= page.sort_order %></td>
+          <td><%= page.title %></td>
+          <td><span class="tag <%= page.published ? 'tag-in_progress' : 'tag-setup' %>"><%= page.published ? 'Published' : 'Draft' %></span></td>
+          <td class="admin-actions">
+            <a href="/admin/league/<%= league.id %>/pages/<%= page.id %>/edit">Edit</a>
+            <a href="/admin/league/<%= league.id %>/pages/<%= page.id %>/preview">Preview</a>
+            <form method="POST" action="/admin/league/<%= league.id %>/pages/<%= page.id %>/delete" class="inline-form" onsubmit="return confirm('Delete this page?')">
+              <button type="submit" class="link-button danger">delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+<% } %>
+
+<h2>Add a page</h2>
+<form method="POST" action="/admin/league/<%= league.id %>/pages" class="admin-form">
+  <label>Page title
+    <input type="text" name="title" maxlength="80" placeholder="e.g. Game day rules" required>
+  </label>
+  <button type="submit">Create draft page</button>
+</form>
+
+<%- include('../partials/footer') %>

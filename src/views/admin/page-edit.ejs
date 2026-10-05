@@ -1,0 +1,31 @@
+<%- include('../partials/header', { title: 'Edit ' + page.title }) %>
+<div class="admin-bar">
+  <h1>Edit page</h1>
+  <a href="/admin/league/<%= league.id %>/pages">&larr; All pages</a>
+</div>
+
+<% if (saved) { %><p class="callout">Saved. <a href="/admin/league/<%= league.id %>/pages/<%= page.id %>/preview">Preview it</a></p><% } %>
+
+<form method="POST" action="/admin/league/<%= league.id %>/pages/<%= page.id %>" class="admin-form admin-form-wide">
+  <label>Title
+    <input type="text" name="title" value="<%= page.title %>" maxlength="80" required>
+  </label>
+  <label>Page text
+    <textarea name="body" maxlength="20000"><%= page.body %></textarea>
+  </label>
+  <p class="help">
+    Formatting: <code># Big heading</code> &middot; <code>## Smaller heading</code> &middot; start a line with
+    <code>- </code> for bullets or <code>1. </code> for numbers &middot; <code>**bold**</code> &middot;
+    <code>[link text](https://example.com)</code>. A blank line starts a new paragraph.
+  </p>
+  <label>Order on the Info page (lower shows first)
+    <input type="number" name="sort_order" value="<%= page.sort_order %>" min="0" max="999">
+  </label>
+  <label class="check-row">
+    <input type="checkbox" name="published" <%= page.published ? 'checked' : '' %>>
+    Published (visible to parents)
+  </label>
+  <button type="submit">Save</button>
+</form>
+
+<%- include('../partials/footer') %>

@@ -14,15 +14,22 @@ npm run dev
 Needs **Node.js 22.13 or newer** (24 LTS recommended). Public site: `http://localhost:3000`, admin: `/admin`.
 Tests: `npm test`.
 
-## Deploying to a server
+## Deploying on RunCloud
 
-You need a Linux server with **Node 22.13+** (24 LTS is best), a domain or subdomain pointing at it,
-and HTTPS (a Let's Encrypt certificate - the phone "install as app" feature only works over HTTPS).
+You need a RunCloud-managed server, a domain or subdomain pointing at it, and SSH access.
+HTTPS matters: the phone "install as app" feature only works over HTTPS.
 
-1. **Upload the code** (the zip from `git archive`, or `git clone`) to e.g. `/home/APPUSER/bream-bay/app`.
-   Don't upload `node_modules`, `.env` or `data/`.
-2. **Install**: `cd app && npm ci --omit=dev`
-3. **Create `/home/APPUSER/bream-bay/.env`** (outside the app folder) - see `.env.example`:
+Throughout, `APPUSER` is the system user the web app runs as and `APP` is the web app's folder.
+
+1. **Create the web application** in RunCloud: *Web Applications -> Create*, choose the stack
+   **Native NGINX + Custom Config**, set the domain and user, mode *Production*. Leave it empty.
+2. **Install Node 22.13 or newer over SSH** (24 LTS is best). RunCloud documents the NodeSource method:
+   <https://runcloud.io/docs/install-and-run-nodejs> - their example installs Node 20, so set
+   `NODE_MAJOR=24` instead. Check with `node -v`.
+3. **Upload the code**: unzip `bream-bay-twilight-football-deploy.zip` into the web app's folder
+   (File Manager or SFTP). It contains no passwords, no data and no `node_modules`.
+4. **Install**: `cd APP && npm ci --omit=dev`
+5. **Create `/home/APPUSER/bream-bay/.env`** (outside the app folder - `mkdir -p /home/APPUSER/bream-bay/data`):
    ```
    NODE_ENV=production
    HOST=127.0.0.1
@@ -32,33 +39,38 @@ and HTTPS (a Let's Encrypt certificate - the phone "install as app" feature only
    DATABASE_PATH=/home/APPUSER/bream-bay/data/bream-bay.sqlite
    ```
    In production the app refuses to start with weak or placeholder secrets. The database lives
-   outside the app folder so re-uploading new code never touches your data.
-4. **Keep it running** with PM2 (or a systemd service / your panel's Node app feature):
-   ```bash
-   npm i -g pm2
-   pm2 start src/server.js --name bb-twilight --node-args="--env-file=/home/APPUSER/bream-bay/.env"
-   pm2 save && pm2 startup     # restart on reboot
-   ```
-   (`--env-file` needs Node 20.6+. Alternatively run from a folder containing the `.env`.)
-5. **Reverse proxy**: point the domain at `http://127.0.0.1:3000` (Nginx `proxy_pass`), and make sure
-   it sends `X-Forwarded-Proto` and `X-Forwarded-For` (the standard `proxy_set_header` lines).
-   Enable HTTPS on that site. The app trusts one proxy hop.
-6. **Backups**: nightly cron, e.g.
-   `15 2 * * * cd /home/APPUSER/bream-bay/app && node --env-file=/home/APPUSER/bream-bay/.env scripts/backup.js`
-   (writes dated snapshots to a `backups/` folder next to the database, keeping the latest 30; safe to
-   run while the app is live). Copy that folder off the server occasionally.
-7. **Updating later**: upload the new code, `npm ci --omit=dev`, `pm2 restart bb-twilight`.
-   Phones pick up new CSS/JS on their next visit.
+   outside the app folder so uploading new code never touches your data.
+6. **Keep it running** with a RunCloud **Supervisor** job (or PM2 if you prefer):
+   user `APPUSER`, directory = the app folder, command
+   `node --env-file=/home/APPUSER/bream-bay/.env src/server.js`
+   (use the full path from `which node` if the job can't find `node`).
+7. **Proxy the domain to it**: open the web app -> *Settings -> NGINX Config -> Add a New Config ->
+   Predefined Config -> Proxy configuration*, enter port `3000`, then *Run and Debug* and *Create Config*.
+   Then turn on the free Let's Encrypt certificate for the web app in RunCloud's SSL settings.
+8. **Backups**: add a RunCloud *Cron Job* (nightly) running
+   `cd /home/APPUSER/APP && node --env-file=/home/APPUSER/bream-bay/.env scripts/backup.js`
+   (writes dated snapshots into `/home/APPUSER/bream-bay/data/backups`, keeping the latest 30; safe while
+   the app is live). Copy that folder off the server occasionally.
+9. **Updating later**: upload the new code over the old, `npm ci --omit=dev`, restart the Supervisor job.
+   Phones pick up changes on their next visit.
 
-### First-night setup (in `/admin`)
+If login ever says "Too many failed attempts" for everyone, the proxy isn't passing the visitor's address
+through (`X-Forwarded-For`), so all visitors look like one address. Restarting the app clears it; tell me
+and I'll adjust the proxy config.
 
-1. Create the league (8 teams, 4 pitches, 3 rounds/week) - teams start as "Team 1-8"; rename them any time.
-2. **Schedule** -> first match night, first kickoff time, minutes per round -> *Generate*.
-   Renaming teams or adding players afterwards is fine; *regenerating* the schedule wipes results.
-3. Enter results under **Results**; when the group stage is done, generate the Cup/Plate brackets.
+## First-night setup (in `/admin`)
 
-### Good to know
+1. **Create the league** (8 teams, 4 pitches, 3 rounds per week). Teams start as "Team 1-8"; rename them any time.
+2. **Schedule** -> first match night, then *Generate*. Renaming teams afterwards is fine;
+   *regenerating* the schedule wipes all results.
+3. **Info pages** -> add the starter pages (Rules, Referee guide, Parents and supporters) as drafts, edit them,
+   and tick *Published* when ready. The *Info* tab only appears on the public site once something is published.
+4. Enter scores under **Results**; when the group stage is done, generate the Cup/Plate brackets.
 
+## Good to know
+
+- Match times aren't shown to parents - just the date and round order. The first kickoff and minutes between
+  rounds are still stored on record, ready if a later league needs them shown.
 - The admin is logged out when the app restarts (sessions are in memory). Ten wrong passwords locks
   an IP out of login for 15 minutes.
 - Public pages show players as first name + last initial only.

@@ -1,0 +1,15 @@
+<%- include('../partials/header', { title: league.name + ' — Info' }) %>
+<%- include('../partials/nav', { league, active: 'info' }) %>
+
+<h2>Info</h2>
+<% if (pages.length === 0) { %>
+  <p class="muted">Nothing here yet.</p>
+<% } else { %>
+  <ul class="info-list">
+    <% pages.forEach(page => { %>
+      <li><a href="/league/<%= league.id %>/info/<%= page.slug %>"><%= page.title %></a></li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('../partials/footer') %>

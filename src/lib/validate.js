@@ -55,7 +55,21 @@ function parseScheduleInput(body) {
   };
 }
 
+function parsePageInput(body) {
+  const errors = [];
+  const title = String(body.title ?? '').trim();
+  const text = String(body.body ?? '').replace(/\r\n?/g, '\n');
+  const sortOrder = parsePositiveInt(body.sort_order || '0', { min: 0, max: 999 });
+
+  if (!title || title.length > 80) errors.push('Page title is required (max 80 characters).');
+  if (text.length > 20000) errors.push('Page text is too long (max 20,000 characters).');
+  if (sortOrder === null) errors.push('Order must be a number between 0 and 999.');
+
+  return { errors, value: { title, body: text, sortOrder, published: body.published === 'on' } };
+}
+
 module.exports = {
+  parsePageInput,
   parseScore,
   parsePositiveInt,
   isValidDate,

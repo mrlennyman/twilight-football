@@ -10,11 +10,11 @@
     <label>First match night
       <input type="date" name="start_date" required>
     </label>
-    <label>Kickoff time (first round of the night)
+    <label>First kickoff of the night (kept on record, not shown to parents)
       <input type="time" name="kickoff_start_time" value="17:00" required>
     </label>
-    <label>Minutes per round (time between kickoffs)
-      <input type="number" name="slot_minutes" value="45" min="10" required>
+    <label>Minutes between rounds
+      <input type="number" name="slot_minutes" value="15" min="10" required>
     </label>
     <button type="submit">Generate schedule</button>
   </form>
@@ -22,7 +22,7 @@
   <p class="muted">Schedule generated. Enter results on the <a href="/admin/league/<%= league.id %>/results">Results</a> page.</p>
 
   <details>
-    <summary>Regenerate schedule (this deletes all group-stage matches and results entered so far)</summary>
+    <summary>Regenerate schedule (this deletes every match, result and Cup/Plate bracket so far)</summary>
     <form method="POST" action="/admin/league/<%= league.id %>/schedule/generate" class="admin-form">
       <label>First match night
         <input type="date" name="start_date" value="<%= league.start_date %>" required>

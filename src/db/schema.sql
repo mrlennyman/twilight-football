@@ -61,6 +61,17 @@ CREATE TABLE IF NOT EXISTS tie_breaks (
   winner_team_id INTEGER NOT NULL REFERENCES teams(id)
 );
 
+CREATE TABLE IF NOT EXISTS pages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  slug TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  published INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (league_id, slug)
+);
+
 CREATE INDEX IF NOT EXISTS idx_teams_league ON teams(league_id);
 CREATE INDEX IF NOT EXISTS idx_players_team ON players(team_id);
 CREATE INDEX IF NOT EXISTS idx_rounds_league ON rounds(league_id);

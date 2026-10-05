@@ -5,8 +5,17 @@ const { createLimiter } = require('../middleware/loginLimiter');
 const { computeStandings, groupStageComplete } = require('../lib/standings');
 const { generateGroupStageSchedule, generateKnockoutBracket, addDays } = require('../lib/schedule');
 const { tryFillFinal } = require('../lib/knockoutResult');
-const { parseScore, parseLeagueInput, parseScheduleInput } = require('../lib/validate');
 const {
+  parseScore,
+  parseLeagueInput,
+  parseScheduleInput,
+  parsePageInput,
+} = require('../lib/validate');
+const { createPage, seedStarterPages } = require('../lib/pages');
+const { renderMarkup } = require('../lib/markup');
+const {
+  getPages,
+  getPageById,
   getAllLeagues,
   getLeague,
   getTeams,
@@ -108,6 +117,7 @@ router.post('/leagues', (req, res) => {
     for (let i = 1; i <= value.numTeams; i++) {
       insertTeam.run(info.lastInsertRowid, `Team ${i}`);
     }
+    seedStarterPages(db, Number(info.lastInsertRowid));
     return info.lastInsertRowid;
   });
 
@@ -442,6 +452,71 @@ function isBracketComplete(leagueId, stage) {
     .get(leagueId, stage);
   return counts.total > 0 && counts.played === counts.total;
 }
+
+// ---------- Info pages (rules, referee guide, parents...) ----------
+
+router.get('/league/:id/pages', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  res.render('admin/pages', { league, pages: getPages(db, league.id) });
+});
+
+router.post('/league/:id/pages/seed', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  if (getPages(db, league.id).length === 0) seedStarterPages(db, league.id);
+  res.redirect(`/admin/league/${league.id}/pages`);
+});
+
+router.post('/league/:id/pages', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+
+  const { errors, value } = parsePageInput({ title: req.body.title });
+  if (errors.length) return fail(res, errors.join(' '));
+
+  const last = getPages(db, league.id).reduce((max, p) => Math.max(max, p.sort_order), 0);
+  const pageId = createPage(db, league.id, { title: value.title, sortOrder: Math.min(last + 10, 999) });
+  res.redirect(`/admin/league/${league.id}/pages/${pageId}/edit`);
+});
+
+router.get('/league/:id/pages/:pageId/edit', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  const page = league && getPageById(db, league.id, Number(req.params.pageId));
+  if (!page) return res.status(404).render('404');
+  res.render('admin/page-edit', { league, page, saved: req.query.saved === '1' });
+});
+
+router.get('/league/:id/pages/:pageId/preview', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  const page = league && getPageById(db, league.id, Number(req.params.pageId));
+  if (!page) return res.status(404).render('404');
+  res.locals.infoCount = 1; // so the Info tab shows while previewing a draft
+  res.render('public/page', { league, page, html: renderMarkup(page.body), preview: true });
+});
+
+router.post('/league/:id/pages/:pageId', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  const page = league && getPageById(db, league.id, Number(req.params.pageId));
+  if (!page) return res.status(404).render('404');
+
+  const { errors, value } = parsePageInput(req.body);
+  if (errors.length) return fail(res, errors.join(' '));
+
+  // The slug is left alone so a published page's link never changes.
+  db.prepare(
+    'UPDATE pages SET title = ?, body = ?, sort_order = ?, published = ? WHERE id = ? AND league_id = ?'
+  ).run(value.title, value.body, value.sortOrder, value.published ? 1 : 0, page.id, league.id);
+  res.redirect(`/admin/league/${league.id}/pages/${page.id}/edit?saved=1`);
+});
+
+router.post('/league/:id/pages/:pageId/delete', (req, res) => {
+  db.prepare('DELETE FROM pages WHERE id = ? AND league_id = ?').run(
+    Number(req.params.pageId),
+    Number(req.params.id)
+  );
+  res.redirect(`/admin/league/${req.params.id}/pages`);
+});
 
 // ---------- Print views ----------
 

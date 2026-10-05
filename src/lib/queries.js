@@ -78,6 +78,29 @@ function getCurrentWeek(db, leagueId) {
   return lastWeek ? lastWeek.week : null;
 }
 
+function getPages(db, leagueId, { publishedOnly = false } = {}) {
+  return db
+    .prepare(
+      `SELECT * FROM pages WHERE league_id = ? ${publishedOnly ? 'AND published = 1' : ''}
+       ORDER BY sort_order, id`
+    )
+    .all(leagueId);
+}
+
+function getPageById(db, leagueId, pageId) {
+  return db.prepare('SELECT * FROM pages WHERE id = ? AND league_id = ?').get(pageId, leagueId);
+}
+
+function getPublishedPageBySlug(db, leagueId, slug) {
+  return db
+    .prepare('SELECT * FROM pages WHERE league_id = ? AND slug = ? AND published = 1')
+    .get(leagueId, slug);
+}
+
+function countPublishedPages(db, leagueId) {
+  return db.prepare('SELECT COUNT(*) AS c FROM pages WHERE league_id = ? AND published = 1').get(leagueId).c;
+}
+
 /** "Jack Brown" -> "Jack B." for the public roster page. */
 function firstNameLastInitial(fullName) {
   const parts = String(fullName).trim().split(/\s+/);
@@ -97,5 +120,9 @@ module.exports = {
   getRoundsForWeek,
   getWeekNumbers,
   getCurrentWeek,
+  getPages,
+  getPageById,
+  getPublishedPageBySlug,
+  countPublishedPages,
   firstNameLastInitial,
 };
