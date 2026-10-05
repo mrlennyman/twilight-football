@@ -16,7 +16,7 @@ Tests: `npm test`.
 
 ## Putting it online on RunCloud - no terminal needed
 
-**You upload one file:** `bream-bay-twilight-football-deploy.zip` (about 55 MB). It already contains the app,
+**You upload one file:** `bream-bay-twilight-football-deploy.zip` (about 45 MB). It already contains the app,
 its packages, **and Node itself** (so nothing is installed on the server) - but none of your private data.
 
 In these steps the web app is `kids-twilight` and its folder is `/home/runcloud/webapps/kids-twilight`.
