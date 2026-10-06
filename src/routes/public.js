@@ -12,22 +12,22 @@ const {
   getCurrentWeek,
   getPages,
   getPublishedPageBySlug,
-  countPublishedPages,
+  getNavCounts,
   firstNameLastInitial,
 } = require('../lib/queries');
 const { renderMarkup } = require('../lib/markup');
 
 const router = express.Router();
 
-// The "Info" tab only appears once at least one info page is published.
+// The menu needs to know whether Info pages / knockouts exist (see lib/navTabs.js).
 router.param('id', (req, res, next, id) => {
   const leagueId = Number.parseInt(id, 10);
-  res.locals.infoCount = Number.isInteger(leagueId) ? countPublishedPages(db, leagueId) : 0;
+  res.locals.navCounts = Number.isInteger(leagueId) ? getNavCounts(db, leagueId) : {};
   next();
 });
 
 function renderLeagueHome(league, res) {
-  res.locals.infoCount = countPublishedPages(db, league.id);
+  res.locals.navCounts = getNavCounts(db, league.id);
   const standings = computeStandings(db, league.id);
   const currentWeek = getCurrentWeek(db, league.id);
   const thisWeekRounds = currentWeek ? getRoundsForWeek(db, league.id, currentWeek) : [];

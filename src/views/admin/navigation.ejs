@@ -1,0 +1,40 @@
+<%- include('../partials/header', { title: league.name + ' — Menu' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Menu</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p class="muted">The tabs parents see under the header. Choose which ones show, rename them, and set the order (1 shows first). A hidden tab's page still works if someone has the link - it just isn't in the menu.</p>
+
+<% if (saved) { %><p class="callout">Saved. <a href="/league/<%= league.id %>" target="_blank">See the public site</a></p><% } %>
+
+<form method="POST" action="/admin/league/<%= league.id %>/navigation" class="admin-form admin-form-wide">
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead><tr><th>Tab</th><th>Show it?</th><th>Name in the menu</th><th>Position</th></tr></thead>
+    <tbody>
+      <% const modeLabels = { show: 'Show', hide: 'Hide', auto: 'Auto' }; %>
+      <% tabs.forEach(tab => { %>
+        <tr>
+          <td><%= tab.defaultLabel %></td>
+          <td>
+            <select name="mode_<%= tab.key %>">
+              <% tab.modes.forEach(mode => { %>
+                <option value="<%= mode %>" <%= tab.mode === mode ? 'selected' : '' %>><%= modeLabels[mode] %></option>
+              <% }) %>
+            </select>
+          </td>
+          <td><input type="text" name="label_<%= tab.key %>" value="<%= tab.label %>" maxlength="20" required></td>
+          <td><input type="number" name="order_<%= tab.key %>" value="<%= tab.order %>" min="1" max="99" required></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+  <p class="help">
+    <strong>Auto</strong> on <em>Cup/Plate</em> shows the tab only once the Cup and Plate games have been drawn.
+    <strong>Auto</strong> on <em>Info</em> shows it only while at least one Info page is published.
+  </p>
+  <button type="submit">Save menu</button>
+</form>
+
+<%- include('../partials/footer') %>

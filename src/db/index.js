@@ -29,6 +29,10 @@ db.transaction = function transaction(fn) {
 const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 db.exec(schema);
 
+// Databases created before a column existed: CREATE TABLE IF NOT EXISTS won't add it.
+const leagueColumns = db.prepare('PRAGMA table_info(leagues)').all().map((c) => c.name);
+if (!leagueColumns.includes('nav_tabs')) db.exec('ALTER TABLE leagues ADD COLUMN nav_tabs TEXT');
+
 const pitchCount = db.prepare('SELECT COUNT(*) AS count FROM pitches').get().count;
 if (pitchCount === 0) {
   const insertPitch = db.prepare('INSERT INTO pitches (label) VALUES (?)');

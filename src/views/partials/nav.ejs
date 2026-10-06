@@ -1,15 +1,7 @@
 <%
-// Expects: league, active ('standings' | 'teams' | 'fixtures' | 'bracket')
-const items = [
-  { key: 'standings', label: 'Standings', href: `/league/${league.id}` },
-  { key: 'teams', label: 'Teams', href: `/league/${league.id}/teams` },
-  { key: 'fixtures', label: 'Fixtures', href: `/league/${league.id}/fixtures` },
-  { key: 'bracket', label: 'Cup/Plate', href: `/league/${league.id}/bracket` },
-];
-// Only show "Info" once at least one info page has been published.
-if (typeof infoCount !== 'undefined' && infoCount > 0) {
-  items.push({ key: 'info', label: 'Info', href: `/league/${league.id}/info` });
-}
+// Expects: league, active ('standings' | 'teams' | 'fixtures' | 'bracket' | 'info').
+// Which tabs show (and their names/order) is set per league in Admin > Menu.
+const items = resolveNavTabs(league, typeof navCounts !== 'undefined' ? navCounts : {});
 const icons = {
   standings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',
   teams: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.2c2.6.5 4.5 2.6 4.5 5.3"/></svg>',

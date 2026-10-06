@@ -3,6 +3,7 @@ const express = require('express');
 const session = require('express-session');
 
 const { formatDate, formatTime } = require('./lib/format');
+const { resolveNavTabs } = require('./lib/navTabs');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
 
@@ -35,6 +36,7 @@ app.use(
 app.locals.appName = 'Bream Bay Twilight Football';
 app.locals.formatDate = formatDate;
 app.locals.formatTime = formatTime;
+app.locals.resolveNavTabs = resolveNavTabs;
 
 app.use('/', publicRoutes);
 app.use('/admin', adminRoutes);

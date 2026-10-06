@@ -24,7 +24,9 @@ const {
   getRoundsWithMatches,
   getRoundsForWeek,
   getWeekNumbers,
+  getNavCounts,
 } = require('../lib/queries');
+const { getNavSettings, parseNavInput } = require('../lib/navTabs');
 
 const router = express.Router();
 
@@ -453,6 +455,23 @@ function isBracketComplete(leagueId, stage) {
   return counts.total > 0 && counts.played === counts.total;
 }
 
+// ---------- Public menu (which tabs show, their names and order) ----------
+
+router.get('/league/:id/navigation', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  res.render('admin/navigation', { league, tabs: getNavSettings(league), saved: req.query.saved === '1' });
+});
+
+router.post('/league/:id/navigation', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const { errors, value } = parseNavInput(req.body);
+  if (errors.length) return fail(res, errors.join(' '));
+  db.prepare('UPDATE leagues SET nav_tabs = ? WHERE id = ?').run(value, league.id);
+  res.redirect(`/admin/league/${league.id}/navigation?saved=1`);
+});
+
 // ---------- Info pages (rules, referee guide, parents...) ----------
 
 router.get('/league/:id/pages', (req, res) => {
@@ -491,7 +510,7 @@ router.get('/league/:id/pages/:pageId/preview', (req, res) => {
   const league = getLeague(db, req.params.id);
   const page = league && getPageById(db, league.id, Number(req.params.pageId));
   if (!page) return res.status(404).render('404');
-  res.locals.infoCount = 1; // so the Info tab shows while previewing a draft
+  res.locals.navCounts = { ...getNavCounts(db, league.id), info: 1 }; // so the Info tab shows while previewing a draft
   res.render('public/page', { league, page, html: renderMarkup(page.body), preview: true });
 });
 

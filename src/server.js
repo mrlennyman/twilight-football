@@ -41,3 +41,18 @@ const server = app.listen(port, host, () => {
 // (typically a Save after a pause), which the proxy reports as a 502. Outlast the proxy.
 server.keepAliveTimeout = 65 * 1000;
 server.headersTimeout = 66 * 1000;
+
+// After a Git deploy the files on disk are new but this process is still running the old code.
+// Exit once the update has settled and the host's process supervisor starts a fresh copy.
+// (Non-zero exit so a supervisor that only restarts "unexpected" exits still does.)
+if (NODE_ENV === 'production' && process.env.AUTO_RESTART !== '0') {
+  const root = path.join(__dirname, '..');
+  require('./lib/autoRestart').watchForUpdates({
+    targets: [path.join(root, 'src'), path.join(root, 'package.json')],
+    onChange: () => {
+      console.log('New code detected - restarting to load it.');
+      server.close(() => process.exit(1));
+      setTimeout(() => process.exit(1), 5000).unref();
+    },
+  });
+}

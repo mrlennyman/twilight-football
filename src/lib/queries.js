@@ -101,6 +101,17 @@ function countPublishedPages(db, leagueId) {
   return db.prepare('SELECT COUNT(*) AS c FROM pages WHERE league_id = ? AND published = 1').get(leagueId).c;
 }
 
+function countKnockoutRounds(db, leagueId) {
+  return db
+    .prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate')")
+    .get(leagueId).c;
+}
+
+/** What the public menu needs to decide which tabs to show. */
+function getNavCounts(db, leagueId) {
+  return { info: countPublishedPages(db, leagueId), knockouts: countKnockoutRounds(db, leagueId) };
+}
+
 /** "Jack Brown" -> "Jack B." for the public roster page. */
 function firstNameLastInitial(fullName) {
   const parts = String(fullName).trim().split(/\s+/);
@@ -124,5 +135,7 @@ module.exports = {
   getPageById,
   getPublishedPageBySlug,
   countPublishedPages,
+  countKnockoutRounds,
+  getNavCounts,
   firstNameLastInitial,
 };

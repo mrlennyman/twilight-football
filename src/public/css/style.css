@@ -425,3 +425,18 @@ button.link-button.danger, form button[type="submit"].link-button.danger { color
 @media (max-width: 600px) {
   .fixtures-table th:nth-child(1), .fixtures-table td:nth-child(1) { display: none; }
 }
+
+/* Public Teams page on phones: 2 columns, 3 once the screen is a little wider */
+@media (max-width: 600px) {
+  .team-grid-public {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .team-grid-public .team-card { padding: 10px; }
+  .team-grid-public .team-card h3 { font-size: 0.95rem; overflow-wrap: anywhere; }
+  .team-grid-public .roster li { font-size: 0.85rem; padding: 3px 0; overflow-wrap: anywhere; }
+  .team-grid-public .muted { font-size: 0.75rem; }
+}
+@media (min-width: 480px) and (max-width: 600px) {
+  .team-grid-public { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

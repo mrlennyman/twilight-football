@@ -1,6 +1,10 @@
-node_modules/
+# Never commit secrets or the live database
 .env
+data/
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+
+# Linux Node runtime kept on the server only (too big for GitHub)
+node-runtime/
