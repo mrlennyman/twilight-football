@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bb-twilight-shell-v3';
+const CACHE_NAME = 'bb-twilight-shell-v4';
 const APP_SHELL = [
   '/css/style.css',
   '/css/print.css',
@@ -93,7 +93,8 @@ self.addEventListener('fetch', (event) => {
               if (response.ok) cache.put(request, response.clone());
               return response;
             })
-            .catch(() => cached);
+            // Offline: any saved copy will do, even one stored under an older ?v= fingerprint.
+            .catch(() => cached || cache.match(request, { ignoreSearch: true }));
           return cached || refreshed;
         })
       )

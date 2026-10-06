@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
@@ -36,6 +38,15 @@ app.use(
 app.locals.appName = 'Bream Bay Twilight Football';
 app.locals.formatDate = formatDate;
 app.locals.formatTime = formatTime;
+
+// Stylesheet/script URLs carry a fingerprint of their contents, so after a deploy every browser
+// (and Cloudflare) fetches the new file instead of reusing a copy cached for hours.
+const publicDir = path.join(__dirname, 'public');
+const fingerprint = crypto.createHash('md5');
+for (const file of ['css/style.css', 'css/print.css', 'js/register-sw.js']) {
+  fingerprint.update(fs.readFileSync(path.join(publicDir, file)));
+}
+app.locals.assetVersion = fingerprint.digest('hex').slice(0, 10);
 app.locals.resolveNavTabs = resolveNavTabs;
 
 app.use('/', publicRoutes);

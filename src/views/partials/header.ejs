@@ -13,9 +13,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BB Twilight">
 
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=<%= assetVersion %>">
   <% if (typeof printCss !== 'undefined' && printCss) { %>
-    <link rel="stylesheet" href="/css/print.css" media="all">
+    <link rel="stylesheet" href="/css/print.css?v=<%= assetVersion %>" media="all">
   <% } %>
 </head>
 <body>
