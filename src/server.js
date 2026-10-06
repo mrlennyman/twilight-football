@@ -32,6 +32,12 @@ const port = process.env.PORT || 3000;
 // production so only the reverse proxy can reach the app.
 const host = process.env.HOST || '0.0.0.0';
 
-app.listen(port, host, () => {
+const server = app.listen(port, host, () => {
   console.log(`Bream Bay Twilight Football running at http://${host}:${port}`);
 });
+
+// Behind a reverse proxy (OpenLiteSpeed/Nginx) that keeps connections open and reuses them:
+// Node's default 5s idle timeout can close one just as the proxy sends the next request
+// (typically a Save after a pause), which the proxy reports as a 502. Outlast the proxy.
+server.keepAliveTimeout = 65 * 1000;
+server.headersTimeout = 66 * 1000;

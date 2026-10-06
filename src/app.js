@@ -44,9 +44,16 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err);
   if (res.headersSent) return next(err);
-  res.status(500).send('Something went wrong. Please try again.');
+  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 600 ? err.status : 500;
+  if (status >= 500) console.error(err);
+  const message =
+    status === 413
+      ? 'That is too much text to save in one go (the limit is about 100 KB). Please shorten it.'
+      : status >= 500
+        ? 'Something went wrong. Please try again.'
+        : 'That request could not be understood. Please go back and try again.';
+  res.status(status).send(message);
 });
 
 module.exports = app;
