@@ -27,6 +27,7 @@ const {
   getNavCounts,
 } = require('../lib/queries');
 const { getNavSettings, parseNavInput } = require('../lib/navTabs');
+const { parseRosterCsv, createLeagueFromRoster, SAMPLE_CSV } = require('../lib/rosterImport');
 
 const router = express.Router();
 
@@ -124,6 +125,45 @@ router.post('/leagues', (req, res) => {
   });
 
   res.redirect(`/admin/league/${create()}/teams`);
+});
+
+// ---------- Import a league from a CSV ----------
+
+router.get('/import', (req, res) => {
+  res.render('admin/import');
+});
+
+router.get('/import/sample.csv', (req, res) => {
+  res.set('Content-Type', 'text/csv; charset=utf-8');
+  res.set('Content-Disposition', 'attachment; filename="league-teams-sample.csv"');
+  res.send(SAMPLE_CSV);
+});
+
+router.post('/import', (req, res) => {
+  const csv = parseRosterCsv(req.body.csv);
+  const { errors: leagueErrors, value } = parseLeagueInput({ ...req.body, num_teams: String(csv.teams.length) });
+  // The team-count message is already covered by the CSV check, so don't show it twice.
+  const errors = [...csv.errors, ...leagueErrors.filter((e) => !/number of teams/i.test(e))];
+  if (errors.length) return fail(res, errors.join(' '));
+  res.redirect(`/admin/league/${createLeagueFromRoster(db, value, csv.teams)}/teams`);
+});
+
+// ---------- Delete a league ----------
+
+router.get('/league/:id/delete', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  res.render('admin/delete-league', { league });
+});
+
+router.post('/league/:id/delete', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  if (String(req.body.confirm_name ?? '').trim() !== league.name) {
+    return fail(res, 'The name you typed did not match, so nothing was deleted.');
+  }
+  db.prepare('DELETE FROM leagues WHERE id = ?').run(league.id); // teams, players, matches, pages cascade
+  res.redirect('/admin');
 });
 
 // ---------- Teams & rosters ----------

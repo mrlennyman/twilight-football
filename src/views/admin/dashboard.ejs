@@ -25,6 +25,7 @@
             <a href="/admin/league/<%= league.id %>/results">Results</a>
             <a href="/admin/league/<%= league.id %>/pages">Info pages</a>
             <a href="/admin/league/<%= league.id %>/navigation">Menu</a>
+            <a href="/admin/league/<%= league.id %>/delete">Delete</a>
             <a href="/league/<%= league.id %>" target="_blank">View public page</a>
           </td>
         </tr>
@@ -35,6 +36,7 @@
 <% } %>
 
 <h2>Create a new league</h2>
+<p class="muted">Have the teams and players in a spreadsheet? <a href="/admin/import">Create a league from a CSV file</a> instead.</p>
 <form method="POST" action="/admin/leagues" class="admin-form">
   <label>League name
     <input type="text" name="name" placeholder="e.g. 7–9s Summer Tournament" required>

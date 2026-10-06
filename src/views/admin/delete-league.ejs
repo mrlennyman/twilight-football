@@ -1,0 +1,14 @@
+<%- include('../partials/header', { title: 'Delete ' + league.name }) %>
+<div class="admin-bar">
+  <h1>Delete league</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p><strong><%= league.name %></strong> (<%= league.season %>) and everything in it will be <strong>permanently deleted</strong>: its teams, players, schedule, results and Info pages. This cannot be undone.</p>
+<form method="POST" action="/admin/league/<%= league.id %>/delete" class="admin-form">
+  <label>Type the league name to confirm
+    <input type="text" name="confirm_name" autocomplete="off" required>
+  </label>
+  <button type="submit">Delete this league</button>
+</form>
+
+<%- include('../partials/footer') %>
