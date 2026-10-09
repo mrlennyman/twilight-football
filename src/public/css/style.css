@@ -848,8 +848,24 @@ button.link-button.danger, form button[type="submit"].link-button.danger { color
 .home-page { background: var(--wine-900) radial-gradient(120% 90% at 50% 0%, var(--wine-700) 0%, var(--wine-900) 62%, #240812 100%) fixed; }
 .home-page .site-header { display: none; }
 .home-page main.container { max-width: none; padding: 0; display: flex; flex-direction: column; }
-.home-page .site-footer { position: relative; z-index: 1; color: rgba(255, 255, 255, 0.65); }
-.home-page .site-footer a { color: #f3d9a4; }
+/* The footer stays pinned to the bottom of the screen on the home page, so it never needs scrolling to. */
+.home-page .site-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 18px 16px max(10px, env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: linear-gradient(to top, rgba(36, 8, 18, 0.92), rgba(36, 8, 18, 0));
+  pointer-events: none;
+}
+.home-page .site-footer p { margin: 0; }
+.home-page .site-footer a { color: #f3d9a4; pointer-events: auto; }
+.home-page .home-stage { padding-bottom: 72px; }
 
 .home-stage {
   position: relative;
@@ -1034,3 +1050,6 @@ button.link-button.danger, form button[type="submit"].link-button.danger { color
 .format-choice legend { padding: 0 6px; font-weight: 600; }
 .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
 .example-grid pre { margin: 0; padding: 10px; font-size: 0.82rem; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+
+/* Installed app: no "Get the app" link (also handled in install.js for phones that don't match this query) */
+@media (display-mode: standalone) { .install-link { display: none; } }

@@ -35,10 +35,17 @@
   function run() {
     var doc = document;
     var path = location.pathname;
-    if (path.indexOf('/admin') === 0) return;
-
     var standalone =
       (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+
+    // Already installed: no "Get the app" link in the footer, on any page.
+    if (standalone) {
+      doc.querySelectorAll('.install-link').forEach(function (el) {
+        el.hidden = true;
+      });
+    }
+    if (path.indexOf('/admin') === 0) return;
+
     var platform = detectPlatform(navigator.userAgent, { standalone: standalone, touchPoints: navigator.maxTouchPoints });
     var onInstallPage = path === '/install';
     var deferredPrompt = null;
