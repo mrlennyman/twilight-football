@@ -43,7 +43,7 @@ test('home: a single running league still goes straight to its standings', async
 test('footer: the "Get the app" link is wrapped so it can be hidden once the app is installed; home footer is pinned', async () => {
   for (const url of ['/', '/league/1', '/install']) {
     const res = await h.request('GET', url);
-    assert.match(res.text, /<span class="install-link"> &middot; <a href="\/install">Get the app<\/a><\/span>/, url);
+    assert.match(res.text, /<span class="install-link"><a class="footer-btn" href="\/install">Get the app<\/a><\/span>/, url);
   }
   const fs = require('fs');
   const path = require('path');

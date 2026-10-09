@@ -5,7 +5,7 @@
 </div>
 <p class="muted">The tabs parents see under the header. Choose which ones show, rename them, and set the order (1 shows first). A hidden tab's page still works if someone has the link - it just isn't in the menu.</p>
 
-<% if (saved) { %><p class="callout">Saved. <a href="/league/<%= league.id %>" target="_blank">See the public site</a></p><% } %>
+<% if (saved) { %><p class="callout">Saved. <a class="btn btn-light btn-sm" href="/league/<%= league.id %>" target="_blank">See the public site</a></p><% } %>
 
 <form method="POST" action="/admin/league/<%= league.id %>/navigation" class="admin-form admin-form-wide">
   <div class="table-scroll">

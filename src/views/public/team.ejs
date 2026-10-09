@@ -3,7 +3,7 @@
 <%- include('../partials/league-title', { league }) %>
 
 <section class="team-page" data-team-id="<%= team.id %>">
-  <p class="team-back"><a href="/league/<%= league.id %>/teams">&larr; All teams</a></p>
+  <p class="team-back"><a class="btn btn-light btn-sm" href="/league/<%= league.id %>/teams">&larr; All teams</a></p>
 
   <div class="team-hero">
     <h2 class="team-name"><%= team.name %></h2>
@@ -40,7 +40,7 @@
             <div class="match-card team-match">
               <div class="team-match-when"><%= formatDate(m.date) %> &middot; <%= m.stage === 'group' ? 'Round ' + m.round_number : (m.stage === 'cup' ? 'Cup ' : 'Plate ') + (m.bracket_slot === 'final' ? 'final' : 'semi-final') %></div>
               <div class="team-match-main">
-                <span>vs <% if (m.opponent_id) { %><a href="/league/<%= league.id %>/team/<%= m.opponent_id %>"><%= m.opponent_name %></a><% } else { %><%= m.opponent_name %><% } %></span>
+                <span>vs <% if (m.opponent_id) { %><a class="opp-btn" href="/league/<%= league.id %>/team/<%= m.opponent_id %>"><%= m.opponent_name %></a><% } else { %><%= m.opponent_name %><% } %></span>
                 <% if (m.status === 'played') { %>
                   <span class="score-badge"><%= m.my_score %> - <%= m.their_score %></span>
                 <% } else { %>

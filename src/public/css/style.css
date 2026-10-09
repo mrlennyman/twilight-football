@@ -74,7 +74,7 @@ h1, h2, h3 { color: var(--wine-900); }
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
 
-a { color: var(--wine-700); }
+a { color: var(--wine-700); text-decoration: none; }
 
 /* ---------- Per-league tab navigation (app shell) ---------- */
 /* Sits directly under the site header, on every screen size - icons+label,
@@ -384,20 +384,23 @@ tbody tr:last-child td { border-bottom: none; }
 /* Text-style buttons (log out, remove, delete). Selectors are as specific as the
    generic pill-button rule above so they actually win. */
 button.link-button, form button[type="submit"].link-button {
-  background: none;
-  border-radius: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
   color: var(--wine-700);
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
-  padding: 0;
+  padding: 5px 14px;
+  min-height: 34px;
   font-size: 0.85rem;
-  font-weight: 400;
+  font-weight: 600;
 }
-form button[type="submit"].link-button:hover { background: none; color: var(--wine-500); }
-button.link-button.danger, form button[type="submit"].link-button.danger { color: var(--error); }
+form button[type="submit"].link-button:hover { background: var(--panel); border-color: var(--gold); color: var(--wine-500); }
+button.link-button.danger, form button[type="submit"].link-button.danger { color: var(--error); border-color: #e6b8b4; }
+form button[type="submit"].link-button.danger:hover { border-color: var(--error); color: var(--error); }
 
 .admin-table { font-size: 0.95rem; }
-.admin-actions a { margin-right: 10px; font-size: 0.85rem; }
+.admin-actions { min-width: 320px; line-height: 1.2; }
 
 .callout {
   background: #fbf3e3;
@@ -838,7 +841,7 @@ button.link-button.danger, form button[type="submit"].link-button.danger { color
 .team-match-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 2px; font-weight: 600; }
 .team-match .match-meta { text-align: left; margin-top: 2px; }
 .match-team a, .team-card h3 a, .standings-table td a, .bracket-match a { color: inherit; text-decoration: none; }
-.match-team a:hover, .team-card h3 a:hover, .standings-table td a:hover, .bracket-match a:hover { text-decoration: underline; }
+.match-team a:hover, .team-card h3 a:hover, .standings-table td a:hover, .bracket-match a:hover { color: var(--wine-500); }
 
 .match-card.my-team, .bracket-match.my-team, .team-card.my-team { border-left: 5px solid var(--gold); background: #fffaf0; }
 .standings-table tr.my-team td { font-weight: 700; background: #fffaf0; }
@@ -1106,3 +1109,88 @@ html.home-page-root, html.login-page-root {
   .squad-card { position: sticky; top: 12px; }
   .squad { grid-template-columns: 1fr; }
 }
+
+/* ---------- Links shown as buttons (no underlined links anywhere) ---------- */
+.btn, .admin-bar > a, .admin-actions a, .footer-btn, .opp-btn {
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  min-height: 42px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--wine-500), var(--wine-700));
+  border: 1px solid transparent;
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(61, 15, 28, 0.2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover, .btn:focus-visible { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(61, 15, 28, 0.28); color: #fff; }
+.btn:active { transform: scale(0.97); }
+.btn-light, .admin-bar > a, .admin-actions a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--wine-700);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-weight: 600;
+  box-shadow: none;
+}
+.btn-light:hover, .btn-light:focus-visible, .admin-bar > a:hover, .admin-actions a:hover { border-color: var(--gold); color: var(--wine-500); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(61, 15, 28, 0.12); }
+.btn-sm, .admin-bar > a, .admin-actions a { padding: 6px 14px; min-height: 36px; font-size: 0.88rem; }
+.admin-actions a { margin: 0 6px 8px 0; }
+.admin-actions a.danger { color: var(--error); border-color: #e6b8b4; }
+.admin-actions a.danger:hover { border-color: var(--error); color: var(--error); }
+.btn:focus-visible, .admin-bar > a:focus-visible, .admin-actions a:focus-visible, .footer-btn:focus-visible, .opp-btn:focus-visible {
+  outline: 3px solid rgba(201, 161, 90, 0.6);
+  outline-offset: 2px;
+}
+
+.team-back, .install-back { margin: 0 0 8px; }
+.updated-note .btn { margin-left: 4px; }
+.footer-btn {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: inherit;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  opacity: 0.85;
+}
+.footer-btn:hover { opacity: 1; }
+.opp-btn {
+  display: inline-block;
+  padding: 2px 12px;
+  font-weight: 700;
+  color: var(--wine-700);
+  background: #f8ebee;
+  border: 1px solid #ecd3da;
+  border-radius: 999px;
+}
+.opp-btn::after { content: ' \203A'; }
+.opp-btn:hover { border-color: var(--gold); color: var(--wine-500); }
+
+/* Links written inside Info pages: shown as little buttons too */
+.prose a {
+  display: inline-block;
+  padding: 0 10px;
+  margin: 1px 0;
+  font-weight: 600;
+  color: var(--wine-700);
+  text-decoration: none;
+  background: #f8ebee;
+  border: 1px solid #ecd3da;
+  border-radius: 999px;
+}
+.prose a::after { content: ' \2197'; font-size: 0.85em; }
+.prose a:hover, .prose a:focus-visible { border-color: var(--gold); color: var(--wine-500); }

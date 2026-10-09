@@ -37,7 +37,7 @@
     <input type="hidden" name="text" value="<%= form.text %>">
     <% if (form.replace) { %><input type="hidden" name="replace" value="on"><% } %>
     <button type="submit">Apply these changes</button>
-    <a href="/admin/league/<%= league.id %>/roster-import">Start again</a>
+    <a class="btn btn-light" href="/admin/league/<%= league.id %>/roster-import">Start again</a>
   </form>
 <% } else { %>
   <p class="muted">Copy teams from a spreadsheet, email or WhatsApp, paste them below, and check the preview. Pasted teams go into the league's teams <strong>by name</strong>; any team that is not found takes the next one still called &ldquo;Team 1&rdquo;, &ldquo;Team 2&rdquo; and so on (and renames it).</p>

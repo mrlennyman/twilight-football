@@ -112,13 +112,13 @@ test('C2/C3: public pages load the follow + auto-refresh scripts; admin pages ne
 test('C3: freshness note - only "Refresh" before any result, "Updated <time>" after', async () => {
   const fresh = await h.createScheduledLeague({ name: 'Fresh League' });
   const before = await get(`/league/${fresh}/fixtures`);
-  assert.match(before, /<p class="updated-note"><a href="" class="refresh-link">Refresh<\/a><\/p>/);
+  assert.match(before, /<p class="updated-note"><a href="" class="refresh-link btn btn-light btn-sm">&#8635; Refresh<\/a><\/p>/);
   assert.doesNotMatch(before, /Updated /);
 
   const m = h.db.prepare('SELECT m.id FROM matches m JOIN rounds r ON r.id = m.round_id WHERE r.league_id = ? LIMIT 1').get(fresh);
   await h.request('POST', `/admin/league/${fresh}/results/match/${m.id}`, { home_score: '1', away_score: '0' });
   const after = await get(`/league/${fresh}`);
-  assert.match(after, /<p class="updated-note">Updated \d{1,2}:\d{2}(am|pm) &middot; <a href="" class="refresh-link">Refresh<\/a>/);
+  assert.match(after, /<p class="updated-note">Updated \d{1,2}:\d{2}(am|pm) &middot; <a href="" class="refresh-link btn btn-light btn-sm">&#8635; Refresh<\/a>/);
   assert.match(await get(`/league/${fresh}/fixtures`), /Updated \d{1,2}:\d{2}(am|pm)/);
   assert.ok(h.db.prepare('SELECT updated_at FROM matches WHERE id = ?').get(m.id).updated_at);
 });

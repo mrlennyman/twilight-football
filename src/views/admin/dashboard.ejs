@@ -26,7 +26,7 @@
             <a href="/admin/league/<%= league.id %>/pages">Info pages</a>
             <a href="/admin/league/<%= league.id %>/log">Change log</a>
             <a href="/admin/league/<%= league.id %>/navigation">Menu</a>
-            <a href="/admin/league/<%= league.id %>/delete">Delete</a>
+            <a href="/admin/league/<%= league.id %>/delete" class="danger">Delete</a>
             <a href="/league/<%= league.id %>" target="_blank">View public page</a>
           </td>
         </tr>
@@ -37,7 +37,7 @@
 <% } %>
 
 <h2>Create a new league</h2>
-<p class="muted">Have the teams and players in a spreadsheet? <a href="/admin/import">Create a league from a CSV file</a> instead.</p>
+<p class="muted">Have the teams and players in a spreadsheet? <a class="btn btn-light btn-sm" href="/admin/import">Create a league from a CSV file</a> instead.</p>
 <form method="POST" action="/admin/leagues" class="admin-form">
   <label>League name
     <input type="text" name="name" placeholder="e.g. 7–9s Summer Tournament" required>
@@ -57,6 +57,6 @@
   <button type="submit">Create league</button>
 </form>
 
-<p class="muted admin-footer-links"><a href="/admin/diagnostics">Server check</a></p>
+<p class="muted admin-footer-links"><a class="btn btn-light btn-sm" href="/admin/diagnostics">Server check</a></p>
 
 <%- include('../partials/footer') %>

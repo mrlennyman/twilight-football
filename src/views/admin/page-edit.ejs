@@ -4,7 +4,7 @@
   <a href="/admin/league/<%= league.id %>/pages">&larr; All pages</a>
 </div>
 
-<% if (saved) { %><p class="callout">Saved. <a href="/admin/league/<%= league.id %>/pages/<%= page.id %>/preview">Preview it</a></p><% } %>
+<% if (saved) { %><p class="callout">Saved. <a class="btn btn-light btn-sm" href="/admin/league/<%= league.id %>/pages/<%= page.id %>/preview">Preview it</a></p><% } %>
 
 <form method="POST" action="/admin/league/<%= league.id %>/pages/<%= page.id %>" class="admin-form admin-form-wide">
   <label>Title
