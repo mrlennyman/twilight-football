@@ -71,7 +71,7 @@ function parseCsv(input) {
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
 /** Turns CSV text into { errors, teams: [{ name, kit, players: [] }] }. */
-function parseRosterCsv(text) {
+function parseRosterCsv(text, { checkTeamCount = true } = {}) {
   const errors = [];
   const rows = parseCsv(text);
   if (rows.length === 0) {
@@ -111,7 +111,7 @@ function parseRosterCsv(text) {
       errors.push(`${team.name} has ${team.players.length} players (max ${MAX_PLAYERS_PER_TEAM}).`);
     }
   }
-  if (teams.length < 2 || teams.length > MAX_TEAMS || teams.length % 2 !== 0) {
+  if (checkTeamCount && (teams.length < 2 || teams.length > MAX_TEAMS || teams.length % 2 !== 0)) {
     errors.push(`The CSV has ${teams.length} team(s); a league needs an even number of teams from 2 to ${MAX_TEAMS}.`);
   }
   return { errors, teams };

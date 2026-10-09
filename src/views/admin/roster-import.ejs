@@ -1,0 +1,77 @@
+<%- include('../partials/header', { title: league.name + ' — Paste teams' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Paste all teams</h1>
+  <a href="/admin/league/<%= league.id %>/teams">&larr; Teams</a>
+</div>
+
+<% if (errors.length) { %>
+  <div class="callout callout-warn">
+    <strong>Nothing was changed.</strong> Please fix this and try again:
+    <ul>
+      <% errors.forEach(e => { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<% if (plan) { %>
+  <h2>Check this, then apply</h2>
+  <p class="muted">Nothing has changed yet. A safety copy of the database is saved first when you apply.</p>
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead><tr><th>Pasted team</th><th>Goes into</th><th>Players</th></tr></thead>
+    <tbody>
+      <% plan.items.forEach(item => { %>
+        <tr>
+          <td><strong><%= item.newName %></strong><% if (item.kit) { %> <span class="muted">(<%= item.kit %>)</span><% } %></td>
+          <td><%= item.action === 'rename' ? 'renames ' + item.oldName : 'existing team' %></td>
+          <td>
+            <% if (item.removed > 0) { %>replaces <%= item.removed %> with <strong><%= item.adds.length %></strong><% } else { %>adds <strong><%= item.adds.length %></strong><% if (item.keeps > 0) { %>, keeps <%= item.keeps %><% } %><% if (item.skipped > 0) { %>, skips <%= item.skipped %> already there<% } %><% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+  <form method="POST" action="/admin/league/<%= league.id %>/roster-import/confirm" class="admin-form">
+    <input type="hidden" name="format" value="<%= form.format %>">
+    <input type="hidden" name="text" value="<%= form.text %>">
+    <% if (form.replace) { %><input type="hidden" name="replace" value="on"><% } %>
+    <button type="submit">Apply these changes</button>
+    <a href="/admin/league/<%= league.id %>/roster-import">Start again</a>
+  </form>
+<% } else { %>
+  <p class="muted">Copy teams from a spreadsheet, email or WhatsApp, paste them below, and check the preview. Pasted teams go into the league's teams <strong>by name</strong>; any team that is not found takes the next one still called &ldquo;Team 1&rdquo;, &ldquo;Team 2&rdquo; and so on (and renames it).</p>
+
+  <form method="POST" action="/admin/league/<%= league.id %>/roster-import/preview" class="admin-form admin-form-wide">
+    <fieldset class="format-choice">
+      <legend>How is it laid out?</legend>
+      <label class="check-row"><input type="radio" name="format" value="blocks" <%= form.format === 'blocks' ? 'checked' : '' %>> A team name, then its players underneath - a blank line between teams</label>
+      <label class="check-row"><input type="radio" name="format" value="csv" <%= form.format !== 'blocks' ? 'checked' : '' %>> Spreadsheet columns: team, player, kit colour (copied from Excel/Sheets, or a CSV)</label>
+    </fieldset>
+
+    <label>Paste here
+      <textarea name="text" id="paste-box" class="roster-box roster-box-big" rows="14" maxlength="90000" required placeholder="Rovers&#10;Jack Brown&#10;Sam Lee&#10;&#10;Wanderers&#10;Mia Chen&#10;Te Rangi H."><%= form.text %></textarea>
+    </label>
+    <label class="check-row"><input type="checkbox" name="replace" <%= form.replace ? 'checked' : '' %>> Replace the players already in these teams (otherwise the pasted players are added)</label>
+    <button type="submit">Preview</button>
+  </form>
+
+  <div class="callout">
+    <strong>Examples</strong>
+    <div class="example-grid">
+      <pre>Rovers
+Jack Brown
+Sam Lee
+
+Wanderers
+Mia Chen
+Te Rangi H.</pre>
+      <pre>team,player,kit
+Rovers,Jack Brown,Red
+Rovers,Sam Lee
+Wanderers,Mia Chen,Blue</pre>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

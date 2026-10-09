@@ -1000,3 +1000,37 @@ button.link-button.danger, form button[type="submit"].link-button.danger { color
   .home-stage *, .home-stage *::before, .home-stage *::after { animation: none !important; transition: none !important; }
   .home-sweep { display: none; }
 }
+
+/* ---------- Roster entry: one box per team, paste-everything page ---------- */
+.quick-roster { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.quick-roster-btn {
+  display: inline-block;
+  padding: 10px 18px;
+  min-height: 44px;
+  line-height: 24px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(135deg, var(--wine-500), var(--wine-700));
+  border: 1px solid rgba(201, 161, 90, 0.7);
+  border-radius: 999px;
+}
+.team-edit { display: grid; gap: 10px; }
+.team-edit label { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 600; }
+.team-edit input[type="text"] { padding: 9px; font-size: 16px; border: 1px solid var(--border); border-radius: 8px; }
+.roster-box {
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  font-size: 16px; /* keeps iPhones from zooming in */
+  line-height: 1.4;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  resize: vertical;
+}
+.roster-box-big { min-height: 260px; }
+.save-team { min-height: 46px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+.format-choice { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; }
+.format-choice legend { padding: 0 6px; font-weight: 600; }
+.example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
+.example-grid pre { margin: 0; padding: 10px; font-size: 0.82rem; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }

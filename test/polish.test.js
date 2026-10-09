@@ -73,5 +73,5 @@ test('C8: rename a player (ownership and length checked); other leagues are unto
   assert.equal(h.db.prepare('SELECT name FROM players WHERE id = ?').get(other.pid).name, before);
 
   const page = await h.request('GET', '/admin/league/1/teams');
-  assert.match(page.text, /value="Te Rangi H\."/);
+  assert.match(page.text, /<textarea name="players"[^>]*>[^<]*Te Rangi H\.[^<]*<\/textarea>/);
 });

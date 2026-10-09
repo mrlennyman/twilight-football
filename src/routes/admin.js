@@ -36,6 +36,7 @@ const {
 } = require('../lib/queries');
 const { getNavSettings, parseNavInput } = require('../lib/navTabs');
 const { parseRosterCsv, createLeagueFromRoster, SAMPLE_CSV } = require('../lib/rosterImport');
+const { parsePlayerList, parseBlocks, planRosterImport, applyRosterImport, replaceRoster } = require('../lib/rosterText');
 
 const router = express.Router();
 
@@ -284,13 +285,66 @@ router.post('/league/:id/teams/:teamId', (req, res) => {
   if (!name || name.length > 60) return fail(res, 'Team name is required (max 60 characters).');
   if (kit.length > 30) return fail(res, 'Kit colour is too long (max 30 characters).');
 
+  // The whole roster can be saved in one go: one name per line (a pasted list works).
+  let players = null;
+  if (req.body.players !== undefined) {
+    const parsed = parsePlayerList(req.body.players);
+    if (parsed.errors.length) return fail(res, `${name}: ${parsed.errors.join(' ')} Nothing was saved.`);
+    players = parsed.names;
+  }
+
+  const teamId = Number(req.params.teamId);
+  const leagueId = Number(req.params.id);
+  if (!teamInLeague(teamId, leagueId)) return res.status(404).render('404');
+
   db.prepare('UPDATE teams SET name = ?, kit_colour = ? WHERE id = ? AND league_id = ?').run(
     name,
     kit || null,
-    Number(req.params.teamId),
-    Number(req.params.id)
+    teamId,
+    leagueId
   );
+  if (players) replaceRoster(db, teamId, players);
   res.redirect(`/admin/league/${req.params.id}/teams`);
+});
+
+// ---------- Paste every team at once (with a preview before anything changes) ----------
+
+function readRosterPaste(body) {
+  const format = body.format === 'blocks' ? 'blocks' : 'csv';
+  const text = String(body.text ?? '');
+  const replace = body.replace === 'on';
+  const parsed = format === 'blocks' ? parseBlocks(text) : parseRosterCsv(text, { checkTeamCount: false });
+  const errors = [...parsed.errors];
+  if (errors.length === 0 && parsed.teams.length === 0) errors.push('Nothing to import - paste at least one team.');
+  return { form: { text, format, replace }, teams: parsed.teams, errors };
+}
+
+router.get('/league/:id/roster-import', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  res.render('admin/roster-import', { league, form: { text: '', format: 'csv', replace: false }, errors: [], plan: null });
+});
+
+router.post('/league/:id/roster-import/preview', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const paste = readRosterPaste(req.body);
+  const plan = paste.errors.length ? null : planRosterImport(db, league.id, paste.teams, { replace: paste.form.replace });
+  const errors = [...paste.errors, ...(plan ? plan.errors : [])];
+  res.render('admin/roster-import', { league, form: paste.form, errors, plan: errors.length ? null : plan });
+});
+
+router.post('/league/:id/roster-import/confirm', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  // The plan is worked out again here from the pasted text - the browser's idea of it is never trusted.
+  const paste = readRosterPaste(req.body);
+  const plan = paste.errors.length ? null : planRosterImport(db, league.id, paste.teams, { replace: paste.form.replace });
+  const errors = [...paste.errors, ...(plan ? plan.errors : [])];
+  if (errors.length) return res.render('admin/roster-import', { league, form: paste.form, errors, plan: null });
+  if (!safetyBackup(res, 'roster-import')) return;
+  applyRosterImport(db, plan);
+  res.redirect(`/admin/league/${league.id}/teams`);
 });
 
 router.post('/league/:id/teams/:teamId/players', (req, res) => {
