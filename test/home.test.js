@@ -53,3 +53,10 @@ test('footer: the "Get the app" link is wrapped so it can be hidden once the app
   const js = fs.readFileSync(path.join(__dirname, '../src/public/js/install.js'), 'utf8');
   assert.match(js, /querySelectorAll\('\.install-link'\)/);
 });
+
+test('app window colour is the dark wine, so a sub-pixel gap at the screen edge is never a light line', async () => {
+  const res = await h.request('GET', '/manifest.json');
+  const manifest = JSON.parse(res.text);
+  assert.equal(manifest.background_color, '#240812');
+  assert.equal(manifest.theme_color, '#6e1b2e');
+});
