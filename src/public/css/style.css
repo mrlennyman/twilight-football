@@ -8,7 +8,7 @@
   --cream: #f7f1e6;
   --panel: #fffdf9;
   --ink: #2a1116;
-  --muted: #8a6b72;
+  --muted: #735860; /* 5.7:1 on cream, 6.3:1 on panel */
   --border: #e6dcc9;
   --gold: #c9a15a;
   --gold-dark: #a37f3f;
@@ -290,11 +290,12 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .score-badge-pending {
   background: var(--border);
-  color: var(--muted);
+  color: #5e444b; /* 6.4:1 on the grey badge */
 }
 .match-meta {
   margin-top: 6px;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--muted);
   text-align: center;
 }

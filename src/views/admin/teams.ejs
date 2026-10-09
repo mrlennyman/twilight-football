@@ -19,7 +19,10 @@
       <ul class="roster">
         <% team.players.forEach(player => { %>
           <li>
-            <%= player.name %>
+            <form method="POST" action="/admin/league/<%= league.id %>/teams/<%= team.id %>/players/<%= player.id %>" class="inline-form player-rename">
+              <input type="text" name="name" value="<%= player.name %>" maxlength="60" required aria-label="Player name">
+              <button type="submit" class="link-button">save</button>
+            </form>
             <form method="POST" action="/admin/league/<%= league.id %>/teams/<%= team.id %>/players/<%= player.id %>/delete" class="inline-form">
               <button type="submit" class="link-button danger">remove</button>
             </form>

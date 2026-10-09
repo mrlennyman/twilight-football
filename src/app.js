@@ -24,6 +24,10 @@ app.disable('x-powered-by');
 // not a robots.txt Disallow - a blocked crawler would never see the noindex.)
 app.use((req, res, next) => {
   res.set('X-Robots-Tag', 'noindex, nofollow');
+  // Basic hardening headers. (No Content-Security-Policy yet: the admin error page uses a javascript: back link.)
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Referrer-Policy', 'same-origin');
+  res.set('X-Frame-Options', 'DENY');
   next();
 });
 

@@ -283,6 +283,20 @@ router.post('/league/:id/teams/:teamId/players', (req, res) => {
   res.redirect(`/admin/league/${req.params.id}/teams`);
 });
 
+router.post('/league/:id/teams/:teamId/players/:playerId', (req, res) => {
+  const name = String(req.body.name ?? '').trim();
+  if (!name) return fail(res, 'A player needs a name (use remove to delete them).');
+  if (name.length > 60) return fail(res, 'Player name is too long (max 60 characters).');
+  if (teamInLeague(Number(req.params.teamId), Number(req.params.id))) {
+    db.prepare('UPDATE players SET name = ? WHERE id = ? AND team_id = ?').run(
+      name,
+      Number(req.params.playerId),
+      Number(req.params.teamId)
+    );
+  }
+  res.redirect(`/admin/league/${req.params.id}/teams`);
+});
+
 router.post('/league/:id/teams/:teamId/players/:playerId/delete', (req, res) => {
   if (teamInLeague(Number(req.params.teamId), Number(req.params.id))) {
     db.prepare('DELETE FROM players WHERE id = ? AND team_id = ?').run(
