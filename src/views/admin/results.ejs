@@ -13,7 +13,10 @@
       <a href="?week=<%= w %>" class="<%= w === selectedWeek ? 'active' : '' %>">Week <%= w %></a>
     <% }) %>
   </nav>
-  <%- include('../partials/round-list', { rounds, editable: true, league }) %>
+  <% if (groupLocked) { %>
+    <p class="callout">Group results are <strong>locked</strong> because the Cup and Plate brackets have been drawn. If a group score was wrong, use <em>Reset the brackets</em> under the knockouts heading below.</p>
+  <% } %>
+  <%- include('../partials/round-list', { rounds, editable: !groupLocked, league }) %>
 <% } %>
 
 <h2>Standings</h2>
@@ -59,6 +62,17 @@
   <%- include('../partials/round-list', { rounds: cupRounds, editable: true, knockout: true, league }) %>
   <h3>Plate (bottom 4)</h3>
   <%- include('../partials/round-list', { rounds: plateRounds, editable: true, knockout: true, league }) %>
+
+  <details class="reset-brackets">
+    <summary>Reset the brackets (a group score was wrong)</summary>
+    <form method="POST" action="/admin/league/<%= league.id %>/knockouts/reset" class="admin-form">
+      <p class="callout">This deletes both brackets and every Cup/Plate result so far, and unlocks the group results so you can correct them. A safety copy of the database is saved first. Then draw the brackets again.</p>
+      <label>Type the league name (<strong><%= league.name %></strong>) to confirm
+        <input type="text" name="confirm_name" autocomplete="off" required>
+      </label>
+      <button type="submit">Reset the brackets</button>
+    </form>
+  </details>
 <% } %>
 
 <%- include('../partials/footer') %>

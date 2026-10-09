@@ -76,6 +76,14 @@ function scheduleStats(leagueId) {
   return { rounds: row.rounds, played: row.played, knockoutRounds: row.knockout_rounds };
 }
 
+const GROUP_LOCKED_MESSAGE =
+  'Group results are locked because the Cup and Plate brackets have been drawn. ' +
+  'Reset the brackets first if a group score was wrong.';
+
+function groupResultsLocked(leagueId) {
+  return scheduleStats(leagueId).knockoutRounds > 0;
+}
+
 /** Takes an automatic safety copy of the database; on failure tells the admin and returns false. */
 function safetyBackup(res, label) {
   try {
@@ -402,12 +410,14 @@ router.get('/league/:id/results', (req, res) => {
     teams,
     cupRounds,
     plateRounds,
+    groupLocked: cupRounds.length > 0 || plateRounds.length > 0,
   });
 });
 
 router.post('/league/:id/results/match/:matchId', (req, res) => {
   const match = getMatchForLeague(Number(req.params.matchId), Number(req.params.id));
   if (!match || match.stage !== 'group') return res.status(404).render('404');
+  if (groupResultsLocked(Number(req.params.id))) return fail(res, GROUP_LOCKED_MESSAGE);
 
   const homeScore = parseScore(req.body.home_score);
   const awayScore = parseScore(req.body.away_score);
@@ -426,6 +436,7 @@ router.post('/league/:id/results/round/:roundId', (req, res) => {
     .prepare('SELECT * FROM rounds WHERE id = ? AND league_id = ?')
     .get(Number(req.params.roundId), leagueId);
   if (!round || round.stage !== 'group') return res.status(404).render('404');
+  if (groupResultsLocked(leagueId)) return fail(res, GROUP_LOCKED_MESSAGE);
 
   const matches = db
     .prepare(
@@ -475,6 +486,7 @@ router.post('/league/:id/results/round/:roundId', (req, res) => {
 });
 
 router.post('/league/:id/tie-break', (req, res) => {
+  if (groupResultsLocked(Number(req.params.id))) return fail(res, GROUP_LOCKED_MESSAGE);
   const leagueId = Number(req.params.id);
   const a = Number(req.body.team_a_id);
   const b = Number(req.body.team_b_id);
@@ -602,6 +614,17 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
     return fail(res, 'This match is not set yet - enter the semi-final results first.');
   }
 
+  const isSemi = match.bracket_slot === 'semi_1' || match.bracket_slot === 'semi_2';
+  if (isSemi) {
+    const playedFinal = db
+      .prepare(
+        `SELECT 1 FROM matches m JOIN rounds r ON r.id = m.round_id
+         WHERE r.league_id = ? AND r.stage = ? AND m.bracket_slot = 'final' AND m.status = 'played'`
+      )
+      .get(leagueId, match.stage);
+    if (playedFinal) return fail(res, 'Clear the final first.');
+  }
+
   const homeScore = parseScore(req.body.home_score);
   const awayScore = parseScore(req.body.away_score);
   if (homeScore === null || awayScore === null) {
@@ -625,6 +648,26 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
   }
 
   res.redirect(`/admin/league/${leagueId}/results#round-${match.round_id}`);
+});
+
+// Throw the Cup/Plate brackets away (e.g. a group score turns out to be wrong) so they can be drawn again.
+router.post('/league/:id/knockouts/reset', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  if (String(req.body.confirm_name ?? '').trim() !== league.name) {
+    return fail(res, 'The name you typed did not match, so the brackets were not reset.');
+  }
+  if (!groupResultsLocked(league.id)) return res.redirect(`/admin/league/${league.id}/results`);
+  if (!safetyBackup(res, 'reset-knockouts')) return;
+
+  db.transaction(() => {
+    db.prepare(
+      "DELETE FROM matches WHERE round_id IN (SELECT id FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate'))"
+    ).run(league.id);
+    db.prepare("DELETE FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate')").run(league.id);
+    db.prepare("UPDATE leagues SET status = 'in_progress' WHERE id = ?").run(league.id);
+  })();
+  res.redirect(`/admin/league/${league.id}/results`);
 });
 
 // Clear a knockout result. Clearing a semi also un-sets the (unplayed) final's teams.
