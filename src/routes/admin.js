@@ -2,7 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { checkPassword, requireAdmin, safeReturnTo } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/loginLimiter');
-const { computeStandings, groupStageComplete } = require('../lib/standings');
+const { computeStandings, getOpenTieBlocks, groupStageComplete } = require('../lib/standings');
 const { generateGroupStageSchedule, generateCupAndPlate, addDays } = require('../lib/schedule');
 const { tryFillFinal } = require('../lib/knockoutResult');
 const {
@@ -410,6 +410,7 @@ router.get('/league/:id/results', (req, res) => {
     teams,
     cupRounds,
     plateRounds,
+    tieBlocks: getOpenTieBlocks(db, league.id, standings),
     groupLocked: cupRounds.length > 0 || plateRounds.length > 0,
   });
 });
@@ -527,13 +528,14 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
     return fail(res, 'Cup/Plate knockouts currently need exactly 8 teams in the league.');
   }
 
-  // Block only if the split point itself (rank 4 vs 5) is an unresolved tie.
-  const boundaryTied =
-    standings[3].points === standings[4].points &&
-    standings[3].goalDifference === standings[4].goalDifference &&
-    !standings[3].tieResolved;
-  if (boundaryTied) {
-    return res.redirect(`/admin/league/${league.id}/results`);
+  // Any open tie changes who is seeded where (not just the top-4 / bottom-4 split), so settle them all first.
+  const openTies = standings.filter((s) => s.tied && !s.tieResolved);
+  if (openTies.length > 0) {
+    return fail(
+      res,
+      `${openTies.length} teams are still tied on points and goal difference (${openTies.map((t) => t.name).join(', ')}). ` +
+        'Record the shootout results on the Results page first, then draw the brackets.'
+    );
   }
 
   const top4 = standings.slice(0, 4).map((s) => s.teamId);

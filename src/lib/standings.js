@@ -93,8 +93,10 @@ function computeStandings(db, leagueId) {
     return rows;
   }
 
-  // Within each block of equal points+GD, order by recorded shootout results
-  // (stable order otherwise) and flag the block if that leaves it unresolved.
+  // Within each block of equal points + goal difference, order teams by how many shootouts they won
+  // against the other teams in the block (then by team id so the order is always the same). The block
+  // is settled only when EVERY pair has a recorded shootout and all the win counts are different - so a
+  // cycle (A beat B, B beat C, C beat A: equal counts) can never pass as settled.
   for (let i = 0; i < rows.length; ) {
     let j = i;
     while (
@@ -107,19 +109,24 @@ function computeStandings(db, leagueId) {
 
     if (j > i) {
       const block = rows.slice(i, j + 1);
-      block.sort((a, b) => {
-        const winner = tieBreakWinner(a.teamId, b.teamId);
-        if (winner === a.teamId) return -1;
-        if (winner === b.teamId) return 1;
-        return 0;
-      });
-      const resolved = block.every((team, idx) => {
-        if (idx === block.length - 1) return true;
-        return tieBreakWinner(team.teamId, block[idx + 1].teamId) === team.teamId;
-      });
+      const wins = new Map(block.map((team) => [team.teamId, 0]));
+      let recorded = 0;
+      for (let x = 0; x < block.length; x++) {
+        for (let y = x + 1; y < block.length; y++) {
+          const winner = tieBreakWinner(block[x].teamId, block[y].teamId);
+          if (winner === block[x].teamId || winner === block[y].teamId) {
+            recorded += 1;
+            wins.set(winner, wins.get(winner) + 1);
+          }
+        }
+      }
+      block.sort((a, b) => wins.get(b.teamId) - wins.get(a.teamId) || a.teamId - b.teamId);
+      const everyPairRecorded = recorded === (block.length * (block.length - 1)) / 2;
+      const resolved = everyPairRecorded && new Set(wins.values()).size === block.length;
       for (const team of block) {
         team.tied = true;
         team.tieResolved = resolved;
+        team.tieBlock = i;
       }
       rows.splice(i, block.length, ...block);
     } else {
@@ -130,6 +137,42 @@ function computeStandings(db, leagueId) {
   }
 
   return rows;
+}
+
+/**
+ * The open (unsettled) ties, ready for the admin screen: for each block of teams level on points and goal
+ * difference, every pair of them with its recorded shootout winner (or null if still to do).
+ */
+function getOpenTieBlocks(db, leagueId, standings) {
+  const recorded = db
+    .prepare('SELECT team_a_id, team_b_id, winner_team_id FROM tie_breaks WHERE league_id = ?')
+    .all(leagueId);
+  const winnerOf = (a, b) => {
+    const hit = recorded.find(
+      (tb) => (tb.team_a_id === a && tb.team_b_id === b) || (tb.team_a_id === b && tb.team_b_id === a)
+    );
+    return hit ? hit.winner_team_id : null;
+  };
+
+  const blocks = new Map();
+  for (const row of standings) {
+    if (!row.tied || row.tieResolved) continue;
+    if (!blocks.has(row.tieBlock)) blocks.set(row.tieBlock, []);
+    blocks.get(row.tieBlock).push(row);
+  }
+  return [...blocks.values()].map((teams) => {
+    const pairs = [];
+    for (let x = 0; x < teams.length; x++) {
+      for (let y = x + 1; y < teams.length; y++) {
+        pairs.push({
+          a: { id: teams[x].teamId, name: teams[x].name },
+          b: { id: teams[y].teamId, name: teams[y].name },
+          winnerId: winnerOf(teams[x].teamId, teams[y].teamId),
+        });
+      }
+    }
+    return { points: teams[0].points, goalDifference: teams[0].goalDifference, teams, pairs };
+  });
 }
 
 function groupStageComplete(db, leagueId) {
@@ -146,4 +189,4 @@ function groupStageComplete(db, leagueId) {
   return counts.total > 0 && counts.played === counts.total;
 }
 
-module.exports = { computeStandings, groupStageComplete };
+module.exports = { computeStandings, getOpenTieBlocks, groupStageComplete };
