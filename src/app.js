@@ -6,13 +6,16 @@ const session = require('express-session');
 
 const { formatDate, formatTime } = require('./lib/format');
 const { resolveNavTabs } = require('./lib/navTabs');
+const { parseTrustProxy } = require('./lib/proxy');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
 
-// Behind the host's reverse proxy (Nginx etc.) so req.ip / req.secure are the real client's.
-app.set('trust proxy', 1);
+// Behind the host's reverse proxies so req.ip / req.secure are the real client's. The number is how many
+// proxies sit in front of Node (OpenLiteSpeed = 1; Cloudflare + OpenLiteSpeed = 2). Check /admin/diagnostics
+// and set TRUST_PROXY in .env if req.ip is not your own address.
+app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
 app.disable('x-powered-by');
 
 // Kids' first names are on public pages: keep search engines out. (Done with a header and a meta tag,

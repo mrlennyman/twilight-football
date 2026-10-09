@@ -14,7 +14,9 @@ const {
 } = require('../lib/validate');
 const { createPage, seedStarterPages } = require('../lib/pages');
 const { renderMarkup } = require('../lib/markup');
-const { snapshot } = require('../lib/backup');
+const fs = require('fs');
+const { snapshot, newestBackup, defaultBackupDir } = require('../lib/backup');
+const { resolveDbPath } = require('../lib/paths');
 const { saveScore, clearScore } = require('../lib/results');
 const {
   getPages,
@@ -134,6 +136,33 @@ router.use(requireAdmin);
 router.get('/', (req, res) => {
   const leagues = getAllLeagues(db);
   res.render('admin/dashboard', { leagues });
+});
+
+// What the server sees about this request and its own housekeeping (for checking the proxy set-up).
+router.get('/diagnostics', (req, res) => {
+  let dbBytes = null;
+  try {
+    dbBytes = fs.statSync(resolveDbPath(process.env.DATABASE_PATH)).size;
+  } catch (err) {
+    /* shown as unknown */
+  }
+  const newest = newestBackup(defaultBackupDir());
+  const backupAgeHours = newest ? (Date.now() - newest.mtimeMs) / 3600000 : null;
+  res.render('admin/diagnostics', {
+    info: {
+      ip: req.ip,
+      ips: req.ips,
+      forwardedFor: req.get('x-forwarded-for') || '',
+      cfConnectingIp: req.get('cf-connecting-ip') || '',
+      protocol: req.protocol,
+      trustProxy: req.app.get('trust proxy'),
+      nodeVersion: process.version,
+      dbBytes,
+      newestBackup: newest ? newest.name : null,
+      backupAgeHours,
+      backupStale: backupAgeHours === null || backupAgeHours > 36,
+    },
+  });
 });
 
 router.post('/leagues', (req, res) => {

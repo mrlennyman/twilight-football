@@ -1,0 +1,37 @@
+<%- include('../partials/header', { title: 'Server check' }) %>
+<div class="admin-bar">
+  <h1>Server check</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p class="muted">Quick facts about this connection and the server. Nothing here can be changed from this page.</p>
+
+<div class="table-scroll">
+<table class="admin-table diagnostics">
+  <tbody>
+    <tr><th>Your address as the app sees it (req.ip)</th><td><strong><%= info.ip %></strong></td></tr>
+    <tr><th>Address chain (req.ips)</th><td><%= info.ips.length ? info.ips.join(', ') : '(none)' %></td></tr>
+    <tr><th>X-Forwarded-For header</th><td><%= info.forwardedFor || '(not sent)' %></td></tr>
+    <tr><th>CF-Connecting-IP header</th><td><%= info.cfConnectingIp || '(not sent)' %></td></tr>
+    <tr><th>Trusted proxies (TRUST_PROXY)</th><td><%= info.trustProxy %></td></tr>
+    <tr><th>Connection</th><td><%= info.protocol %></td></tr>
+    <tr><th>Node version</th><td><%= info.nodeVersion %></td></tr>
+    <tr><th>Database size</th><td><%= info.dbBytes === null ? 'unknown' : (info.dbBytes / 1024).toFixed(0) + ' KB' %></td></tr>
+    <tr class="<%= info.backupStale ? 'diag-bad' : '' %>">
+      <th>Newest backup</th>
+      <td>
+        <% if (info.newestBackup) { %>
+          <%= info.newestBackup %> (<%= info.backupAgeHours < 1 ? 'under an hour' : Math.round(info.backupAgeHours) + ' hours' %> ago)
+          <% if (info.backupStale) { %><strong> - older than 36 hours: check the nightly backup job</strong><% } %>
+        <% } else { %>
+          <strong>No backup found - set up the nightly backup job.</strong>
+        <% } %>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Is the address right?</h2>
+<p>The first row should be <strong>your own public IP address</strong>. If it is a different address that other visitors would share too (for example a Cloudflare address), the login lock-out would hit everyone at once. In that case add <code>TRUST_PROXY=2</code> to the server's <code>.env</code> file and restart the app, then reload this page.</p>
+
+<%- include('../partials/footer') %>

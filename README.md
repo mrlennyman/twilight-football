@@ -112,6 +112,10 @@ install it as an app.
   server yet.
 - **Login says "Too many failed attempts"** - ten wrong passwords locks an address out for 15 minutes.
   Restarting the app clears it.
+- **Login locks everyone out, or "Server check" shows a strange address** - open *Admin -> Server check*
+  (`/admin/diagnostics`). The first row should be your own public IP. If it is a shared address (for example
+  Cloudflare's), add `TRUST_PROXY=2` to `.env` (Cloudflare + OpenLiteSpeed = 2 proxies; the default is 1) and
+  restart the app.
 - **Forgot the admin password** - edit `.env` in File Manager, then restart the Supervisor job. Data is kept.
 
 ## Advanced: with a terminal instead
