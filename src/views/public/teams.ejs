@@ -10,7 +10,7 @@
       <% if (team.kit_colour) { %><p class="muted">Kit: <%= team.kit_colour %></p><% } %>
       <ul class="roster">
         <% team.players.forEach(player => { %>
-          <li><%= player.displayName %></li>
+          <li class="<%= player.is_captain ? 'is-captain' : '' %>"><span><%= player.displayName %><% if (player.is_captain) { %> <span class="cap-mark" title="Captain">(c)</span><% } %></span></li>
         <% }) %>
         <% if (team.players.length === 0) { %>
           <li class="muted">Roster to be confirmed</li>

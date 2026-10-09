@@ -32,6 +32,8 @@ db.exec(schema);
 // Databases created before a column existed: CREATE TABLE IF NOT EXISTS won't add it.
 const leagueColumns = db.prepare('PRAGMA table_info(leagues)').all().map((c) => c.name);
 if (!leagueColumns.includes('nav_tabs')) db.exec('ALTER TABLE leagues ADD COLUMN nav_tabs TEXT');
+const playerColumns = db.prepare('PRAGMA table_info(players)').all().map((c) => c.name);
+if (!playerColumns.includes('is_captain')) db.exec('ALTER TABLE players ADD COLUMN is_captain INTEGER NOT NULL DEFAULT 0');
 const matchColumns = db.prepare('PRAGMA table_info(matches)').all().map((c) => c.name);
 if (!matchColumns.includes('updated_at')) db.exec('ALTER TABLE matches ADD COLUMN updated_at TEXT');
 

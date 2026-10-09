@@ -95,7 +95,7 @@ test('createLeagueFromRoster rolls back completely on failure', () => {
   const db = makeDb();
   const teams = [
     { name: 'A', kit: '', players: ['x'] },
-    { name: 'B', kit: '', players: [null] }, // NOT NULL violation part-way through
+    { name: null, kit: '', players: ['y'] }, // NOT NULL violation part-way through
   ];
   assert.throws(() => createLeagueFromRoster(db, { name: 'L', season: 'S', numPitches: 4, roundsPerWeek: 3 }, teams));
   assert.equal(db.prepare('SELECT COUNT(*) c FROM leagues').get().c, 0);

@@ -45,6 +45,8 @@
       button.setAttribute('aria-pressed', String(following));
     };
     button.hidden = false;
+    var help = document.getElementById('follow-help');
+    if (help) help.hidden = false;
     label();
     button.addEventListener('click', function () {
       var map = read();

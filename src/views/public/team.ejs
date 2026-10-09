@@ -4,33 +4,59 @@
 
 <section class="team-page" data-team-id="<%= team.id %>">
   <p class="team-back"><a href="/league/<%= league.id %>/teams">&larr; All teams</a></p>
-  <h2 class="team-name"><%= team.name %></h2>
-  <% if (team.kit_colour) { %><p class="muted">Kit: <%= team.kit_colour %></p><% } %>
-  <button type="button" id="follow-team" class="follow-btn" data-team-id="<%= team.id %>" hidden>Follow this team</button>
 
-  <% if (matches.length === 0) { %>
-    <p class="muted">No games scheduled yet.</p>
-  <% } else { %>
-    <div class="match-list">
-      <% matches.forEach(m => { %>
-        <div class="match-card team-match">
-          <div class="team-match-when"><%= formatDate(m.date) %> &middot; <%= m.stage === 'group' ? 'Round ' + m.round_number : (m.stage === 'cup' ? 'Cup ' : 'Plate ') + (m.bracket_slot === 'final' ? 'final' : 'semi-final') %></div>
-          <div class="team-match-main">
-            <span>vs <a href="/league/<%= league.id %>/team/<%= m.opponent_id %>"><%= m.opponent_name %></a></span>
-            <% if (m.status === 'played') { %>
-              <span class="score-badge"><%= m.my_score %> - <%= m.their_score %></span>
-            <% } else { %>
-              <span class="score-badge score-badge-pending">v</span>
-            <% } %>
-          </div>
-          <div class="match-meta">
-            <span><%= m.pitch_label || '—' %></span>
-            <% if (m.status === 'played') { %><span>&middot; <%= m.result_text %></span><% } %>
-          </div>
+  <div class="team-hero">
+    <h2 class="team-name"><%= team.name %></h2>
+    <p class="team-meta">
+      <% if (team.kit_colour) { %><span class="team-chip">Kit: <%= team.kit_colour %></span><% } %>
+      <% if (standing) { %><span class="team-chip team-chip-strong"><%= standing.position %> &middot; <%= standing.points %> pt<%= standing.points === 1 ? '' : 's' %></span>
+      <span class="team-chip">W<%= standing.won %> D<%= standing.drawn %> L<%= standing.lost %></span><% } %>
+    </p>
+    <button type="button" id="follow-team" class="follow-btn" data-team-id="<%= team.id %>" hidden>Follow this team</button>
+    <p class="follow-help" id="follow-help" hidden>Following highlights this team in gold on every page, on this phone only.</p>
+  </div>
+
+  <div class="team-layout">
+    <section class="squad-card" aria-labelledby="squad-title">
+      <h3 id="squad-title">Squad <span class="squad-count"><%= players.length ? '(' + players.length + ')' : '' %></span></h3>
+      <% if (players.length === 0) { %>
+        <p class="muted">Squad to be confirmed.</p>
+      <% } else { %>
+        <ul class="squad">
+          <% players.forEach(player => { %>
+            <li class="<%= player.is_captain ? 'is-captain' : '' %>"><%= player.displayName %><% if (player.is_captain) { %> <span class="cap-mark" title="Captain">(c)</span><% } %></li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+
+    <section class="team-fixtures" aria-labelledby="fixtures-title">
+      <h3 id="fixtures-title">Fixtures &amp; results</h3>
+      <% if (matches.length === 0) { %>
+        <p class="muted">No games scheduled yet.</p>
+      <% } else { %>
+        <div class="match-list">
+          <% matches.forEach(m => { %>
+            <div class="match-card team-match">
+              <div class="team-match-when"><%= formatDate(m.date) %> &middot; <%= m.stage === 'group' ? 'Round ' + m.round_number : (m.stage === 'cup' ? 'Cup ' : 'Plate ') + (m.bracket_slot === 'final' ? 'final' : 'semi-final') %></div>
+              <div class="team-match-main">
+                <span>vs <% if (m.opponent_id) { %><a href="/league/<%= league.id %>/team/<%= m.opponent_id %>"><%= m.opponent_name %></a><% } else { %><%= m.opponent_name %><% } %></span>
+                <% if (m.status === 'played') { %>
+                  <span class="score-badge"><%= m.my_score %> - <%= m.their_score %></span>
+                <% } else { %>
+                  <span class="score-badge score-badge-pending">v</span>
+                <% } %>
+              </div>
+              <div class="match-meta">
+                <span><%= m.pitch_label || '—' %></span>
+                <% if (m.status === 'played') { %><span>&middot; <%= m.result_text %></span><% } %>
+              </div>
+            </div>
+          <% }) %>
         </div>
-      <% }) %>
-    </div>
-  <% } %>
+      <% } %>
+    </section>
+  </div>
 </section>
 
 <%- include('../partials/footer') %>

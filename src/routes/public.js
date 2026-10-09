@@ -75,7 +75,7 @@ router.get('/league/:id/teams', (req, res) => {
 
   const teams = getTeams(db, league.id).map((team) => ({
     ...team,
-    players: getPlayers(db, team.id).map((p) => ({ ...p, displayName: firstNameLastInitial(p.name) })),
+    players: getPlayers(db, team.id).map((p) => ({ ...p, displayName: firstNameLastInitial(p.name), isCaptain: p.is_captain === 1 })),
   }));
 
   res.render('public/teams', { league, teams });
@@ -141,7 +141,15 @@ router.get('/league/:id/team/:teamId', (req, res) => {
     };
   });
 
-  res.render('public/team', { league, team, matches });
+  // Squad (captains first, names as first name + initial) and, once games are played, where the team stands.
+  const players = getPlayers(db, team.id).map((pl) => ({ ...pl, displayName: firstNameLastInitial(pl.name) }));
+  const table = computeStandings(db, league.id);
+  const index = table.findIndex((row) => row.teamId === team.id);
+  const row = index >= 0 ? table[index] : null;
+  const ordinal = (n) => `${n}${['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
+  const standing = row && row.played > 0 ? { ...row, position: ordinal(index + 1) } : null;
+
+  res.render('public/team', { league, team, matches, players, standing });
 });
 
 router.get('/league/:id/bracket', (req, res) => {

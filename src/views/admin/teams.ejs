@@ -9,7 +9,7 @@
   <a class="quick-roster-btn" href="/admin/league/<%= league.id %>/roster-import">Paste all teams at once &rarr;</a>
 </div>
 
-<p class="help">For one team, type or paste its players in the box - <strong>one name per line</strong> - and press Save once. Parents only ever see <strong>first name + last initial</strong> (&ldquo;Jack Brown&rdquo; shows as &ldquo;Jack B.&rdquo;). For more than one first name, type the last initial yourself: <strong>Te Rangi H.</strong></p>
+<p class="help">For one team, type or paste its players in the box - <strong>one name per line</strong> - and press Save once. Parents only ever see <strong>first name + last initial</strong> (&ldquo;Jack Brown&rdquo; shows as &ldquo;Jack B.&rdquo;). For more than one first name, type the last initial yourself: <strong>Te Rangi H.</strong> To make someone a <strong>captain</strong>, type <strong>(c)</strong> after their name - <strong>Jack Brown (c)</strong>. Captains are listed first.</p>
 
 <div class="team-grid">
   <% teams.forEach(team => { %>
@@ -22,7 +22,7 @@
           <input type="text" name="kit_colour" value="<%= team.kit_colour || '' %>" maxlength="30" placeholder="e.g. Red">
         </label>
         <label>Players <span class="muted">(<%= team.players.length %> - one per line, paste a whole list)</span>
-          <textarea name="players" class="roster-box" rows="<%= Math.max(8, team.players.length + 2) %>" maxlength="4000" placeholder="Jack Brown&#10;Mia Chen&#10;Te Rangi H."><%= team.players.map(p => p.name).join('\n') %></textarea>
+          <textarea name="players" class="roster-box" rows="<%= Math.max(8, team.players.length + 2) %>" maxlength="4000" placeholder="Jack Brown&#10;Mia Chen&#10;Te Rangi H."><%= team.players.map(p => playerLine(p)).join('\n') %></textarea>
         </label>
         <button type="submit" class="save-team">Save <%= team.name %></button>
       </form>

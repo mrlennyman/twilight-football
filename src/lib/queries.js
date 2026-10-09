@@ -13,7 +13,7 @@ function getTeams(db, leagueId) {
 }
 
 function getPlayers(db, teamId) {
-  return db.prepare('SELECT * FROM players WHERE team_id = ? ORDER BY name').all(teamId);
+  return db.prepare('SELECT * FROM players WHERE team_id = ? ORDER BY is_captain DESC, name').all(teamId);
 }
 
 function getPitches(db) {

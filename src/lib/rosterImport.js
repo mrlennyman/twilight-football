@@ -9,6 +9,7 @@
  * The header row is optional. "player" and "kit" may be left blank (a team with no players yet).
  */
 const { seedStarterPages } = require('./pages');
+const { splitCaptain } = require('./rosterText');
 
 const MAX_TEAMS = 32;
 const MAX_PLAYERS_PER_TEAM = 40;
@@ -134,10 +135,13 @@ function createLeagueFromRoster(db, { name, season, numPitches, roundsPerWeek },
     const leagueId = Number(info.lastInsertRowid);
 
     const insertTeam = db.prepare('INSERT INTO teams (league_id, name, kit_colour) VALUES (?, ?, ?)');
-    const insertPlayer = db.prepare('INSERT INTO players (team_id, name) VALUES (?, ?)');
+    const insertPlayer = db.prepare('INSERT INTO players (team_id, name, is_captain) VALUES (?, ?, ?)');
     for (const team of teams) {
       const teamId = Number(insertTeam.run(leagueId, team.name, team.kit || null).lastInsertRowid);
-      for (const player of team.players) insertPlayer.run(teamId, player);
+      for (const raw of team.players) {
+        const { name, captain } = splitCaptain(raw);
+        insertPlayer.run(teamId, name, captain ? 1 : 0);
+      }
     }
     seedStarterPages(db, leagueId);
     db.exec('COMMIT');

@@ -36,7 +36,7 @@ const {
 } = require('../lib/queries');
 const { getNavSettings, parseNavInput } = require('../lib/navTabs');
 const { parseRosterCsv, createLeagueFromRoster, SAMPLE_CSV } = require('../lib/rosterImport');
-const { parsePlayerList, parseBlocks, planRosterImport, applyRosterImport, replaceRoster } = require('../lib/rosterText');
+const { parsePlayerList, parseBlocks, planRosterImport, applyRosterImport, replaceRoster, splitCaptain, playerLine } = require('../lib/rosterText');
 
 const router = express.Router();
 
@@ -276,7 +276,7 @@ router.get('/league/:id/teams', (req, res) => {
     players: getPlayers(db, team.id),
   }));
 
-  res.render('admin/teams', { league, teams });
+  res.render('admin/teams', { league, teams, playerLine });
 });
 
 router.post('/league/:id/teams/:teamId', (req, res) => {
@@ -351,9 +351,11 @@ router.post('/league/:id/teams/:teamId/players', (req, res) => {
   const name = String(req.body.name ?? '').trim();
   if (name.length > 60) return fail(res, 'Player name is too long (max 60 characters).');
   if (name && teamInLeague(Number(req.params.teamId), Number(req.params.id))) {
-    db.prepare('INSERT INTO players (team_id, name) VALUES (?, ?)').run(
+    const { name: base, captain } = splitCaptain(name);
+    db.prepare('INSERT INTO players (team_id, name, is_captain) VALUES (?, ?, ?)').run(
       Number(req.params.teamId),
-      name
+      base,
+      captain ? 1 : 0
     );
   }
   res.redirect(`/admin/league/${req.params.id}/teams`);
@@ -364,8 +366,10 @@ router.post('/league/:id/teams/:teamId/players/:playerId', (req, res) => {
   if (!name) return fail(res, 'A player needs a name (use remove to delete them).');
   if (name.length > 60) return fail(res, 'Player name is too long (max 60 characters).');
   if (teamInLeague(Number(req.params.teamId), Number(req.params.id))) {
-    db.prepare('UPDATE players SET name = ? WHERE id = ? AND team_id = ?').run(
-      name,
+    const { name: base, captain } = splitCaptain(name);
+    db.prepare('UPDATE players SET name = ?, is_captain = ? WHERE id = ? AND team_id = ?').run(
+      base,
+      captain ? 1 : 0,
       Number(req.params.playerId),
       Number(req.params.teamId)
     );

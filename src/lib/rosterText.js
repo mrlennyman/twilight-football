@@ -11,6 +11,18 @@ const MAX_NAME = 60;
 
 const collapse = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
+/** "Jack Brown (c)" -> { name: 'Jack Brown', captain: true }. Also "(captain)" / "(capt)". */
+function splitCaptain(raw) {
+  const text = collapse(raw);
+  const m = /\s*\((?:c|capt|captain)\)$/i.exec(text);
+  return m ? { name: collapse(text.slice(0, m.index)), captain: true } : { name: text, captain: false };
+}
+
+/** How a roster entry is written back into a list: captains get " (c)". */
+function playerLine(player) {
+  return player.is_captain ? `${player.name} (c)` : player.name;
+}
+
 /** Strips list markers people paste along with names: "1. ", "2) ", "- ", "• ", "12 ". */
 function cleanName(line) {
   return collapse(String(line ?? '').replace(/^\s*(?:[-*•·]+\s*|\d{1,3}\s*[.)\]:-]\s*|\d{1,3}\s+)/, ''));
@@ -23,9 +35,11 @@ function parsePlayerList(text, { splitSingleLine = true } = {}) {
   // Everything on one line ("Jack B, Mia C, Sam L") -> split it.
   if (splitSingleLine && filled.length === 1 && /[,;\t]/.test(filled[0])) lines = filled[0].split(/[,;\t]/);
 
-  const names = lines.map(cleanName).filter(Boolean);
+  // "(c)" after a name marks a captain; it stays in the string here and is read by splitCaptain() on save.
+  const names = lines.map(cleanName).filter((n) => splitCaptain(n).name);
   for (const name of names) {
-    if (name.length > MAX_NAME) errors.push(`"${name.slice(0, 20)}..." is too long for a name (max ${MAX_NAME} characters).`);
+    const base = splitCaptain(name).name;
+    if (base.length > MAX_NAME) errors.push(`"${base.slice(0, 20)}..." is too long for a name (max ${MAX_NAME} characters).`);
   }
   if (names.length > MAX_PLAYERS) errors.push(`That is ${names.length} players - a team can have at most ${MAX_PLAYERS}.`);
   return { names, errors };
@@ -74,7 +88,7 @@ function planRosterImport(db, leagueId, fileTeams, { replace = false } = {}) {
   const existing = db
     .prepare('SELECT id, name, kit_colour FROM teams WHERE league_id = ? ORDER BY id')
     .all(leagueId)
-    .map((t) => ({ ...t, players: db.prepare('SELECT name FROM players WHERE team_id = ? ORDER BY name').all(t.id).map((p) => p.name) }));
+    .map((t) => ({ ...t, players: db.prepare('SELECT name FROM players WHERE team_id = ? ORDER BY is_captain DESC, name').all(t.id).map((p) => p.name) }));
 
   const byName = new Map(existing.map((t) => [t.name.toLowerCase(), t]));
   const used = new Set();
@@ -106,14 +120,18 @@ function planRosterImport(db, leagueId, fileTeams, { replace = false } = {}) {
     const have = new Set(target.team.players.map((n) => n.toLowerCase()));
     let adds = [];
     let skipped = 0;
+    const promote = []; // players already in the team who are pasted with "(c)"
     if (replace) {
       adds = ft.players;
     } else {
-      for (const name of ft.players) {
-        if (have.has(name.toLowerCase())) skipped += 1;
-        else {
+      for (const raw of ft.players) {
+        const { name, captain } = splitCaptain(raw);
+        if (have.has(name.toLowerCase())) {
+          skipped += 1;
+          if (captain) promote.push(name.toLowerCase());
+        } else {
           have.add(name.toLowerCase());
-          adds.push(name);
+          adds.push(raw);
         }
       }
     }
@@ -126,6 +144,7 @@ function planRosterImport(db, leagueId, fileTeams, { replace = false } = {}) {
       newName: ft.name,
       kit: ft.kit || '',
       adds,
+      promote,
       skipped,
       removed: replace ? target.team.players.length : 0,
       keeps: replace ? 0 : target.team.players.length,
@@ -145,8 +164,14 @@ function applyRosterImport(db, plan) {
         item.teamId
       );
       if (item.removed > 0) db.prepare('DELETE FROM players WHERE team_id = ?').run(item.teamId);
-      const insert = db.prepare('INSERT INTO players (team_id, name) VALUES (?, ?)');
-      for (const name of item.adds) insert.run(item.teamId, name);
+      const insert = db.prepare('INSERT INTO players (team_id, name, is_captain) VALUES (?, ?, ?)');
+      for (const raw of item.adds) {
+        const { name, captain } = splitCaptain(raw);
+        insert.run(item.teamId, name, captain ? 1 : 0);
+      }
+      for (const lower of item.promote || []) {
+        db.prepare('UPDATE players SET is_captain = 1 WHERE team_id = ? AND lower(name) = ?').run(item.teamId, lower);
+      }
     }
     db.exec('COMMIT');
   } catch (err) {
@@ -160,8 +185,11 @@ function replaceRoster(db, teamId, names) {
   db.exec('BEGIN');
   try {
     db.prepare('DELETE FROM players WHERE team_id = ?').run(teamId);
-    const insert = db.prepare('INSERT INTO players (team_id, name) VALUES (?, ?)');
-    for (const name of names) insert.run(teamId, name);
+    const insert = db.prepare('INSERT INTO players (team_id, name, is_captain) VALUES (?, ?, ?)');
+    for (const raw of names) {
+      const { name, captain } = splitCaptain(raw);
+      insert.run(teamId, name, captain ? 1 : 0);
+    }
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
@@ -169,4 +197,4 @@ function replaceRoster(db, teamId, names) {
   }
 }
 
-module.exports = { MAX_PLAYERS, MAX_NAME, cleanName, parsePlayerList, parseBlocks, planRosterImport, applyRosterImport, replaceRoster };
+module.exports = { MAX_PLAYERS, MAX_NAME, cleanName, splitCaptain, playerLine, parsePlayerList, parseBlocks, planRosterImport, applyRosterImport, replaceRoster };

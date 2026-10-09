@@ -49,7 +49,7 @@ test('footer: the "Get the app" link is wrapped so it can be hidden once the app
   const path = require('path');
   const css = fs.readFileSync(path.join(__dirname, '../src/public/css/style.css'), 'utf8');
   assert.match(css, /@media \(display-mode: standalone\)\s*\{\s*\.install-link\s*\{\s*display:\s*none/);
-  assert.match(css, /\.home-page \.site-footer\s*\{[^}]*position:\s*fixed/);
+  assert.match(css, /\.home-page \.site-footer\s*\{\s*display:\s*none/);
   const js = fs.readFileSync(path.join(__dirname, '../src/public/js/install.js'), 'utf8');
   assert.match(js, /querySelectorAll\('\.install-link'\)/);
 });
