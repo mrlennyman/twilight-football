@@ -39,6 +39,52 @@ function assignPitches(pairings, pitchIds) {
   }));
 }
 
+function permutations(items) {
+  if (items.length <= 1) return [items.slice()];
+  const out = [];
+  items.forEach((item, i) => {
+    for (const rest of permutations([...items.slice(0, i), ...items.slice(i + 1)])) out.push([item, ...rest]);
+  });
+  return out;
+}
+
+const MAX_PITCHES_TO_PERMUTE = 6; // 6! = 720 options per round - instant; beyond that use the simple rotation
+
+/**
+ * Spreads pitches fairly: for each round, tries every way of putting that round's matches on distinct
+ * pitches and keeps the one that adds the least "pitch repetition" for the teams involved (cost of a
+ * team playing a pitch it has already played n times is 2n+1). Deterministic: same input, same schedule.
+ * `state` carries the per-team pitch counts across rounds; `perms` is the cached permutation list.
+ */
+function assignPitchesBalanced(pairings, pitchIds, state) {
+  const pitchCount = pitchIds.length;
+  const countOf = (team, pitch) => state.counts.get(`${team}:${pitch}`) || 0;
+  const bump = (team, pitch) => state.counts.set(`${team}:${pitch}`, countOf(team, pitch) + 1);
+
+  let assignment; // pitchIds index per match
+  if (pairings.length > pitchCount || pitchCount > MAX_PITCHES_TO_PERMUTE) {
+    assignment = pairings.map((_, i) => i % pitchCount);
+  } else {
+    if (!state.perms) state.perms = permutations(pitchIds.map((_, i) => i));
+    let best = null;
+    for (const perm of state.perms) {
+      let cost = 0;
+      pairings.forEach(([home, away], i) => {
+        cost += 2 * countOf(home, pitchIds[perm[i]]) + 1 + 2 * countOf(away, pitchIds[perm[i]]) + 1;
+      });
+      if (best === null || cost < best.cost) best = { cost, perm };
+    }
+    assignment = best.perm;
+  }
+
+  return pairings.map(([homeTeamId, awayTeamId], i) => {
+    const pitchId = pitchIds[assignment[i]];
+    bump(homeTeamId, pitchId);
+    bump(awayTeamId, pitchId);
+    return { homeTeamId, awayTeamId, pitchId };
+  });
+}
+
 function chunkIntoWeeks(rounds, roundsPerWeek) {
   const weeks = [];
   for (let i = 0; i < rounds.length; i += roundsPerWeek) {
@@ -78,6 +124,7 @@ function generateGroupStageSchedule({
   const weeks = chunkIntoWeeks(rounds, roundsPerWeek);
 
   const schedule = [];
+  const pitchState = { counts: new Map(), perms: null };
   let roundNumber = 0;
   weeks.forEach((weekRounds, weekIndex) => {
     const weekNumber = weekIndex + 1;
@@ -90,7 +137,7 @@ function generateGroupStageSchedule({
         stage: 'group',
         date,
         kickoffTime: addMinutes(kickoffStartTime, positionInWeek * slotMinutes),
-        matches: assignPitches(pairings, pitchIds),
+        matches: assignPitchesBalanced(pairings, pitchIds, pitchState),
       });
     });
   });
@@ -140,10 +187,51 @@ function generateKnockoutBracket({
   return [semis, final];
 }
 
+/**
+ * Cup (top 4) and Plate (bottom 4) brackets that never share a pitch at the same time.
+ * 4+ pitches: both brackets run side by side (Cup on pitches 1-2, Plate on 3-4), same kickoff times.
+ * 2-3 pitches: Plate starts two slots after the Cup, on the same two pitches.
+ * Round numbers are distinct: Cup n, n+1; Plate n+2, n+3.
+ */
+function generateCupAndPlate({
+  cupTeamIds,
+  plateTeamIds,
+  pitchIds,
+  roundNumberStart,
+  weekNumber,
+  date,
+  kickoffStartTime,
+  slotMinutes,
+}) {
+  if (pitchIds.length < 2) throw new Error('Cup/Plate needs at least 2 pitches');
+  const sideBySide = pitchIds.length >= 4;
+  const common = { weekNumber, date, slotMinutes };
+
+  const cup = generateKnockoutBracket({
+    ...common,
+    rankedTeamIds: cupTeamIds,
+    stage: 'cup',
+    pitchIds: pitchIds.slice(0, 2),
+    roundNumberStart,
+    kickoffStartTime,
+  });
+  const plate = generateKnockoutBracket({
+    ...common,
+    rankedTeamIds: plateTeamIds,
+    stage: 'plate',
+    pitchIds: sideBySide ? pitchIds.slice(2, 4) : pitchIds.slice(0, 2),
+    roundNumberStart: roundNumberStart + 2,
+    kickoffStartTime: sideBySide ? kickoffStartTime : addMinutes(kickoffStartTime, 2 * slotMinutes),
+  });
+  return [...cup, ...plate];
+}
+
 module.exports = {
+  generateCupAndPlate,
   circleMethodRounds,
   doubleRoundRobin,
   assignPitches,
+  assignPitchesBalanced,
   chunkIntoWeeks,
   addDays,
   addMinutes,

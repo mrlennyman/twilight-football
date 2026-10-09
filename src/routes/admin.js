@@ -3,7 +3,7 @@ const db = require('../db');
 const { checkPassword, requireAdmin } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/loginLimiter');
 const { computeStandings, groupStageComplete } = require('../lib/standings');
-const { generateGroupStageSchedule, generateKnockoutBracket, addDays } = require('../lib/schedule');
+const { generateGroupStageSchedule, generateCupAndPlate, addDays } = require('../lib/schedule');
 const { tryFillFinal } = require('../lib/knockoutResult');
 const {
   parseScore,
@@ -435,7 +435,10 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
 
   const top4 = standings.slice(0, 4).map((s) => s.teamId);
   const bottom4 = standings.slice(4, 8).map((s) => s.teamId);
-  const pitchIds = getPitches(db).map((p) => p.id);
+  const pitchIds = getPitches(db)
+    .slice(0, league.num_pitches)
+    .map((p) => p.id);
+  if (pitchIds.length < 2) return fail(res, 'Cup/Plate knockouts need at least 2 pitches.');
 
   const lastGroupRound = db
     .prepare("SELECT MAX(round_number) AS n FROM rounds WHERE league_id = ? AND stage = 'group'")
@@ -443,20 +446,24 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   const lastGroupWeek = db
     .prepare("SELECT MAX(week_number) AS n FROM rounds WHERE league_id = ? AND stage = 'group'")
     .get(league.id).n;
-  const knockoutDate = addDays(league.start_date, lastGroupWeek * 7);
+  // The night after the last group night (follows the real round dates, not just start_date + weeks).
+  const lastGroupDate = db
+    .prepare("SELECT MAX(date) AS d FROM rounds WHERE league_id = ? AND stage = 'group'")
+    .get(league.id).d;
+  const knockoutDate = addDays(lastGroupDate || league.start_date, 7);
   const kickoffTime = league.kickoff_start_time || '17:00';
   const slotMinutes = league.slot_minutes || 45;
 
-  const bracketConfig = {
+  const knockoutRounds = generateCupAndPlate({
+    cupTeamIds: top4,
+    plateTeamIds: bottom4,
     pitchIds,
     roundNumberStart: lastGroupRound + 1,
     weekNumber: lastGroupWeek + 1,
     date: knockoutDate,
     kickoffStartTime: kickoffTime,
     slotMinutes,
-  };
-  const cup = generateKnockoutBracket({ ...bracketConfig, rankedTeamIds: top4, stage: 'cup' });
-  const plate = generateKnockoutBracket({ ...bracketConfig, rankedTeamIds: bottom4, stage: 'plate' });
+  });
 
   if (!safetyBackup(res, 'knockouts')) return;
 
@@ -470,7 +477,7 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   );
 
   const persist = db.transaction(() => {
-    for (const round of [...cup, ...plate]) {
+    for (const round of knockoutRounds) {
       const roundInfo = insertRound.run(
         league.id,
         round.roundNumber,

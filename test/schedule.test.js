@@ -95,3 +95,40 @@ test('addDays and addMinutes handle rollover correctly', () => {
   assert.equal(addMinutes('23:30', 45), '00:15');
   assert.equal(addMinutes('17:30', 90), '19:00');
 });
+
+test('B6: pitches are spread fairly - 8 teams, 4 pitches, every team plays every pitch 3 or 4 times', () => {
+  const teamIds = [1, 2, 3, 4, 5, 6, 7, 8];
+  const pitchIds = [11, 12, 13, 14];
+  const schedule = generateGroupStageSchedule({
+    teamIds, pitchIds, roundsPerWeek: 3, startDate: '2026-10-14', kickoffStartTime: '17:00', slotMinutes: 15,
+  });
+
+  const counts = new Map();
+  const fixtures = new Set();
+  for (const round of schedule) {
+    const teamsThisRound = round.matches.flatMap((m) => [m.homeTeamId, m.awayTeamId]);
+    assert.equal(new Set(teamsThisRound).size, 8, 'no team plays twice in a round');
+    assert.equal(new Set(round.matches.map((m) => m.pitchId)).size, round.matches.length, 'one match per pitch per round');
+    for (const m of round.matches) {
+      fixtures.add(`${m.homeTeamId}-${m.awayTeamId}`);
+      for (const team of [m.homeTeamId, m.awayTeamId]) {
+        counts.set(`${team}:${m.pitchId}`, (counts.get(`${team}:${m.pitchId}`) || 0) + 1);
+      }
+    }
+  }
+  assert.equal(fixtures.size, 56, 'every ordered fixture appears exactly once');
+  for (const team of teamIds) {
+    for (const pitch of pitchIds) {
+      const n = counts.get(`${team}:${pitch}`) || 0;
+      assert.ok(n === 3 || n === 4, `team ${team} played pitch ${pitch} ${n} times`);
+    }
+  }
+});
+
+test('B6: deterministic (same input, same schedule) and still valid when matches outnumber pitches', () => {
+  const input = { teamIds: [1, 2, 3, 4, 5, 6, 7, 8], pitchIds: [1, 2, 3, 4], roundsPerWeek: 3, startDate: '2026-10-14', kickoffStartTime: '17:00', slotMinutes: 15 };
+  assert.deepEqual(generateGroupStageSchedule(input), generateGroupStageSchedule(input));
+  const few = generateGroupStageSchedule({ ...input, pitchIds: [1, 2] });
+  assert.equal(few.reduce((n, r) => n + r.matches.length, 0), 56);
+  assert.ok(few.every((r) => r.matches.every((m) => [1, 2].includes(m.pitchId))));
+});
