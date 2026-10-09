@@ -138,9 +138,11 @@ test('an empty squad says so; an old database gains the is_captain column on sta
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('home screen: no footer line is shown', async () => {
-  const fsx = require('fs');
-  const css = fsx.readFileSync(path.join(__dirname, '../src/public/css/style.css'), 'utf8');
-  assert.match(css, /\.home-page \.site-footer\s*\{\s*display:\s*none/);
-  assert.match(css, /html:has\(body\.home-page\)\s*\{\s*background:/);
+test('home and login screens: <html> carries its own dark colour so no light sliver can show at the edge', async () => {
+  const css = fs.readFileSync(path.join(__dirname, '../src/public/css/style.css'), 'utf8');
+  assert.match(css, /html\.home-page-root,\s*html\.login-page-root\s*\{[^}]*background:\s*#240812/);
+  assert.match(css, /\.home-page,\s*\.login-page\s*\{\s*min-height:\s*100vh;\s*min-height:\s*100lvh/);
+  assert.match(css, /\.home-page \.site-footer\s*\{[^}]*position:\s*fixed/, 'footer text is kept, pinned');
+  const login = await get('/admin/login');
+  assert.match(login, /<html lang="en" class="login-page-root">/);
 });

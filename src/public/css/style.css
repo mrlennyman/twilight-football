@@ -848,10 +848,34 @@ button.link-button.danger, form button[type="submit"].link-button.danger { color
 .home-page { background: var(--wine-900) radial-gradient(120% 90% at 50% 0%, var(--wine-700) 0%, var(--wine-900) 62%, #240812 100%) fixed; }
 .home-page .site-header { display: none; }
 .home-page main.container { max-width: none; padding: 0; display: flex; flex-direction: column; }
-/* No footer line on the home screen (the "Get the app" banner covers installing). */
-.home-page .site-footer { display: none; }
-/* Keep the page colour dark behind everything so no light edge can show at the bottom. */
-html:has(body.home-page) { background: #240812; }
+/* The footer text stays pinned to the bottom of the screen on the home page, so it never needs scrolling to. */
+.home-page .site-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 18px 16px max(10px, env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: linear-gradient(to top, rgba(36, 8, 18, 0.92), rgba(36, 8, 18, 0));
+  pointer-events: none;
+}
+.home-page .site-footer p { margin: 0; }
+.home-page .site-footer a { color: #f3d9a4; pointer-events: auto; }
+.home-page .home-stage { padding-bottom: 72px; }
+
+/* No light sliver at the screen edge: the dark colour is painted on <html> itself (not left to the browser
+   to copy from <body>), the page is at least as tall as the biggest viewport, and the glow layer overshoots
+   the screen edges by a couple of pixels. */
+html.home-page-root, html.login-page-root {
+  background: #240812;
+  overscroll-behavior-y: none;
+}
+.home-page, .login-page { min-height: 100vh; min-height: 100lvh; }
+.login-bg { inset: -2px; }
 
 .home-stage {
   position: relative;
