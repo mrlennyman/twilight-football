@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/css/print.css?v=<%= assetVersion %>" media="all">
   <% } %>
 </head>
-<body>
+<body<%- typeof bodyClass !== 'undefined' ? ` class="${bodyClass}"` : '' %>>
 <header class="site-header no-print">
   <div class="container">
     <a class="brand" href="/">

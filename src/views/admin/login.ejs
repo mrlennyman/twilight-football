@@ -1,13 +1,52 @@
-<%- include('../partials/header', { title: 'Admin login' }) %>
-<h1>Admin login</h1>
+<%- include('../partials/header', { title: 'Admin login', bodyClass: 'login-page' }) %>
+<div class="login-stage">
+  <div class="login-bg" aria-hidden="true">
+  <div class="login-orb login-orb-1"></div>
+  <div class="login-orb login-orb-2"></div>
+  <div class="login-orb login-orb-3"></div>
+  <svg class="login-pitch" viewBox="0 0 400 400" aria-hidden="true">
+    <circle cx="200" cy="200" r="150"/><circle cx="200" cy="200" r="6"/>
+    <path d="M200 50v300M50 200h300"/>
+  </svg>
+  </div>
 
-<% if (error) { %><p class="error"><%= error %></p><% } %>
+  <div class="login-card">
+    <div class="login-crest"><img src="/img/logo.svg" alt="Bream Bay United AFC" width="86" height="100"></div>
+    <h1>Twilight Football</h1>
+    <p class="login-sub">Admin sign in</p>
 
-<form method="POST" action="/admin/login" class="admin-form">
-  <label>Password
-    <input type="password" name="password" required autofocus>
-  </label>
-  <button type="submit">Log in</button>
-</form>
+    <% if (error) { %><p class="error login-error" role="alert"><%= error %></p><% } %>
+
+    <form method="POST" action="/admin/login" id="login-form">
+      <label class="login-field">
+        <span>Password</span>
+        <span class="login-input">
+          <input type="password" name="password" id="login-password" required autofocus autocomplete="current-password">
+          <button type="button" id="login-toggle" class="login-toggle" aria-label="Show password" aria-pressed="false">Show</button>
+        </span>
+      </label>
+      <button type="submit" class="login-submit" id="login-submit"><span>Log in</span></button>
+    </form>
+  </div>
+</div>
+<script>
+  (function () {
+    var input = document.getElementById('login-password');
+    var toggle = document.getElementById('login-toggle');
+    toggle.addEventListener('click', function () {
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      toggle.textContent = show ? 'Hide' : 'Show';
+      toggle.setAttribute('aria-pressed', String(show));
+      toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      input.focus();
+    });
+    document.getElementById('login-form').addEventListener('submit', function () {
+      var button = document.getElementById('login-submit');
+      button.classList.add('is-loading');
+      button.querySelector('span').textContent = 'Signing in…';
+    });
+  })();
+</script>
 
 <%- include('../partials/footer') %>
