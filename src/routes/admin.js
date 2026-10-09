@@ -15,6 +15,7 @@ const {
 const { createPage, seedStarterPages } = require('../lib/pages');
 const { renderMarkup } = require('../lib/markup');
 const { snapshot } = require('../lib/backup');
+const { saveScore, clearScore } = require('../lib/results');
 const {
   getPages,
   getPageById,
@@ -377,10 +378,63 @@ router.post('/league/:id/results/match/:matchId', (req, res) => {
     return fail(res, 'Scores must be whole numbers between 0 and 99.');
   }
 
-  db.prepare(
-    "UPDATE matches SET home_score = ?, away_score = ?, status = 'played' WHERE id = ?"
-  ).run(homeScore, awayScore, match.id);
-  res.redirect(`/admin/league/${req.params.id}/results?week=${match.week_number}`);
+  saveScore(db, match.id, homeScore, awayScore);
+  res.redirect(`/admin/league/${req.params.id}/results?week=${match.week_number}#round-${match.round_id}`);
+});
+
+// One form per round: all of a round's scores in a single Save (and a per-match Clear).
+router.post('/league/:id/results/round/:roundId', (req, res) => {
+  const leagueId = Number(req.params.id);
+  const round = db
+    .prepare('SELECT * FROM rounds WHERE id = ? AND league_id = ?')
+    .get(Number(req.params.roundId), leagueId);
+  if (!round || round.stage !== 'group') return res.status(404).render('404');
+
+  const matches = db
+    .prepare(
+      `SELECT m.*, ht.name AS home_name, at.name AS away_name
+       FROM matches m
+       LEFT JOIN teams ht ON ht.id = m.home_team_id
+       LEFT JOIN teams at ON at.id = m.away_team_id
+       WHERE m.round_id = ? ORDER BY m.pitch_id, m.id`
+    )
+    .all(round.id);
+  const back = `/admin/league/${leagueId}/results?week=${round.week_number}#round-${round.id}`;
+
+  // "Clear" on one match
+  if (req.body.clear !== undefined && req.body.clear !== '') {
+    const target = matches.find((m) => String(m.id) === String(req.body.clear));
+    if (!target) return res.status(404).render('404');
+    clearScore(db, target.id);
+    return res.redirect(back);
+  }
+
+  // Validate the whole round before writing anything: both scores or neither, for every match.
+  const toSave = [];
+  const problems = [];
+  for (const m of matches) {
+    const rawHome = String(req.body[`home_${m.id}`] ?? '').trim();
+    const rawAway = String(req.body[`away_${m.id}`] ?? '').trim();
+    const label = `${m.home_name} v ${m.away_name}`;
+    if (rawHome === '' && rawAway === '') continue; // nothing entered for this match
+    if (rawHome === '' || rawAway === '') {
+      problems.push(`${label}: enter both scores, or leave both blank.`);
+      continue;
+    }
+    const homeScore = parseScore(rawHome);
+    const awayScore = parseScore(rawAway);
+    if (homeScore === null || awayScore === null) {
+      problems.push(`${label}: scores must be whole numbers between 0 and 99.`);
+      continue;
+    }
+    toSave.push({ id: m.id, homeScore, awayScore });
+  }
+  if (problems.length) return fail(res, `${problems.join(' ')} Nothing in this round was saved.`);
+
+  db.transaction(() => {
+    for (const s of toSave) saveScore(db, s.id, s.homeScore, s.awayScore);
+  })();
+  res.redirect(back);
 });
 
 router.post('/league/:id/tie-break', (req, res) => {
@@ -526,17 +580,41 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
     penaltyWinnerId = picked;
   }
 
-  db.prepare(
-    `UPDATE matches SET home_score = ?, away_score = ?, status = 'played', penalty_winner_id = ?
-     WHERE id = ?`
-  ).run(homeScore, awayScore, penaltyWinnerId, match.id);
+  saveScore(db, match.id, homeScore, awayScore, penaltyWinnerId);
 
   tryFillFinal(db, leagueId, match.stage);
   if (isBracketComplete(leagueId, 'cup') && isBracketComplete(leagueId, 'plate')) {
     db.prepare("UPDATE leagues SET status = 'complete' WHERE id = ?").run(leagueId);
   }
 
-  res.redirect(`/admin/league/${leagueId}/results`);
+  res.redirect(`/admin/league/${leagueId}/results#round-${match.round_id}`);
+});
+
+// Clear a knockout result. Clearing a semi also un-sets the (unplayed) final's teams.
+router.post('/league/:id/knockout-results/match/:matchId/clear', (req, res) => {
+  const leagueId = Number(req.params.id);
+  const match = getMatchForLeague(Number(req.params.matchId), leagueId);
+  if (!match || match.stage === 'group') return res.status(404).render('404');
+
+  const final = db
+    .prepare(
+      `SELECT m.* FROM matches m JOIN rounds r ON r.id = m.round_id
+       WHERE r.league_id = ? AND r.stage = ? AND m.bracket_slot = 'final'`
+    )
+    .get(leagueId, match.stage);
+  const isSemi = match.bracket_slot === 'semi_1' || match.bracket_slot === 'semi_2';
+  if (isSemi && final && final.status === 'played') {
+    return fail(res, 'Clear the final first.');
+  }
+
+  db.transaction(() => {
+    clearScore(db, match.id);
+    if (isSemi && final) {
+      db.prepare('UPDATE matches SET home_team_id = NULL, away_team_id = NULL WHERE id = ?').run(final.id);
+    }
+    db.prepare("UPDATE leagues SET status = 'in_progress' WHERE id = ? AND status = 'complete'").run(leagueId);
+  })();
+  res.redirect(`/admin/league/${leagueId}/results#round-${match.round_id}`);
 });
 
 function isBracketComplete(leagueId, stage) {

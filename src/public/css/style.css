@@ -307,17 +307,61 @@ tbody tr:last-child td { border-bottom: none; }
   flex-wrap: wrap;
 }
 .score-form input[type="number"] {
-  width: 42px;
-  padding: 5px;
+  width: 56px;
+  min-height: 44px;
+  padding: 6px;
+  font-size: 16px; /* 16px stops iPhones zooming the page when a box is tapped */
   text-align: center;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
+  -moz-appearance: textfield;
 }
 .score-sep { color: var(--muted); }
 .score-form select { padding: 4px; border-radius: 6px; border: 1px solid var(--border); max-width: 140px; }
 .score-form button {
   padding: 5px 10px;
   font-size: 0.8rem;
+}
+.score-form .save-match { min-height: 44px; padding: 8px 16px; font-size: 0.95rem; }
+.score-form select { min-height: 44px; font-size: 16px; }
+
+/* Group results: one Save per round */
+.round-form { margin: 0; }
+.round-form .match-list { margin-bottom: 10px; }
+.round-form .score-form { flex-wrap: nowrap; }
+.save-round {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.round-count {
+  margin-left: 6px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.round-count.is-done { color: #1d6b3a; background: #eaf5ee; border-color: #b9dcc6; }
+.match-card.is-played { border-left: 5px solid #2e9457; }
+.played-tick { margin-left: 6px; font-weight: 600; color: #1d6b3a; }
+.match-meta .link-button { margin-left: 8px; }
+.round-block { scroll-margin-top: 12px; }
+.round-block[id] { scroll-margin-top: 12px; }
+@media (max-width: 440px) {
+  /* Phone: team names on one row, the (bigger) score boxes on their own row underneath */
+  .round-form .match-teams, .match-card .match-teams:has(.score-form) {
+    grid-template-columns: 1fr 1fr;
+  }
+  .round-form .match-team-home { grid-column: 1; grid-row: 1; text-align: left; }
+  .round-form .match-team-away { grid-column: 2; grid-row: 1; text-align: right; }
+  .round-form .score-form { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
 }
 
 .team-grid {

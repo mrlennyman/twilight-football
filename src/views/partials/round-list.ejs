@@ -1,32 +1,52 @@
 <%
 // Expects: rounds (array with .matches from getRoundsForWeek/getRoundsWithMatches)
-// Optional: editable (boolean), league (for form action), knockout (boolean - shows penalty field on draws)
+// Optional: editable (boolean), league (for form action), knockout (boolean - per-match forms with a shootout field)
+// Group rounds being edited get ONE form per round ("Save round"); knockout matches keep one form each.
+const isEditable = typeof editable !== 'undefined' && editable;
+const isKnockout = typeof knockout !== 'undefined' && knockout;
 %>
-<% rounds.forEach(round => { %>
-  <div class="round-block">
+<% rounds.forEach(round => {
+  const groupEditable = isEditable && !isKnockout && round.stage === 'group';
+  const scored = round.matches.filter(m => m.status === 'played').length;
+%>
+  <div class="round-block" id="round-<%= round.id %>">
     <h3>
       <%= round.stage === 'group' ? 'Round ' + round.round_number : (round.matches.length > 1 ? 'Semi-finals' : 'Final') %>
       <span class="muted"><%= formatDate(round.date) %></span>
+      <% if (groupEditable) { %>
+        <span class="round-count <%= scored === round.matches.length ? 'is-done' : '' %>"><%= scored %> of <%= round.matches.length %> scored</span>
+      <% } %>
     </h3>
+
+    <% if (groupEditable) { %>
+      <form method="POST" action="/admin/league/<%= league.id %>/results/round/<%= round.id %>" class="round-form" autocomplete="off">
+    <% } %>
     <div class="match-list">
       <% round.matches.forEach(match => { %>
-        <div class="match-card">
+        <div class="match-card <%= isEditable && match.status === 'played' ? 'is-played' : '' %>">
           <div class="match-teams">
             <span class="match-team match-team-home"><%= match.home_team_name || 'TBD' %></span>
 
-            <% if (typeof editable !== 'undefined' && editable && match.home_team_id && match.away_team_id) { %>
-              <form method="POST" action="/admin/league/<%= league.id %>/<%= typeof knockout !== 'undefined' && knockout ? 'knockout-results' : 'results' %>/match/<%= match.id %>" class="score-form">
-                <input type="number" min="0" name="home_score" value="<%= match.home_score %>" required aria-label="Home score">
+            <% if (groupEditable) { %>
+              <div class="score-form">
+                <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="99" name="home_<%= match.id %>" value="<%= match.home_score %>" aria-label="<%= match.home_team_name %> score">
                 <span class="score-sep">-</span>
-                <input type="number" min="0" name="away_score" value="<%= match.away_score %>" required aria-label="Away score">
-                <% if (typeof knockout !== 'undefined' && knockout) { %>
-                  <select name="penalty_winner_id" aria-label="Penalty shootout winner">
-                    <option value="">No shootout</option>
-                    <option value="<%= match.home_team_id %>" <%= match.penalty_winner_id === match.home_team_id ? 'selected' : '' %>><%= match.home_team_name %> won pens</option>
-                    <option value="<%= match.away_team_id %>" <%= match.penalty_winner_id === match.away_team_id ? 'selected' : '' %>><%= match.away_team_name %> won pens</option>
-                  </select>
+                <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="99" name="away_<%= match.id %>" value="<%= match.away_score %>" aria-label="<%= match.away_team_name %> score">
+              </div>
+            <% } else if (isEditable && match.home_team_id && match.away_team_id) { %>
+              <form method="POST" action="/admin/league/<%= league.id %>/knockout-results/match/<%= match.id %>" class="score-form">
+                <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="99" name="home_score" value="<%= match.home_score %>" required aria-label="Home score">
+                <span class="score-sep">-</span>
+                <input type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="99" name="away_score" value="<%= match.away_score %>" required aria-label="Away score">
+                <select name="penalty_winner_id" aria-label="Penalty shootout winner">
+                  <option value="">No shootout</option>
+                  <option value="<%= match.home_team_id %>" <%= match.penalty_winner_id === match.home_team_id ? 'selected' : '' %>><%= match.home_team_name %> won pens</option>
+                  <option value="<%= match.away_team_id %>" <%= match.penalty_winner_id === match.away_team_id ? 'selected' : '' %>><%= match.away_team_name %> won pens</option>
+                </select>
+                <button type="submit" class="save-match"><%= match.status === 'played' ? 'Update' : 'Save' %></button>
+                <% if (match.status === 'played') { %>
+                  <button type="submit" class="link-button danger" formaction="/admin/league/<%= league.id %>/knockout-results/match/<%= match.id %>/clear" formnovalidate onclick="return confirm('Clear this result?')">Clear</button>
                 <% } %>
-                <button type="submit"><%= match.status === 'played' ? 'Update' : 'Save' %></button>
               </form>
             <% } else if (match.status === 'played') { %>
               <span class="score-badge"><%= match.home_score %> - <%= match.away_score %></span>
@@ -41,9 +61,25 @@
             <% if (match.penalty_winner_id) { %>
               <span>&middot; <%= match.penalty_winner_id === match.home_team_id ? match.home_team_name : match.away_team_name %> won on pens</span>
             <% } %>
+            <% if (isEditable && match.status === 'played') { %>
+              <span class="played-tick" title="Result saved">&#10003; saved</span>
+              <% if (groupEditable) { %>
+                <button type="submit" form="clear-<%= match.id %>" class="link-button danger" formnovalidate onclick="return confirm('Clear this result?')">Clear</button>
+              <% } %>
+            <% } %>
           </div>
         </div>
       <% }) %>
     </div>
+    <% if (groupEditable) { %>
+        <button type="submit" class="save-round">Save round</button>
+      </form>
+      <%# Clear buttons live in their own tiny forms so pressing Enter in a score box can never trigger one. %>
+      <% round.matches.filter(m => m.status === 'played').forEach(match => { %>
+        <form id="clear-<%= match.id %>" method="POST" action="/admin/league/<%= league.id %>/results/round/<%= round.id %>">
+          <input type="hidden" name="clear" value="<%= match.id %>">
+        </form>
+      <% }) %>
+    <% } %>
   </div>
 <% }) %>
