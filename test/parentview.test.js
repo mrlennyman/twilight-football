@@ -43,14 +43,18 @@ test('C1: every public league page says which league it is', async () => {
   }
   const slug = h.db.prepare('SELECT slug FROM pages WHERE league_id = ? LIMIT 1').get(id).slug;
   assert.match(await get(`/league/${id}/info/${slug}`), /<h1 class="league-title">Kids Twilight<\/h1>/);
-  assert.doesNotMatch(await get(`/league/${id}`), /Other leagues/, 'no switcher with a single league');
+  assert.doesNotMatch(await get(`/league/${id}`), /home-btn/, 'no Home button with a single league');
 });
 
-test('C1: "Other leagues" link appears once a second league is running', async () => {
+test('C1: a shiny Home button, opposite the title, appears once a second league is running', async () => {
   const second = await h.createScheduledLeague({ name: 'Adults' });
   assert.ok(second > id);
-  assert.match(await get(`/league/${id}`), /<a href="\/">Other leagues<\/a>/);
-  assert.match(await get(`/league/${id}/teams`), /<a href="\/">Other leagues<\/a>/);
+  for (const url of [`/league/${id}`, `/league/${id}/teams`, `/league/${id}/fixtures`]) {
+    const text = await get(url);
+    assert.match(text, /<a class="home-btn" href="\/" aria-label="Home - all leagues">[\s\S]*?<span>Home<\/span>/, url);
+    assert.ok(text.indexOf('league-head-text') < text.indexOf('home-btn'), 'title first, button opposite it');
+    assert.doesNotMatch(text, /Other leagues/);
+  }
 });
 
 // ---------- C2
