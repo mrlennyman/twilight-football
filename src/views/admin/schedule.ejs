@@ -33,6 +33,12 @@
       <label>Minutes per round
         <input type="number" name="slot_minutes" value="<%= league.slot_minutes %>" min="10" required>
       </label>
+      <% if (stats.played > 0 || stats.knockoutRounds > 0) { %>
+        <p class="callout">This will permanently delete <strong><%= stats.played %> result<%= stats.played === 1 ? '' : 's' %></strong><%= stats.knockoutRounds ? ' and the Cup/Plate brackets' : '' %>. A safety copy of the database is saved first.</p>
+        <label>Type the league name (<strong><%= league.name %></strong>) to confirm
+          <input type="text" name="confirm_name" autocomplete="off" required>
+        </label>
+      <% } %>
       <button type="submit">Regenerate schedule</button>
     </form>
   </details>

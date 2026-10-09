@@ -13,6 +13,7 @@ const {
 } = require('../lib/validate');
 const { createPage, seedStarterPages } = require('../lib/pages');
 const { renderMarkup } = require('../lib/markup');
+const { snapshot } = require('../lib/backup');
 const {
   getPages,
   getPageById,
@@ -52,6 +53,33 @@ function getMatchForLeague(matchId, leagueId) {
        WHERE m.id = ? AND r.league_id = ?`
     )
     .get(matchId, leagueId);
+}
+
+/** What a (re)generate would destroy: played group/knockout results and Cup/Plate brackets. */
+function scheduleStats(leagueId) {
+  const row = db
+    .prepare(
+      `SELECT
+         COUNT(DISTINCT r.id) AS rounds,
+         COUNT(CASE WHEN m.status = 'played' THEN 1 END) AS played,
+         COUNT(DISTINCT CASE WHEN r.stage IN ('cup', 'plate') THEN r.id END) AS knockout_rounds
+       FROM rounds r LEFT JOIN matches m ON m.round_id = r.id
+       WHERE r.league_id = ?`
+    )
+    .get(leagueId);
+  return { rounds: row.rounds, played: row.played, knockoutRounds: row.knockout_rounds };
+}
+
+/** Takes an automatic safety copy of the database; on failure tells the admin and returns false. */
+function safetyBackup(res, label) {
+  try {
+    snapshot(db, label);
+    return true;
+  } catch (err) {
+    console.error('Safety backup failed:', err);
+    fail(res, 'Could not save a safety backup first, so nothing was changed. Please try again.', 500);
+    return false;
+  }
 }
 
 function ensurePitches(count) {
@@ -162,6 +190,7 @@ router.post('/league/:id/delete', (req, res) => {
   if (String(req.body.confirm_name ?? '').trim() !== league.name) {
     return fail(res, 'The name you typed did not match, so nothing was deleted.');
   }
+  if (!safetyBackup(res, 'delete')) return;
   db.prepare('DELETE FROM leagues WHERE id = ?').run(league.id); // teams, players, matches, pages cascade
   res.redirect('/admin');
 });
@@ -226,7 +255,7 @@ router.get('/league/:id/schedule', (req, res) => {
   const groupRounds = getRoundsWithMatches(db, league.id, 'group');
   const pitches = getPitches(db);
 
-  res.render('admin/schedule', { league, groupRounds, pitches });
+  res.render('admin/schedule', { league, groupRounds, pitches, stats: scheduleStats(league.id) });
 });
 
 router.post('/league/:id/schedule/generate', (req, res) => {
@@ -242,6 +271,20 @@ router.post('/league/:id/schedule/generate', (req, res) => {
     return fail(res, 'A schedule needs an even number of teams (at least 2).');
   }
   if (pitches.length === 0) return fail(res, 'No pitches are set up.');
+
+  // Regenerating wipes every match, result and bracket: needs the league name typed as confirmation.
+  const existing = scheduleStats(league.id);
+  if (existing.played > 0 || existing.knockoutRounds > 0) {
+    if (String(req.body.confirm_name ?? '').trim() !== league.name) {
+      return fail(
+        res,
+        `Regenerating would delete ${existing.played} result${existing.played === 1 ? '' : 's'}` +
+          `${existing.knockoutRounds ? ' and the Cup/Plate brackets' : ''}. ` +
+          'Nothing was changed. To go ahead, type the league name exactly in the confirmation box.'
+      );
+    }
+  }
+  if (existing.rounds > 0 && !safetyBackup(res, 'regenerate')) return;
 
   const schedule = generateGroupStageSchedule({
     teamIds: teams.map((t) => t.id),
@@ -411,6 +454,8 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   };
   const cup = generateKnockoutBracket({ ...bracketConfig, rankedTeamIds: top4, stage: 'cup' });
   const plate = generateKnockoutBracket({ ...bracketConfig, rankedTeamIds: bottom4, stage: 'plate' });
+
+  if (!safetyBackup(res, 'knockouts')) return;
 
   const insertRound = db.prepare(
     `INSERT INTO rounds (league_id, round_number, week_number, stage, date, kickoff_time)
