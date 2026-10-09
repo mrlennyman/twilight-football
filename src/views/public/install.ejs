@@ -1,0 +1,53 @@
+<%- include('../partials/header', { title: 'Get the app' }) %>
+<section class="install-page">
+  <img class="install-crest" src="/img/logo.svg" alt="Bream Bay United AFC" width="86" height="100">
+  <h1>Get the app</h1>
+  <p class="install-lead">Fixtures, scores and the Cup/Plate bracket, one tap from your home screen. It's free, there's nothing to download from an app store, and it takes about 10 seconds.</p>
+
+  <p class="install-already" data-show-for="standalone" hidden>You're already using the app - nothing more to do.</p>
+
+  <div class="install-card" data-show-for="inapp">
+    <h2>First, open this page in your browser</h2>
+    <p>You're looking at this inside another app (Messenger, Facebook, Instagram or similar), and phones don't allow installing from there.</p>
+    <ol>
+      <li>Tap the <strong>&hellip;</strong> or <strong>Share</strong> button in the corner.</li>
+      <li>Choose <strong>Open in Safari</strong> or <strong>Open in Chrome</strong>.</li>
+      <li>Then follow the steps for your phone below.</li>
+    </ol>
+    <button type="button" id="copy-install-link" class="install-btn">Copy link instead</button>
+  </div>
+
+  <div class="install-card" data-show-for="ios">
+    <h2>iPhone &amp; iPad</h2>
+    <ol>
+      <li>Tap the <strong>Share</strong> button <span class="install-glyph" aria-hidden="true">&#x2B06;&#xFE0E;</span> (the square with an arrow, at the bottom or top of the screen).</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+      <li>Tap <strong>Add</strong>. The Twilight icon appears on your home screen.</li>
+    </ol>
+    <p class="install-note">If you don't see it, open this page in <strong>Safari</strong> first.</p>
+  </div>
+
+  <div class="install-card" data-show-for="android">
+    <h2>Android</h2>
+    <button type="button" id="install-now" class="install-btn" hidden>Install the app</button>
+    <ol>
+      <li>Tap the <strong>&#8942;</strong> menu in Chrome (top right).</li>
+      <li>Tap <strong>Install app</strong> (or <strong>Add to Home screen</strong>).</li>
+      <li>Tap <strong>Install</strong>. The Twilight icon appears on your home screen.</li>
+    </ol>
+  </div>
+
+  <div class="install-card" data-show-for="other">
+    <h2>On your phone</h2>
+    <p>Open <strong><%= typeof baseUrl !== 'undefined' ? baseUrl : '' %>/install</strong> on your phone to install the app.</p>
+    <ul>
+      <li><strong>iPhone:</strong> Safari &rarr; Share &rarr; Add to Home Screen.</li>
+      <li><strong>Android:</strong> Chrome &rarr; &#8942; menu &rarr; Install app.</li>
+    </ul>
+  </div>
+
+  <p class="install-back"><a href="/">&larr; Back to the leagues</a></p>
+</section>
+
+
+<%- include('../partials/footer') %>

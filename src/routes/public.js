@@ -35,6 +35,10 @@ function renderLeagueHome(league, res) {
   res.render('public/league', { league, standings, currentWeek, thisWeekRounds });
 }
 
+router.get('/install', (req, res) => {
+  res.render('public/install');
+});
+
 router.get('/', (req, res) => {
   const leagues = getAllLeagues(db).filter((l) => l.status !== 'setup');
 

@@ -35,6 +35,13 @@ app.use(
   })
 );
 
+// Absolute address of this site (used for link previews in Messenger etc.); trust proxy makes it https.
+app.use((req, res, next) => {
+  res.locals.baseUrl = `${req.protocol}://${req.get('host')}`;
+  res.locals.currentPath = req.path === '/' ? '' : req.path;
+  next();
+});
+
 app.locals.appName = 'Bream Bay Twilight Football';
 app.locals.formatDate = formatDate;
 app.locals.formatTime = formatTime;
@@ -43,7 +50,7 @@ app.locals.formatTime = formatTime;
 // (and Cloudflare) fetches the new file instead of reusing a copy cached for hours.
 const publicDir = path.join(__dirname, 'public');
 const fingerprint = crypto.createHash('md5');
-for (const file of ['css/style.css', 'css/print.css', 'js/register-sw.js']) {
+for (const file of ['css/style.css', 'css/print.css', 'js/register-sw.js', 'js/install.js']) {
   fingerprint.update(fs.readFileSync(path.join(publicDir, file)));
 }
 app.locals.assetVersion = fingerprint.digest('hex').slice(0, 10);

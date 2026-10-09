@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title><%= typeof title !== 'undefined' ? title + ' — ' : '' %>Bream Bay Twilight Football</title>
 
+  <meta name="description" content="Fixtures, results, standings and Cup/Plate brackets for Bream Bay Twilight Football.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Bream Bay Twilight Football">
+  <meta property="og:title" content="<%= typeof title !== 'undefined' ? title + ' — ' : '' %>Bream Bay Twilight Football">
+  <meta property="og:description" content="Fixtures, results, standings and Cup/Plate brackets. Add it to your phone's home screen.">
+  <meta property="og:url" content="<%= baseUrl %><%= typeof currentPath !== 'undefined' ? currentPath : '' %>">
+  <meta property="og:image" content="<%= baseUrl %>/icons/icon-512.png">
+  <meta name="twitter:card" content="summary">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#6e1b2e">
   <link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
