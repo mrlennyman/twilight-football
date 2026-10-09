@@ -112,13 +112,23 @@ function getNavCounts(db, leagueId) {
   return { info: countPublishedPages(db, leagueId), knockouts: countKnockoutRounds(db, leagueId) };
 }
 
-/** "Jack Brown" -> "Jack B." for the public roster page. */
+/**
+ * "Jack Brown" -> "Jack B." for the public roster page. A name already ending in a single letter keeps
+ * all its first names: "Te Rangi H" -> "Te Rangi H.".
+ */
 function firstNameLastInitial(fullName) {
   const parts = String(fullName).trim().split(/\s+/);
   if (parts.length === 1) return parts[0];
-  const first = parts[0];
-  const lastInitial = parts[parts.length - 1][0];
-  return `${first} ${lastInitial}.`;
+  const last = parts[parts.length - 1];
+
+  // Already typed as "first name(s) + initial" (e.g. "Te Rangi H" or "Te Rangi H."): keep every first name.
+  const alreadyInitial = /^(\p{L})\.?$/u.exec(last);
+  if (alreadyInitial) {
+    return `${parts.slice(0, -1).join(' ')} ${alreadyInitial[1].toLocaleUpperCase()}.`;
+  }
+
+  // Otherwise "First Last..." -> "First L." (initial taken by code point, not UTF-16 unit)
+  return `${parts[0]} ${Array.from(last)[0]}.`;
 }
 
 module.exports = {

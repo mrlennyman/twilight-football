@@ -4,6 +4,8 @@
   <a href="/admin">&larr; Dashboard</a>
 </div>
 
+<p class="help">Parents only ever see <strong>first name + last initial</strong> (&ldquo;Jack Brown&rdquo; shows as &ldquo;Jack B.&rdquo;). For more than one first name, type the last initial yourself: <strong>Te Rangi H.</strong></p>
+
 <div class="team-grid">
   <% teams.forEach(team => { %>
     <div class="team-card">
@@ -25,7 +27,7 @@
         <% }) %>
       </ul>
       <form method="POST" action="/admin/league/<%= league.id %>/teams/<%= team.id %>/players" class="inline-form">
-        <input type="text" name="name" placeholder="Player full name" required>
+        <input type="text" name="name" placeholder="e.g. Jack Brown or Te Rangi H." required>
         <button type="submit">Add player</button>
       </form>
     </div>
