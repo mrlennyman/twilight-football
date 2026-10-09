@@ -147,62 +147,6 @@ a { color: var(--wine-700); }
   color: #fff;
 }
 
-/* Public home: one tappable card per league (2 across on a phone, 3 on wider screens) */
-.leagues-home { padding-top: 40px; }
-.leagues-home h1 { margin: 0 0 20px; font-size: 1.7rem; }
-.league-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
-}
-.league-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-height: 132px;
-  padding: 18px 16px 14px;
-  overflow: hidden;
-  color: var(--ink);
-  text-decoration: none;
-  background: linear-gradient(160deg, #fff 0%, var(--panel) 60%, #f6ecdd 100%);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: 0 2px 10px rgba(61, 15, 28, 0.08);
-  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-.league-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 5px;
-  background: linear-gradient(90deg, var(--wine-700), var(--gold));
-}
-.league-card:hover, .league-card:focus-visible {
-  transform: translateY(-3px);
-  border-color: var(--gold);
-  box-shadow: 0 12px 26px rgba(61, 15, 28, 0.18);
-}
-.league-card:focus-visible { outline: 3px solid rgba(201, 161, 90, 0.6); outline-offset: 2px; }
-.league-card:active { transform: scale(0.98); }
-.league-card-name { font-size: 1.12rem; font-weight: 700; line-height: 1.2; color: var(--wine-900); overflow-wrap: anywhere; }
-.league-card-season { font-size: 0.85rem; color: var(--muted); }
-.league-card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 12px; }
-.league-card .tag { margin-left: 0; }
-.league-card-go {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  font-size: 1.2rem;
-  line-height: 1;
-  color: #fff;
-  background: var(--wine-700);
-  border-radius: 50%;
-  transition: transform 0.18s ease, background 0.2s ease;
-}
-.league-card:hover .league-card-go { transform: translateX(3px); background: var(--wine-500); }
 
 .tag {
   display: inline-block;
@@ -853,3 +797,160 @@ button.link-button.danger, form button[type="submit"].link-button.danger { color
 .match-card.my-team, .bracket-match.my-team, .team-card.my-team { border-left: 5px solid var(--gold); background: #fffaf0; }
 .standings-table tr.my-team td { font-weight: 700; background: #fffaf0; }
 .standings-table tr.my-team td:first-child { box-shadow: inset 5px 0 0 var(--gold); }
+
+/* ---------- Public home: animated stage with glowing league cards ---------- */
+.home-page { background: var(--wine-900) radial-gradient(120% 90% at 50% 0%, var(--wine-700) 0%, var(--wine-900) 62%, #240812 100%) fixed; }
+.home-page .site-header { display: none; }
+.home-page main.container { max-width: none; padding: 0; display: flex; flex-direction: column; }
+.home-page .site-footer { position: relative; z-index: 1; color: rgba(255, 255, 255, 0.65); }
+.home-page .site-footer a { color: #f3d9a4; }
+
+.home-stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 44px 16px 28px;
+}
+.home-content { position: relative; z-index: 1; width: 100%; max-width: 760px; }
+
+.home-hero { text-align: center; margin-bottom: 30px; }
+.home-wheel {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  margin: 0 auto 6px;
+  display: grid;
+  place-items: center;
+}
+.home-sweep {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 62%, rgba(201, 161, 90, 0.05) 70%, rgba(243, 217, 164, 0.85) 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: spin 5.5s linear infinite;
+}
+.home-ring { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; }
+.home-ring-1 { stroke: rgba(201, 161, 90, 0.55); stroke-width: 1.5; stroke-dasharray: 3 9; animation: spin 40s linear infinite reverse; }
+.home-ring-2 { stroke: rgba(255, 255, 255, 0.22); stroke-width: 1; stroke-dasharray: 1 5; animation: spin 26s linear infinite; }
+.home-wheel .login-crest { position: relative; z-index: 1; }
+
+.home-page .home-hero h1 {
+  margin: 8px 0 2px;
+  font-size: 1.9rem;
+  letter-spacing: 0.01em;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+  animation: fade-up 0.7s 0.4s both;
+}
+.home-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  animation: fade-up 0.7s 0.5s both;
+}
+.home-empty { text-align: center; color: rgba(255, 255, 255, 0.8); animation: fade-up 0.7s 0.6s both; }
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.home-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 146px;
+  padding: 20px 16px 14px;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+  animation: card-rise 0.75s calc(0.55s + var(--i, 0) * 0.14s) cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  transition: transform 0.2s ease, box-shadow 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+/* a gold light that circles the card edge */
+.home-card::before {
+  content: '';
+  position: absolute;
+  inset: -70%;
+  z-index: -2;
+  background: conic-gradient(from 0deg, transparent 0 58%, rgba(201, 161, 90, 0.15) 70%, rgba(243, 217, 164, 0.95) 88%, transparent 100%);
+  opacity: 0.5;
+  animation: spin 6s linear infinite;
+  animation-delay: calc(var(--i, 0) * -1.3s);
+  transition: opacity 0.25s ease;
+}
+.home-card::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  z-index: -1;
+  border-radius: 18.5px;
+  background: linear-gradient(160deg, rgba(100, 26, 48, 0.96), rgba(46, 10, 22, 0.97));
+}
+.home-card:hover, .home-card:focus-visible, .home-card.is-lit {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.45), 0 0 34px rgba(201, 161, 90, 0.28);
+}
+.home-card:hover::before, .home-card:focus-visible::before, .home-card.is-lit::before { opacity: 1; }
+.home-card:focus-visible { outline: 3px solid rgba(243, 217, 164, 0.7); outline-offset: 3px; }
+.home-card:active { transform: scale(0.98); }
+
+/* the pointer-following glow + an occasional shine sweeping across */
+.home-card-glow { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; border-radius: inherit; }
+.home-card-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, -20%), rgba(255, 255, 255, 0.2), transparent 62%);
+  opacity: 0.35;
+  transition: opacity 0.25s ease;
+}
+.home-card:hover .home-card-glow::before, .home-card.is-lit .home-card-glow::before { opacity: 1; }
+.home-card-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: btn-shimmer 5s calc(1.8s + var(--i, 0) * 0.9s) ease-in-out infinite;
+}
+
+.home-card-name, .home-card-season, .home-card-foot { position: relative; z-index: 1; }
+.home-card-name { font-size: 1.15rem; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35); }
+.home-card-season { font-size: 0.85rem; color: rgba(255, 255, 255, 0.75); }
+.home-card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 14px; }
+.home-card .tag {
+  margin-left: 0;
+  color: #f3d9a4;
+  background: rgba(201, 161, 90, 0.18);
+  border: 1px solid rgba(201, 161, 90, 0.5);
+}
+.home-card-go {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--wine-900);
+  background: linear-gradient(135deg, #f3d9a4, var(--gold));
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(201, 161, 90, 0.5);
+  transition: transform 0.2s ease;
+}
+.home-card:hover .home-card-go, .home-card.is-lit .home-card-go { transform: translateX(4px) scale(1.06); }
+
+@media (prefers-reduced-motion: reduce) {
+  .home-stage *, .home-stage *::before, .home-stage *::after { animation: none !important; transition: none !important; }
+  .home-sweep { display: none; }
+}

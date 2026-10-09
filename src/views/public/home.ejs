@@ -1,23 +1,60 @@
-<%- include('../partials/header', { title: 'Leagues' }) %>
-<section class="leagues-home">
-<h1>Leagues</h1>
-
-<% if (leagues.length === 0) { %>
-  <p>No leagues are running yet — check back soon.</p>
-<% } else { %>
-  <div class="league-grid">
-    <% leagues.forEach(league => { %>
-      <a class="league-card" href="/league/<%= league.id %>">
-        <span class="league-card-name"><%= league.name %></span>
-        <span class="league-card-season"><%= league.season %></span>
-        <span class="league-card-foot">
-          <span class="tag tag-<%= league.status %>"><%= league.status.replace('_', ' ') %></span>
-          <span class="league-card-go" aria-hidden="true">&rsaquo;</span>
-        </span>
-      </a>
-    <% }) %>
+<%- include('../partials/header', { title: 'Leagues', bodyClass: 'home-page' }) %>
+<div class="home-stage">
+  <div class="login-bg" aria-hidden="true">
+    <div class="login-orb login-orb-1"></div>
+    <div class="login-orb login-orb-2"></div>
+    <div class="login-orb login-orb-3"></div>
+    <svg class="login-pitch" viewBox="0 0 400 400" aria-hidden="true">
+      <circle cx="200" cy="200" r="150"/><circle cx="200" cy="200" r="6"/>
+      <path d="M200 50v300M50 200h300"/>
+    </svg>
   </div>
-<% } %>
-</section>
+
+  <div class="home-content">
+    <div class="home-hero">
+      <div class="home-wheel" aria-hidden="true">
+        <div class="home-sweep"></div>
+        <svg class="home-ring home-ring-1" viewBox="0 0 200 200"><circle cx="100" cy="100" r="95"/></svg>
+        <svg class="home-ring home-ring-2" viewBox="0 0 200 200"><circle cx="100" cy="100" r="82"/></svg>
+        <div class="login-crest"><img src="/img/logo.svg" alt="" width="72" height="84"></div>
+      </div>
+      <h1>Twilight Football</h1>
+      <p class="home-sub"><%= leagues.length === 0 ? 'Bream Bay United AFC' : 'Choose your league' %></p>
+    </div>
+
+    <% if (leagues.length === 0) { %>
+      <p class="home-empty">No leagues are running yet &mdash; check back soon.</p>
+    <% } else { %>
+      <div class="home-grid">
+        <% leagues.forEach((league, index) => { %>
+          <a class="home-card" href="/league/<%= league.id %>" style="--i: <%= index %>">
+            <span class="home-card-glow" aria-hidden="true"></span>
+            <span class="home-card-name"><%= league.name %></span>
+            <span class="home-card-season"><%= league.season %></span>
+            <span class="home-card-foot">
+              <span class="tag tag-<%= league.status %>"><%= league.status.replace('_', ' ') %></span>
+              <span class="home-card-go" aria-hidden="true">&rsaquo;</span>
+            </span>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+<script>
+  // A soft light follows the pointer (or fingertip) across the card under it.
+  document.querySelectorAll('.home-card').forEach(function (card) {
+    function light(event) {
+      var box = card.getBoundingClientRect();
+      card.style.setProperty('--mx', event.clientX - box.left + 'px');
+      card.style.setProperty('--my', event.clientY - box.top + 'px');
+      card.classList.add('is-lit');
+    }
+    card.addEventListener('pointerdown', light);
+    card.addEventListener('pointermove', light);
+    card.addEventListener('pointerleave', function () { card.classList.remove('is-lit'); });
+    card.addEventListener('pointerup', function () { card.classList.remove('is-lit'); });
+  });
+</script>
 
 <%- include('../partials/footer') %>
