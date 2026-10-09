@@ -15,6 +15,13 @@ const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
+// Kids' first names are on public pages: keep search engines out. (Done with a header and a meta tag,
+// not a robots.txt Disallow - a blocked crawler would never see the noindex.)
+app.use((req, res, next) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
