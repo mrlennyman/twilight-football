@@ -14,6 +14,18 @@ npm run dev
 Needs **Node.js 22.13 or newer** (24 LTS recommended). Public site: `http://localhost:3000`, admin: `/admin`.
 Tests: `npm test`.
 
+## How it is run now (GitHub deploys)
+
+The live site updates itself from GitHub: pushing to the `main` branch triggers a RunCloud webhook that pulls the
+code, and the app notices the new files and restarts itself (about 40 seconds). `.env`, the `data` folder (the
+database, `sessions.sqlite`, `backups/`) and `node-runtime` (the Linux Node binary) live only on the server and are
+never in GitHub. The step-by-step zip guide below is how the server was first set up.
+
+- Don't deploy on match night: a deploy restarts the app (the admin stays logged in - sessions are saved - but a
+  save made in those 40 seconds can be lost; the app then says so instead of failing silently).
+- After deploying, open **Admin -> Server check** (`/admin/diagnostics`) to see the client address the app sees
+  and the age of the newest backup.
+
 ## Putting it online on RunCloud - no terminal needed
 
 **You upload one file:** `bream-bay-twilight-football-deploy.zip` (about 45 MB). It already contains the app,
@@ -89,19 +101,30 @@ install it as an app.
 ## First-night setup (in `/admin`)
 
 1. **Create the league** (8 teams, 4 pitches, 3 rounds per week). Teams start as "Team 1-8"; rename them any time.
-2. **Schedule** -> first match night -> *Generate*. Renaming teams afterwards is fine;
-   *regenerating* the schedule wipes all results.
+2. **Schedule** -> first match night -> *Generate*. Renaming teams afterwards is fine. *Regenerating* wipes all
+   results, so once any result exists you must type the league name to confirm, and the app saves a safety copy
+   of the database first (`data/backups/bream-bay-pre-regenerate-...`). A league needs at least half as many
+   pitches as teams (8 teams -> 4 pitches).
 3. **Info pages** -> add the starter pages (Rules, Referee guide, Parents and supporters) as drafts, edit them,
    and tick *Published* when ready. The *Info* tab only appears on the public site once something is published.
-4. Enter scores under **Results**; when the group stage is done, generate the Cup/Plate brackets.
+4. Enter scores under **Results**: type a round's scores and press **Save round** (one tap per round). **Clear**
+   puts a match back to unplayed. When the group stage is done and no teams are tied, generate the Cup/Plate
+   brackets; group results are then locked (use *Reset the brackets* if a group score was wrong).
+5. **Change log** (per league on the dashboard) lists the latest score changes; **Server check** shows the
+   client address and backup age.
 
 ## After launch
 
-- **Updating the app**: upload the new zip over the old one (File Manager -> Unzip, overwrite), then in RunCloud
-  Supervisor restart the job. Your data lives in the `data` folder, which updates never touch.
+- **Updating the app**: push to GitHub `main` (see "How it is run now"). Your data lives in the `data` folder,
+  which updates never touch.
 - **Backups** (recommended): RunCloud -> *Cron Job* -> nightly, user `runcloud`, command (one line)
-  `/lib64/ld-linux-x86-64.so.2 /home/runcloud/webapps/kids-twilight/node-runtime/node /home/runcloud/webapps/kids-twilight/scripts/backup.js`
-  It keeps the latest 30 dated copies in `data/backups`. Download that folder occasionally.
+  `/lib64/ld-linux-x86-64.so.2 /home/runcloud/webapps/twilight-football/node-runtime/node /home/runcloud/webapps/twilight-football/scripts/backup.js`
+  (use your own app folder name). It keeps the latest 30 dated copies in `data/backups`; the automatic safety
+  copies taken before a regenerate, league delete or bracket draw are kept separately (newest 20). The backups sit
+  on the same disk as the database, so download the `data/backups` folder every week or so.
+- **Settings in `.env`**: `NODE_ENV=production`, `HOST=127.0.0.1`, `PORT=3000`, `ADMIN_PASSWORD`, and optionally
+  `TRUST_PROXY` (how many proxies are in front of the app: 1 behind OpenLiteSpeed, 2 behind Cloudflare too - check
+  *Server check*), `DATABASE_PATH`, `BACKUP_DIR`, `AUTO_RESTART=0` (turn off restart-on-deploy).
 
 ## If something goes wrong
 
