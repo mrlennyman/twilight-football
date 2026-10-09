@@ -3,12 +3,14 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { newestMtime, watchForUpdates } = require('../src/lib/autoRestart');
+const { newestMtime, createUpdateChecker, watchForUpdates } = require('../src/lib/autoRestart');
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function tmpDir() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'bbar-'));
+}
 
 test('newestMtime finds the newest file, ignores missing paths', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bbar-'));
+  const dir = tmpDir();
   fs.mkdirSync(path.join(dir, 'sub'));
   fs.writeFileSync(path.join(dir, 'a.js'), 'a');
   fs.writeFileSync(path.join(dir, 'sub', 'b.js'), 'b');
@@ -18,25 +20,52 @@ test('newestMtime finds the newest file, ignores missing paths', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('fires once after a change has settled, not on quiet or still-changing code', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bbar-'));
+test('restart fires once, only after a change has stayed the same for two checks (no timers involved)', () => {
+  const dir = tmpDir();
   const file = path.join(dir, 'app.js');
   fs.writeFileSync(file, '1');
   fs.utimesSync(file, 1000, 1000);
   let fired = 0;
-  const stop = watchForUpdates({ targets: [dir], intervalMs: 40, onChange: () => fired++ });
+  const check = createUpdateChecker({ targets: [dir], onChange: () => fired++ });
 
-  await sleep(150);
+  assert.equal(check(), false);
+  assert.equal(check(), false);
   assert.equal(fired, 0, 'no change -> no restart');
 
   fs.utimesSync(file, 2000, 2000); // deploy starts
-  await sleep(50);
+  assert.equal(check(), false);
   fs.utimesSync(file, 3000, 3000); // ...still copying files
-  await sleep(50);
+  assert.equal(check(), false);
   assert.equal(fired, 0, 'must wait while files are still changing');
 
-  await sleep(250);
-  assert.equal(fired, 1, 'fires once the update has settled');
+  assert.equal(check(), true, 'second look at the same new state fires');
+  assert.equal(fired, 1);
+  assert.equal(check(), false, 'never fires twice');
+  assert.equal(fired, 1);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('a change that is reverted before it settles does not restart', () => {
+  const dir = tmpDir();
+  const file = path.join(dir, 'app.js');
+  fs.writeFileSync(file, '1');
+  fs.utimesSync(file, 1000, 1000);
+  let fired = 0;
+  const check = createUpdateChecker({ targets: [dir], onChange: () => fired++ });
+  fs.utimesSync(file, 2000, 2000);
+  check();
+  fs.utimesSync(file, 1000, 1000);
+  check();
+  check();
+  assert.equal(fired, 0);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('watchForUpdates wires the checker to a timer and can be stopped', () => {
+  const dir = tmpDir();
+  fs.writeFileSync(path.join(dir, 'a.js'), 'a');
+  const stop = watchForUpdates({ targets: [dir], onChange: () => {}, intervalMs: 1000 });
+  assert.equal(typeof stop, 'function');
   stop();
   fs.rmSync(dir, { recursive: true, force: true });
 });

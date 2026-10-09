@@ -22,25 +22,43 @@ function newestMtime(targets) {
 }
 
 /**
- * Calls onChange once the code on disk has changed (a Git deploy) and then stayed quiet for a
- * full interval, so a deploy that is still copying files never triggers a half-updated restart.
- * Returns a function that stops watching.
+ * Returns a check() function. Each call looks at the code on disk: onChange fires once, on the second
+ * consecutive call that sees the same new state, so a deploy that is still copying files never triggers
+ * a half-updated restart. (Separate from the timer so tests can call it directly - no timing involved.)
  */
-function watchForUpdates({ targets, onChange, intervalMs = 15000 }) {
-  let baseline = newestMtime(targets);
+function createUpdateChecker({ targets, onChange }) {
+  const baseline = newestMtime(targets);
   let pending = null;
-  const timer = setInterval(() => {
+  let fired = false;
+  return function check() {
+    if (fired) return false;
     const now = newestMtime(targets);
-    if (now === baseline) return;
+    if (now === baseline) {
+      pending = null;
+      return false;
+    }
     if (pending === now) {
+      fired = true;
+      onChange();
+      return true;
+    }
+    pending = now; // changed since last look - wait one more check for it to settle
+    return false;
+  };
+}
+
+/** Runs the checker on a timer. Returns a function that stops watching. */
+function watchForUpdates({ targets, onChange, intervalMs = 15000 }) {
+  const check = createUpdateChecker({
+    targets,
+    onChange: () => {
       clearInterval(timer);
       onChange();
-    } else {
-      pending = now; // changed since last look - wait one more interval for it to settle
-    }
-  }, intervalMs);
+    },
+  });
+  const timer = setInterval(check, intervalMs);
   timer.unref();
   return () => clearInterval(timer);
 }
 
-module.exports = { newestMtime, watchForUpdates };
+module.exports = { newestMtime, createUpdateChecker, watchForUpdates };
