@@ -1,7 +1,9 @@
 <%- include('../partials/header', { title: league.name + ' — Fixtures' }) %>
 <%- include('../partials/nav', { league, active: 'fixtures' }) %>
+<%- include('../partials/league-title', { league }) %>
 
 <h2>Fixtures</h2>
+<%- include('../partials/updated') %>
 
 <% if (weekNumbers.length === 0) { %>
   <p>The schedule hasn't been published yet — check back soon.</p>
@@ -11,7 +13,7 @@
       <a href="?week=<%= w %>" class="<%= w === selectedWeek ? 'active' : '' %>">Week <%= w %></a>
     <% }) %>
   </nav>
-  <%- include('../partials/round-list', { rounds, editable: false }) %>
+  <%- include('../partials/round-list', { rounds, editable: false, linkTeams: true }) %>
 <% } %>
 
 <%- include('../partials/footer') %>

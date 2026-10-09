@@ -1,5 +1,6 @@
 <%- include('../partials/header', { title: page.title }) %>
 <%- include('../partials/nav', { league, active: 'info' }) %>
+<%- include('../partials/league-title', { league }) %>
 
 <% if (preview && !page.published) { %>
   <div class="callout"><strong>Draft preview.</strong> Parents can't see this page until you tick <em>Published</em>.</div>

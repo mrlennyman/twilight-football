@@ -10,12 +10,14 @@ const {
   getRoundsWithMatches,
   getWeekNumbers,
   getDefaultWeek,
+  getLastUpdated,
   getPages,
   getPublishedPageBySlug,
   getNavCounts,
   firstNameLastInitial,
 } = require('../lib/queries');
 const { renderMarkup } = require('../lib/markup');
+const { formatUpdated } = require('../lib/format');
 
 const router = express.Router();
 
@@ -23,6 +25,8 @@ const router = express.Router();
 router.param('id', (req, res, next, id) => {
   const leagueId = Number.parseInt(id, 10);
   res.locals.navCounts = Number.isInteger(leagueId) ? getNavCounts(db, leagueId) : {};
+  // "Other leagues" link on the league pages once there is more than one running league.
+  res.locals.hasOtherLeagues = getAllLeagues(db).filter((l) => l.status !== 'setup').length > 1;
   next();
 });
 
@@ -32,7 +36,13 @@ function renderLeagueHome(league, res) {
   const currentWeek = getDefaultWeek(db, league.id);
   const thisWeekRounds = currentWeek ? getRoundsForWeek(db, league.id, currentWeek) : [];
 
-  res.render('public/league', { league, standings, currentWeek, thisWeekRounds });
+  res.render('public/league', {
+    league,
+    standings,
+    currentWeek,
+    thisWeekRounds,
+    updatedText: formatUpdated(getLastUpdated(db, league.id)),
+  });
 }
 
 router.get('/install', (req, res) => {
@@ -80,7 +90,58 @@ router.get('/league/:id/fixtures', (req, res) => {
   const selectedWeek = weekNumbers.includes(requestedWeek) ? requestedWeek : getDefaultWeek(db, league.id);
   const rounds = selectedWeek ? getRoundsForWeek(db, league.id, selectedWeek) : [];
 
-  res.render('public/fixtures', { league, weekNumbers, selectedWeek, rounds });
+  res.render('public/fixtures', {
+    league,
+    weekNumbers,
+    selectedWeek,
+    rounds,
+    updatedText: formatUpdated(getLastUpdated(db, league.id)),
+  });
+});
+
+// One team's own games, in order - so a parent finds their child's pitch without scanning every match.
+router.get('/league/:id/team/:teamId', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const team = db
+    .prepare('SELECT * FROM teams WHERE id = ? AND league_id = ?')
+    .get(Number.parseInt(req.params.teamId, 10), league.id);
+  if (!team) return res.status(404).render('404');
+
+  const rows = db
+    .prepare(
+      `SELECT m.*, r.round_number, r.stage, r.date, ht.name AS home_name, at.name AS away_name, p.label AS pitch_label
+       FROM matches m
+       JOIN rounds r ON r.id = m.round_id
+       LEFT JOIN teams ht ON ht.id = m.home_team_id
+       LEFT JOIN teams at ON at.id = m.away_team_id
+       LEFT JOIN pitches p ON p.id = m.pitch_id
+       WHERE r.league_id = ? AND (m.home_team_id = ? OR m.away_team_id = ?)
+       ORDER BY r.round_number, m.id`
+    )
+    .all(league.id, team.id, team.id);
+
+  const matches = rows.map((m) => {
+    const isHome = m.home_team_id === team.id;
+    const mine = isHome ? m.home_score : m.away_score;
+    const theirs = isHome ? m.away_score : m.home_score;
+    let resultText = '';
+    if (m.status === 'played') {
+      if (mine > theirs) resultText = 'Won';
+      else if (mine < theirs) resultText = 'Lost';
+      else resultText = m.penalty_winner_id === team.id ? 'Won on pens' : m.penalty_winner_id ? 'Lost on pens' : 'Draw';
+    }
+    return {
+      ...m,
+      opponent_id: isHome ? m.away_team_id : m.home_team_id,
+      opponent_name: (isHome ? m.away_name : m.home_name) || 'TBD',
+      my_score: mine,
+      their_score: theirs,
+      result_text: resultText,
+    };
+  });
+
+  res.render('public/team', { league, team, matches });
 });
 
 router.get('/league/:id/bracket', (req, res) => {

@@ -16,6 +16,7 @@ const { createPage, seedStarterPages } = require('../lib/pages');
 const { renderMarkup } = require('../lib/markup');
 const fs = require('fs');
 const { snapshot, newestBackup, defaultBackupDir } = require('../lib/backup');
+const { formatNzDateTime } = require('../lib/format');
 const { resolveDbPath } = require('../lib/paths');
 const { saveScore, clearScore } = require('../lib/results');
 const {
@@ -31,11 +32,18 @@ const {
   getWeekNumbers,
   getNavCounts,
   getDefaultWeek,
+  todayNZ,
 } = require('../lib/queries');
 const { getNavSettings, parseNavInput } = require('../lib/navTabs');
 const { parseRosterCsv, createLeagueFromRoster, SAMPLE_CSV } = require('../lib/rosterImport');
 
 const router = express.Router();
+
+// Marks every admin page so the footer leaves out the public-only scripts (auto-refresh, follow-a-team).
+router.use((req, res, next) => {
+  res.locals.adminPage = true;
+  next();
+});
 
 function fail(res, message, status = 400) {
   return res.status(status).render('admin/error', { message });
@@ -82,6 +90,20 @@ const GROUP_LOCKED_MESSAGE =
 
 function groupResultsLocked(leagueId) {
   return scheduleStats(leagueId).knockoutRounds > 0;
+}
+
+/** Group matches from earlier match nights that still have no result (forgotten scores). */
+function missedResults(leagueId) {
+  const rows = db
+    .prepare(
+      `SELECT r.id AS round_id, r.week_number, r.round_number
+       FROM matches m JOIN rounds r ON r.id = m.round_id
+       WHERE r.league_id = ? AND r.stage = 'group' AND m.status = 'scheduled' AND r.date < ?
+       ORDER BY r.round_number`
+    )
+    .all(leagueId, todayNZ());
+  if (rows.length === 0) return null;
+  return { count: rows.length, week: rows[0].week_number, roundId: rows[0].round_id, round: rows[0].round_number };
 }
 
 /** Takes an automatic safety copy of the database; on failure tells the admin and returns false. */
@@ -374,6 +396,7 @@ router.post('/league/:id/schedule/generate', (req, res) => {
     ).run(league.id);
     db.prepare('DELETE FROM rounds WHERE league_id = ?').run(league.id);
     db.prepare('DELETE FROM tie_breaks WHERE league_id = ?').run(league.id);
+    db.prepare('DELETE FROM result_log WHERE league_id = ?').run(league.id);
 
     for (const round of schedule) {
       const roundInfo = insertRound.run(
@@ -425,6 +448,7 @@ router.get('/league/:id/results', (req, res) => {
     cupRounds,
     plateRounds,
     tieBlocks: getOpenTieBlocks(db, league.id, standings),
+    missed: missedResults(league.id),
     groupLocked: cupRounds.length > 0 || plateRounds.length > 0,
   });
 });
@@ -440,7 +464,7 @@ router.post('/league/:id/results/match/:matchId', (req, res) => {
     return fail(res, 'Scores must be whole numbers between 0 and 99.');
   }
 
-  saveScore(db, match.id, homeScore, awayScore);
+  saveScore(db, match.id, homeScore, awayScore, null, { ip: req.ip });
   res.redirect(`/admin/league/${req.params.id}/results?week=${match.week_number}#round-${match.round_id}`);
 });
 
@@ -468,7 +492,7 @@ router.post('/league/:id/results/round/:roundId', (req, res) => {
   if (req.body.clear !== undefined && req.body.clear !== '') {
     const target = matches.find((m) => String(m.id) === String(req.body.clear));
     if (!target) return res.status(404).render('404');
-    clearScore(db, target.id);
+    clearScore(db, target.id, { ip: req.ip });
     return res.redirect(back);
   }
 
@@ -495,7 +519,7 @@ router.post('/league/:id/results/round/:roundId', (req, res) => {
   if (problems.length) return fail(res, `${problems.join(' ')} Nothing in this round was saved.`);
 
   db.transaction(() => {
-    for (const s of toSave) saveScore(db, s.id, s.homeScore, s.awayScore);
+    for (const s of toSave) saveScore(db, s.id, s.homeScore, s.awayScore, null, { ip: req.ip });
   })();
   res.redirect(back);
 });
@@ -656,7 +680,7 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
     penaltyWinnerId = picked;
   }
 
-  saveScore(db, match.id, homeScore, awayScore, penaltyWinnerId);
+  saveScore(db, match.id, homeScore, awayScore, penaltyWinnerId, { ip: req.ip });
 
   tryFillFinal(db, leagueId, match.stage);
   if (isBracketComplete(leagueId, 'cup') && isBracketComplete(leagueId, 'plate')) {
@@ -664,6 +688,35 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
   }
 
   res.redirect(`/admin/league/${leagueId}/results#round-${match.round_id}`);
+});
+
+// Read-only history of score changes (latest 100).
+router.get('/league/:id/log', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const entries = db
+    .prepare(
+      `SELECT l.*, r.round_number, r.stage, m.bracket_slot, ht.name AS home_name, at.name AS away_name
+       FROM result_log l
+       JOIN matches m ON m.id = l.match_id
+       JOIN rounds r ON r.id = m.round_id
+       LEFT JOIN teams ht ON ht.id = m.home_team_id
+       LEFT JOIN teams at ON at.id = m.away_team_id
+       WHERE l.league_id = ?
+       ORDER BY l.id DESC LIMIT 100`
+    )
+    .all(league.id)
+    .map((e) => ({
+      ...e,
+      when: formatNzDateTime(e.at),
+      where:
+        e.stage === 'group'
+          ? `Round ${e.round_number}`
+          : `${e.stage === 'cup' ? 'Cup' : 'Plate'} ${e.bracket_slot === 'final' ? 'final' : 'semi-final'}`,
+      oldText: e.old_status === 'played' ? `${e.old_home}-${e.old_away}` : 'no result',
+      newText: e.new_status === 'played' ? `${e.new_home}-${e.new_away}` : 'cleared',
+    }));
+  res.render('admin/log', { league, entries });
 });
 
 // Throw the Cup/Plate brackets away (e.g. a group score turns out to be wrong) so they can be drawn again.
@@ -704,7 +757,7 @@ router.post('/league/:id/knockout-results/match/:matchId/clear', (req, res) => {
   }
 
   db.transaction(() => {
-    clearScore(db, match.id);
+    clearScore(db, match.id, { ip: req.ip });
     if (isSemi && final) {
       db.prepare('UPDATE matches SET home_team_id = NULL, away_team_id = NULL WHERE id = ?').run(final.id);
     }

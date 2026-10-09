@@ -1,12 +1,14 @@
 <%- include('../partials/header', { title: league.name }) %>
 <%- include('../partials/nav', { league, active: 'standings' }) %>
+<%- include('../partials/league-title', { league }) %>
 
 <h2>Standings</h2>
-<%- include('../partials/standings-table', { standings, highlightSplit: false }) %>
+<%- include('../partials/updated') %>
+<%- include('../partials/standings-table', { standings, highlightSplit: false, linkTeams: true }) %>
 
 <% if (thisWeekRounds.length > 0) { %>
   <h2>This Week (Week <%= currentWeek %>)</h2>
-  <%- include('../partials/round-list', { rounds: thisWeekRounds, editable: false }) %>
+  <%- include('../partials/round-list', { rounds: thisWeekRounds, editable: false, linkTeams: true }) %>
 <% } %>
 
 <%- include('../partials/footer') %>

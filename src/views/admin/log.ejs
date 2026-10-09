@@ -1,0 +1,29 @@
+<%- include('../partials/header', { title: league.name + ' — Change log' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Change log</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p class="muted">The latest 100 score changes, newest first (New Zealand time). This is a record only - to fix a score, change it on the <a href="/admin/league/<%= league.id %>/results">Results</a> page.</p>
+
+<% if (entries.length === 0) { %>
+  <p>No scores have been entered yet.</p>
+<% } else { %>
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead><tr><th>When</th><th>Match</th><th>Was</th><th>Now</th><th>From</th></tr></thead>
+    <tbody>
+      <% entries.forEach(e => { %>
+        <tr>
+          <td><%= e.when %></td>
+          <td><%= e.where %>: <%= e.home_name || 'TBD' %> v <%= e.away_name || 'TBD' %></td>
+          <td><%= e.oldText %></td>
+          <td><strong><%= e.newText %></strong></td>
+          <td class="muted"><%= e.ip || '' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS matches (
   away_score INTEGER,
   status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'played')),
   penalty_winner_id INTEGER REFERENCES teams(id),
-  bracket_slot TEXT
+  bracket_slot TEXT,
+  updated_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tie_breaks (
@@ -77,3 +78,18 @@ CREATE INDEX IF NOT EXISTS idx_teams_league ON teams(league_id);
 CREATE INDEX IF NOT EXISTS idx_players_team ON players(team_id);
 CREATE INDEX IF NOT EXISTS idx_rounds_league ON rounds(league_id);
 CREATE INDEX IF NOT EXISTS idx_matches_round ON matches(round_id);
+
+-- Who changed which score, when (read-only history; written with every save and clear).
+CREATE TABLE IF NOT EXISTS result_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL DEFAULT (datetime('now')),
+  league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  match_id INTEGER NOT NULL,
+  old_home INTEGER,
+  old_away INTEGER,
+  old_status TEXT,
+  new_home INTEGER,
+  new_away INTEGER,
+  new_status TEXT,
+  ip TEXT
+);

@@ -1,0 +1,7 @@
+<%
+// The league's name and season at the top of every public league page, so a shared link always says which one it is.
+%>
+<header class="league-head">
+  <h1 class="league-title"><%= league.name %></h1>
+  <p class="league-season"><%= league.season %><% if (typeof hasOtherLeagues !== 'undefined' && hasOtherLeagues) { %> &middot; <a href="/">Other leagues</a><% } %></p>
+</header>

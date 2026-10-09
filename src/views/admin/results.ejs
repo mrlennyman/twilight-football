@@ -8,6 +8,9 @@
 <% if (weekNumbers.length === 0) { %>
   <p>No schedule yet — go to <a href="/admin/league/<%= league.id %>/schedule">Schedule</a> to generate it.</p>
 <% } else { %>
+  <% if (missed) { %>
+    <p class="callout callout-warn"><a href="?week=<%= missed.week %>#round-<%= missed.roundId %>"><strong><%= missed.count %> match<%= missed.count === 1 ? '' : 'es' %> in earlier weeks <%= missed.count === 1 ? 'has' : 'have' %> no result</strong></a> - the first is in Round <%= missed.round %>. Tap to go there.</p>
+  <% } %>
   <nav class="week-tabs">
     <% weekNumbers.forEach(w => { %>
       <a href="?week=<%= w %>" class="<%= w === selectedWeek ? 'active' : '' %>">Week <%= w %></a>

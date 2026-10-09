@@ -6,5 +6,9 @@
 </footer>
 <script src="/js/register-sw.js?v=<%= assetVersion %>"></script>
 <script src="/js/install.js?v=<%= assetVersion %>" defer></script>
+<% if (typeof adminPage === 'undefined' || !adminPage) { %>
+<script src="/js/auto-refresh.js?v=<%= assetVersion %>" defer></script>
+<script src="/js/my-team.js?v=<%= assetVersion %>" defer></script>
+<% } %>
 </body>
 </html>

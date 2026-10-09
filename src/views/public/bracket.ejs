@@ -1,5 +1,6 @@
 <%- include('../partials/header', { title: league.name + ' — Cup / Plate' }) %>
 <%- include('../partials/nav', { league, active: 'bracket' }) %>
+<%- include('../partials/league-title', { league }) %>
 
 <% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
   <p>The Cup and Plate knockouts haven't started yet — they'll appear here once the group stage is complete.</p>
@@ -11,8 +12,8 @@
         <div class="bracket-round">
           <h4><%= round.matches.length > 1 ? 'Semi-finals' : 'Final' %></h4>
           <% round.matches.forEach(match => { %>
-            <div class="bracket-match">
-              <div><%= match.home_team_name || 'TBD' %></div>
+            <div class="bracket-match" data-team-ids="<%= match.home_team_id || '' %> <%= match.away_team_id || '' %>">
+              <div><% if (match.home_team_id) { %><a href="/league/<%= league.id %>/team/<%= match.home_team_id %>"><%= match.home_team_name %></a><% } else { %>TBD<% } %></div>
               <div class="bracket-score">
                 <% if (match.status === 'played') { %>
                   <%= match.home_score %> - <%= match.away_score %>
@@ -23,7 +24,7 @@
                   v
                 <% } %>
               </div>
-              <div><%= match.away_team_name || 'TBD' %></div>
+              <div><% if (match.away_team_id) { %><a href="/league/<%= league.id %>/team/<%= match.away_team_id %>"><%= match.away_team_name %></a><% } else { %>TBD<% } %></div>
             </div>
           <% }) %>
         </div>

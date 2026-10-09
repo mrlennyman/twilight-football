@@ -4,6 +4,7 @@
 // Group rounds being edited get ONE form per round ("Save round"); knockout matches keep one form each.
 const isEditable = typeof editable !== 'undefined' && editable;
 const isKnockout = typeof knockout !== 'undefined' && knockout;
+const canLink = typeof linkTeams !== 'undefined' && linkTeams && typeof league !== 'undefined';
 %>
 <% rounds.forEach(round => {
   const groupEditable = isEditable && !isKnockout && round.stage === 'group';
@@ -23,9 +24,9 @@ const isKnockout = typeof knockout !== 'undefined' && knockout;
     <% } %>
     <div class="match-list">
       <% round.matches.forEach(match => { %>
-        <div class="match-card <%= isEditable && match.status === 'played' ? 'is-played' : '' %>">
+        <div class="match-card <%= isEditable && match.status === 'played' ? 'is-played' : '' %>" data-team-ids="<%= match.home_team_id || '' %> <%= match.away_team_id || '' %>">
           <div class="match-teams">
-            <span class="match-team match-team-home"><%= match.home_team_name || 'TBD' %></span>
+            <span class="match-team match-team-home"><% if (canLink && match.home_team_id) { %><a href="/league/<%= league.id %>/team/<%= match.home_team_id %>"><%= match.home_team_name %></a><% } else { %><%= match.home_team_name || 'TBD' %><% } %></span>
 
             <% if (groupEditable) { %>
               <div class="score-form">
@@ -54,7 +55,7 @@ const isKnockout = typeof knockout !== 'undefined' && knockout;
               <span class="score-badge score-badge-pending">v</span>
             <% } %>
 
-            <span class="match-team match-team-away"><%= match.away_team_name || 'TBD' %></span>
+            <span class="match-team match-team-away"><% if (canLink && match.away_team_id) { %><a href="/league/<%= league.id %>/team/<%= match.away_team_id %>"><%= match.away_team_name %></a><% } else { %><%= match.away_team_name || 'TBD' %><% } %></span>
           </div>
           <div class="match-meta">
             <span><%= match.pitch_label || '—' %></span>

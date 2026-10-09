@@ -11,10 +11,10 @@
   </thead>
   <tbody>
     <% standings.forEach((row, i) => { %>
-      <tr class="<%= (typeof highlightSplit !== 'undefined' && highlightSplit && i === 4) ? 'split-row' : '' %>">
+      <tr class="<%= (typeof highlightSplit !== 'undefined' && highlightSplit && i === 4) ? 'split-row' : '' %>" data-team-id="<%= row.teamId %>">
         <td><%= i + 1 %></td>
         <td>
-          <%= row.name %>
+          <% if (typeof linkTeams !== 'undefined' && linkTeams && typeof league !== 'undefined') { %><a href="/league/<%= league.id %>/team/<%= row.teamId %>"><%= row.name %></a><% } else { %><%= row.name %><% } %>
           <% if (row.tied && !row.tieResolved) { %>
             <span class="tag tag-tie" title="Tied on points and goal difference — needs a shootout to settle">tied</span>
           <% } %>

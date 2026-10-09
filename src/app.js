@@ -74,7 +74,7 @@ app.locals.formatTime = formatTime;
 // (and Cloudflare) fetches the new file instead of reusing a copy cached for hours.
 const publicDir = path.join(__dirname, 'public');
 const fingerprint = crypto.createHash('md5');
-for (const file of ['css/style.css', 'css/print.css', 'js/register-sw.js', 'js/install.js']) {
+for (const file of ['css/style.css', 'css/print.css', 'js/register-sw.js', 'js/install.js', 'js/auto-refresh.js', 'js/my-team.js']) {
   fingerprint.update(fs.readFileSync(path.join(publicDir, file)));
 }
 app.locals.assetVersion = fingerprint.digest('hex').slice(0, 10);

@@ -78,6 +78,15 @@ function getCurrentWeek(db, leagueId) {
   return lastWeek ? lastWeek.week : null;
 }
 
+/** Newest result save/clear in the league (SQLite UTC text), or null. */
+function getLastUpdated(db, leagueId) {
+  return db
+    .prepare(
+      `SELECT MAX(m.updated_at) AS at FROM matches m JOIN rounds r ON r.id = m.round_id WHERE r.league_id = ?`
+    )
+    .get(leagueId).at;
+}
+
 /** Today's date (YYYY-MM-DD) in New Zealand, whatever time zone the server runs in. */
 function todayNZ(now = new Date()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland' }).format(now);
@@ -163,6 +172,7 @@ module.exports = {
   getWeekNumbers,
   getCurrentWeek,
   getDefaultWeek,
+  getLastUpdated,
   todayNZ,
   getPages,
   getPageById,
