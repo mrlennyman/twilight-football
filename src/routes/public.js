@@ -9,7 +9,7 @@ const {
   getRoundsForWeek,
   getRoundsWithMatches,
   getWeekNumbers,
-  getCurrentWeek,
+  getDefaultWeek,
   getPages,
   getPublishedPageBySlug,
   getNavCounts,
@@ -29,7 +29,7 @@ router.param('id', (req, res, next, id) => {
 function renderLeagueHome(league, res) {
   res.locals.navCounts = getNavCounts(db, league.id);
   const standings = computeStandings(db, league.id);
-  const currentWeek = getCurrentWeek(db, league.id);
+  const currentWeek = getDefaultWeek(db, league.id);
   const thisWeekRounds = currentWeek ? getRoundsForWeek(db, league.id, currentWeek) : [];
 
   res.render('public/league', { league, standings, currentWeek, thisWeekRounds });
@@ -77,7 +77,7 @@ router.get('/league/:id/fixtures', (req, res) => {
 
   const weekNumbers = getWeekNumbers(db, league.id);
   const requestedWeek = Number.parseInt(req.query.week, 10);
-  const selectedWeek = weekNumbers.includes(requestedWeek) ? requestedWeek : weekNumbers[0];
+  const selectedWeek = weekNumbers.includes(requestedWeek) ? requestedWeek : getDefaultWeek(db, league.id);
   const rounds = selectedWeek ? getRoundsForWeek(db, league.id, selectedWeek) : [];
 
   res.render('public/fixtures', { league, weekNumbers, selectedWeek, rounds });

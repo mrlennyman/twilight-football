@@ -78,6 +78,27 @@ function getCurrentWeek(db, leagueId) {
   return lastWeek ? lastWeek.week : null;
 }
 
+/** Today's date (YYYY-MM-DD) in New Zealand, whatever time zone the server runs in. */
+function todayNZ(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland' }).format(now);
+}
+
+/**
+ * The week to open by default: tonight's match night, or the next one coming up; once the group stage
+ * is over, the last week. Chosen by calendar date, so a forgotten score never pins everyone to an old week.
+ */
+function getDefaultWeek(db, leagueId, today = todayNZ()) {
+  const weeks = db
+    .prepare(
+      `SELECT week_number, MIN(date) AS date FROM rounds
+       WHERE league_id = ? AND stage = 'group' GROUP BY week_number ORDER BY week_number`
+    )
+    .all(leagueId);
+  if (weeks.length === 0) return null;
+  const upcoming = weeks.find((w) => w.date >= today);
+  return (upcoming || weeks[weeks.length - 1]).week_number;
+}
+
 function getPages(db, leagueId, { publishedOnly = false } = {}) {
   return db
     .prepare(
@@ -141,6 +162,8 @@ module.exports = {
   getRoundsForWeek,
   getWeekNumbers,
   getCurrentWeek,
+  getDefaultWeek,
+  todayNZ,
   getPages,
   getPageById,
   getPublishedPageBySlug,

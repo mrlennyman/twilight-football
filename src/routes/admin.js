@@ -28,6 +28,7 @@ const {
   getRoundsForWeek,
   getWeekNumbers,
   getNavCounts,
+  getDefaultWeek,
 } = require('../lib/queries');
 const { getNavSettings, parseNavInput } = require('../lib/navTabs');
 const { parseRosterCsv, createLeagueFromRoster, SAMPLE_CSV } = require('../lib/rosterImport');
@@ -38,9 +39,10 @@ function fail(res, message, status = 400) {
   return res.status(status).render('admin/error', { message });
 }
 
-function pickWeek(queryWeek, weekNumbers) {
+function pickWeek(queryWeek, weekNumbers, defaultWeek) {
   const w = Number.parseInt(queryWeek, 10);
-  return weekNumbers.includes(w) ? w : weekNumbers[0];
+  if (weekNumbers.includes(w)) return w;
+  return weekNumbers.includes(defaultWeek) ? defaultWeek : weekNumbers[0];
 }
 
 function teamInLeague(teamId, leagueId) {
@@ -346,7 +348,7 @@ router.get('/league/:id/results', (req, res) => {
   if (!league) return res.status(404).render('404');
 
   const weekNumbers = getWeekNumbers(db, league.id);
-  const selectedWeek = pickWeek(req.query.week, weekNumbers);
+  const selectedWeek = pickWeek(req.query.week, weekNumbers, getDefaultWeek(db, league.id));
   const rounds = selectedWeek ? getRoundsForWeek(db, league.id, selectedWeek) : [];
   const standings = computeStandings(db, league.id);
   const stageComplete = groupStageComplete(db, league.id);
