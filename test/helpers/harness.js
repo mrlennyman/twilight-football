@@ -66,6 +66,11 @@ async function startApp(extraEnv = {}) {
   async function close() {
     await new Promise((resolve) => server.close(resolve));
     try {
+      app.locals.sessionStore.close();
+    } catch (err) {
+      /* already closed */
+    }
+    try {
       db.close();
     } catch (err) {
       /* already closed */

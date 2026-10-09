@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
+const { SqliteSessionStore } = require('./lib/sqliteSessionStore');
+const { resolveDbPath } = require('./lib/paths');
 
 const { formatDate, formatTime } = require('./lib/format');
 const { resolveNavTabs } = require('./lib/navTabs');
@@ -31,10 +33,18 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Sessions live in data/sessions.sqlite (beside the database), so a restart or deploy doesn't log the admin out.
+const sessionStore = new SqliteSessionStore({
+  file: path.join(path.dirname(resolveDbPath(process.env.DATABASE_PATH)), 'sessions.sqlite'),
+});
+app.locals.sessionStore = sessionStore;
+
 app.use(
   session({
+    store: sessionStore,
     secret: process.env.SESSION_SECRET,
     resave: false,
+    rolling: true, // each visit extends the 12 hours
     saveUninitialized: false,
     cookie: {
       maxAge: 1000 * 60 * 60 * 12, // 12 hours

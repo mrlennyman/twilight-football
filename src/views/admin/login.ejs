@@ -15,6 +15,7 @@
     <h1>Twilight Football</h1>
     <p class="login-sub">Admin sign in</p>
 
+    <% if (typeof notice !== 'undefined' && notice) { %><p class="login-notice" role="status"><%= notice %></p><% } %>
     <% if (error) { %><p class="error login-error" role="alert"><%= error %></p><% } %>
 
     <form method="POST" action="/admin/login" id="login-form">

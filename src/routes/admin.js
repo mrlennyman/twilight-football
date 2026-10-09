@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../db');
-const { checkPassword, requireAdmin } = require('../middleware/auth');
+const { checkPassword, requireAdmin, safeReturnTo } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/loginLimiter');
 const { computeStandings, groupStageComplete } = require('../lib/standings');
 const { generateGroupStageSchedule, generateCupAndPlate, addDays } = require('../lib/schedule');
@@ -99,7 +99,12 @@ function ensurePitches(count) {
 const loginLimiter = createLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
 
 router.get('/login', (req, res) => {
-  res.render('admin/login', { error: null });
+  res.render('admin/login', {
+    error: null,
+    notice: req.query.expired
+      ? 'You were logged out, so your last change was not saved. Log in and enter it again.'
+      : null,
+  });
 });
 
 router.post('/login', (req, res) => {
@@ -117,11 +122,12 @@ router.post('/login', (req, res) => {
   }
 
   loginLimiter.reset(req.ip);
+  const returnTo = safeReturnTo(req.session && req.session.returnTo); // read before the session is replaced
   // New session id on login so a pre-login cookie can't be reused.
   req.session.regenerate((err) => {
     if (err) return fail(res, 'Could not start a session. Please try again.', 500);
     req.session.isAdmin = true;
-    req.session.save(() => res.redirect('/admin'));
+    req.session.save(() => res.redirect(returnTo));
   });
 });
 
