@@ -9,6 +9,7 @@ const {
   parseScore,
   parseLeagueInput,
   parseScheduleInput,
+  pitchShortfallMessage,
   parsePageInput,
 } = require('../lib/validate');
 const { createPage, seedStarterPages } = require('../lib/pages');
@@ -271,6 +272,8 @@ router.post('/league/:id/schedule/generate', (req, res) => {
     return fail(res, 'A schedule needs an even number of teams (at least 2).');
   }
   if (pitches.length === 0) return fail(res, 'No pitches are set up.');
+  const shortfall = pitchShortfallMessage(teams.length, pitches.length);
+  if (shortfall) return fail(res, shortfall);
 
   // Regenerating wipes every match, result and bracket: needs the league name typed as confirmation.
   const existing = scheduleStats(league.id);

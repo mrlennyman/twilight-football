@@ -24,6 +24,12 @@ function isValidTime(value) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value ?? ''));
 }
 
+/** Every team plays every round, so there must be a pitch for each pair of teams. */
+function pitchShortfallMessage(numTeams, numPitches) {
+  if (numPitches * 2 >= numTeams) return null;
+  return `A league of ${numTeams} teams needs at least ${Math.ceil(numTeams / 2)} pitches, because every team plays each round.`;
+}
+
 function parseLeagueInput(body) {
   const errors = [];
   const name = String(body.name ?? '').trim();
@@ -39,6 +45,10 @@ function parseLeagueInput(body) {
   }
   if (numPitches === null) errors.push('Number of pitches must be between 1 and 16.');
   if (roundsPerWeek === null) errors.push('Rounds per week must be between 1 and 20.');
+  if (numTeams !== null && numTeams % 2 === 0 && numPitches !== null) {
+    const shortfall = pitchShortfallMessage(numTeams, numPitches);
+    if (shortfall) errors.push(shortfall);
+  }
 
   return { errors, value: { name, season, numTeams, numPitches, roundsPerWeek } };
 }
@@ -69,6 +79,7 @@ function parsePageInput(body) {
 }
 
 module.exports = {
+  pitchShortfallMessage,
   parsePageInput,
   parseScore,
   parsePositiveInt,

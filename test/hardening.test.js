@@ -78,3 +78,14 @@ test('login limiter blocks after max failures and recovers after the window', ()
   limiter.reset('9.9.9.9');
   assert.equal(limiter.check('9.9.9.9', t0).blocked, false);
 });
+
+test('B5: a league needs a pitch for every pair of teams (pitches x 2 >= teams)', () => {
+  const base = { name: 'L', season: 'S', rounds_per_week: '3' };
+  assert.deepEqual(parseLeagueInput({ ...base, num_teams: '8', num_pitches: '4' }).errors, []);
+  assert.deepEqual(parseLeagueInput({ ...base, num_teams: '6', num_pitches: '3' }).errors, []);
+  for (const pitches of ['3', '2', '1']) {
+    const { errors } = parseLeagueInput({ ...base, num_teams: '8', num_pitches: pitches });
+    assert.equal(errors.length, 1, `8 teams on ${pitches} pitches`);
+    assert.match(errors[0], /needs at least 4 pitches/);
+  }
+});
