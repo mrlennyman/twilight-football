@@ -1194,9 +1194,9 @@ html.home-page-root, html.login-page-root {
 .prose a::after { content: ' \2197'; font-size: 0.85em; }
 .prose a:hover, .prose a:focus-visible { border-color: var(--gold); color: var(--wine-500); }
 
-/* ---------- Footer: sponsor bar (full width, flush with the bottom edge, square corners, WHITE) ----------
-   White on purpose: on some phones a 1-pixel strip at the very bottom of the screen is painted white by the
-   browser and no page content can cover it - a white bar makes that strip invisible. */
+/* ---------- Footer: sponsor bar (full width, flush with the bottom edge, square corners, champagne gold) ----------
+   Pale on purpose: on some phones a 1-pixel strip at the very bottom of the screen is painted white by the
+   browser and no page content can cover it - against a pale bar that strip is almost invisible. */
 .footer-inner { text-align: center; }
 .footer-club { margin: 0 0 14px; }
 .sponsor {
@@ -1209,16 +1209,16 @@ html.home-page-root, html.login-page-root {
   padding: 12px 16px max(12px, env(safe-area-inset-bottom));
   font-size: 0.82rem;
   line-height: 1.25;
-  color: var(--muted);
+  color: var(--wine-900);
   text-decoration: none;
-  background: #fff;
+  background: #f3e7c9; /* champagne gold */
   border: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(201, 161, 90, 0.7);
   border-radius: 0;
   transition: background 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.sponsor:hover, .sponsor:focus-visible { background: #fbf6ee; }
+.sponsor:hover, .sponsor:focus-visible { background: #efe0b8; }
 .sponsor:focus-visible { outline: 3px solid rgba(201, 161, 90, 0.7); outline-offset: -3px; }
 .sponsor-logo { flex: none; display: block; }
 .sponsor-logo img { display: block; width: 108px; height: auto; }
@@ -1234,7 +1234,7 @@ html.home-page-root, html.login-page-root {
 
 /* Sponsor bar: the same on every page. (A general ".site-footer a { color: inherit }" rule would otherwise win over
    the bar's own colours.) */
-.site-footer a.sponsor, .home-page .site-footer a.sponsor { color: var(--muted); }
+.site-footer a.sponsor, .home-page .site-footer a.sponsor { color: var(--wine-900); }
 .site-footer a.sponsor .sponsor-text strong, .home-page .site-footer a.sponsor .sponsor-text strong { color: var(--wine-700); }
 
 /* ---------- Hidden leagues ---------- */
