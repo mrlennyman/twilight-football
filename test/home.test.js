@@ -59,7 +59,7 @@ test('app window colour is the dark wine, so a sub-pixel gap at the screen edge 
   const res = await h.request('GET', '/manifest.json');
   const manifest = JSON.parse(res.text);
   assert.equal(manifest.background_color, '#240812');
-  assert.equal(manifest.theme_color, '#3d0f1c', 'status bar = the header wine');
+  assert.equal(manifest.theme_color, '#ffffff', 'white status bar');
 });
 
 test('footer: "Sponsored by websitealchemy.com" is a real link with the logo beside it, on every page', async () => {
@@ -67,10 +67,10 @@ test('footer: "Sponsored by websitealchemy.com" is a real link with the logo bes
     const res = await h.request('GET', url);
     if (url === '/admin/login') continue; // the login screen has no footer
     assert.match(res.text, /<a class="sponsor" href="https:\/\/websitealchemy\.com\/" target="_blank" rel="noopener sponsored">/, url);
-    assert.match(res.text, /<img src="\/img\/websitealchemy-logo\.png" alt="" width="\d+" height="\d+"/, url);
+    assert.match(res.text, /<img src="\/img\/websitealchemy-logo-dark\.png" alt="" width="\d+" height="\d+"/, url);
     assert.match(res.text, /Sponsored by <strong>websitealchemy\.com<\/strong>/, url);
   }
-  const logo = await fetch(`${h.base}/img/websitealchemy-logo.png`);
+  const logo = await fetch(`${h.base}/img/websitealchemy-logo-dark.png`);
   assert.equal(logo.status, 200);
   assert.equal(logo.headers.get('content-type'), 'image/png');
 });
@@ -114,14 +114,10 @@ test('Home button goes to /leagues, which always shows the league cards - even w
   assert.match(none.text, /No leagues are running yet/);
 });
 
-test('status bar colour: header wine on content pages, the top of the gradient on the home and login screens', async () => {
-  for (const url of ['/league/1', '/install', '/nope']) {
+test('status bar colour: white on every page', async () => {
+  for (const url of ['/league/1', '/install', '/nope', '/leagues', '/admin/login']) {
     const res = await h.request('GET', url);
-    assert.match(res.text, /<meta name="theme-color" content="#3d0f1c">/, url);
-  }
-  for (const url of ['/leagues', '/admin/login']) {
-    const res = await h.request('GET', url);
-    assert.match(res.text, /<meta name="theme-color" content="#6e1b2e">/, url);
+    assert.match(res.text, /<meta name="theme-color" content="#ffffff">/, url);
   }
 });
 
