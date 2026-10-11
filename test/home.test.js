@@ -73,3 +73,14 @@ test('footer: "Sponsored by websitealchemy.com" is a real link with the logo bes
   assert.equal(logo.status, 200);
   assert.equal(logo.headers.get('content-type'), 'image/png');
 });
+
+test('sponsor bar: full width, square corners, nothing underneath it (CSS rules)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.join(__dirname, '../src/public/css/style.css'), 'utf8');
+  const bar = css.match(/\n\.sponsor\s*\{[^}]*\}/)[0];
+  assert.match(bar, /width:\s*100%/);
+  assert.match(bar, /border-radius:\s*0/);
+  const footer = css.match(/\.site-footer\s*\{[^}]*\}/)[0];
+  assert.match(footer, /padding:\s*20px 0 0/, 'no padding below the footer');
+});
