@@ -20,7 +20,7 @@
 
 * { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; height: 100%; }
 
 body {
   margin: 0;
@@ -29,8 +29,8 @@ body {
   color: var(--ink);
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* % (not vh/dvh/lvh): in the installed Android app 100vh is 811px but the screen shows 754px */
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -488,12 +488,11 @@ form button[type="submit"].link-button.danger:hover { border-color: var(--error)
 /* ---------- Admin login ---------- */
 .login-page { background: var(--wine-900); }
 .login-page .site-header, .login-page .site-footer { display: none; }
-.login-page main.container { max-width: none; padding: 0; }
+.login-page main.container { max-width: none; padding: 0; display: flex; flex-direction: column; }
 
 .login-stage {
   position: relative;
-  min-height: 100vh;
-  min-height: 100dvh;
+  flex: 1;
   display: grid;
   place-items: center;
   padding: 24px 16px;
@@ -878,7 +877,6 @@ html.home-page-root, html.login-page-root {
   background: #240812;
   overscroll-behavior-y: none;
 }
-.home-page, .login-page { min-height: 100vh; min-height: 100lvh; }
 .login-bg { inset: -2px; }
 
 .home-stage {
