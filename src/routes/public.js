@@ -71,7 +71,7 @@ router.get('/leagues', renderHome);
 
 // A diagnostic page for tracking down display problems on a phone (see views/public/edge-test.ejs).
 router.get('/edge-test', (req, res) => {
-  res.render('public/edge-test');
+  res.render('public/edge-test', { scheme: req.query.cs === 'light' ? 'light' : 'dark' });
 });
 
 router.get('/league/:id', (req, res) => {

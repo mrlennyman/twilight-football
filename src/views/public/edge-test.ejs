@@ -1,19 +1,13 @@
-<%- include('../partials/header', { title: 'Screen edge test', bodyClass: 'edge-test', themeColor: '#3d0f1c' }) %>
+<%- include('../partials/header', { title: 'Screen edge test', bodyClass: 'edge-test', themeColor: '#3d0f1c', colorScheme: scheme }) %>
 <style>
   /* Every layer is a different loud colour, so a screenshot shows which layer a stray line belongs to. */
-  html.edge-test-root { background: #ff00ff; }               /* magenta = the page root (<html>) */
+  html.edge-test-root { background: #ff00ff; color-scheme: <%= scheme %>; }               /* magenta = the page root (<html>) */
   body.edge-test { margin: 0; min-height: 100%; position: relative; background: #2030ff; color: #fff; font: 14px/1.4 ui-monospace, Menlo, Consolas, monospace; }  /* blue = <body> */
   .edge-wrap { padding: 16px 14px 28px; }
   .edge-test h1 { margin: 0 0 8px; font-size: 18px; color: #fff; }
   .edge-test p { margin: 0 0 10px; }
   .edge-bar-top { position: fixed; left: 0; right: 0; top: 0; height: 8px; background: #ffe000; }  /* yellow = a bar fixed to the very top edge */
-  /* Five different ways to reach the very bottom edge, side by side (left to right): */
-  .seg { position: fixed; width: 20%; }
-  .seg-1 { left: 0;   bottom: 0;    height: 8px;  background: #ff2020; }   /* 1 red:    fixed, bottom 0            */
-  .seg-2 { left: 20%; bottom: -1px; height: 9px;  background: #ff9000; }   /* 2 orange: fixed, 1px past the bottom */
-  .seg-3 { left: 40%; bottom: -6px; height: 14px; background: #ffe000; }   /* 3 yellow: fixed, 6px past the bottom */
-  .seg-4 { left: 60%; position: absolute; bottom: 0; height: 8px; background: #00e0ff; }  /* 4 cyan: ordinary page content at the end of the page */
-  .seg-5 { left: 80%; top: 88%; height: 30vh; background: #a000ff; pointer-events: none; }  /* 5 purple: a fixed block reaching far past the bottom */
+  .seg-1 { position: fixed; left: 0; right: 0; bottom: 0; height: 12px; background: #ff2020; }   /* red: a bar fixed to the very bottom edge */
   #edge-out { margin: 12px 0; padding: 10px; background: rgba(0, 0, 0, 0.55); border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
   .edge-back { display: inline-block; margin-top: 6px; padding: 10px 18px; color: #fff; background: #000; border-radius: 999px; text-decoration: none; font-family: sans-serif; font-weight: 700; }
   .edge-probe { position: absolute; left: -9999px; top: 0; width: 1px; visibility: hidden; }
@@ -22,15 +16,12 @@
 <div class="edge-wrap">
   <h1>Screen edge test</h1>
   <p>Take a screenshot of this whole screen (including the very bottom edge) and send it to me.</p>
-  <p>Along the very bottom edge, left to right: <b style="color:#ff2020">red</b>, <b style="color:#ff9000">orange</b>, <b style="color:#ffe000">yellow</b>, <b style="color:#00e0ff">cyan</b>, <b style="color:#c070ff">purple</b> (a block reaching far past the edge). Please zoom the screenshot on the bottom edge if you can.</p>
+  <p>This test page says its colour scheme is <b><%= scheme %></b>. A <b style="color:#ff2020">red</b> bar is fixed to the very bottom edge. Look closely at the last line at the bottom: is it a pale line (like before) or a dark/red one?</p>
+  <p><a class="edge-back" href="/edge-test?cs=dark">Test: dark</a> <a class="edge-back" href="/edge-test?cs=light">Test: light (as before)</a></p>
   <div id="edge-out">measuring...</div>
   <a class="edge-back" href="/leagues">&larr; Back</a>
 </div>
-<div class="seg seg-1"></div>
-<div class="seg seg-2"></div>
-<div class="seg seg-3"></div>
-<div class="seg seg-4"></div>
-<div class="seg seg-5"></div>
+<div class="seg-1"></div>
 <div class="edge-probe" id="p-vh" style="height:100vh"></div>
 <div class="edge-probe" id="p-dvh" style="height:100dvh"></div>
 <div class="edge-probe" id="p-svh" style="height:100svh"></div>
@@ -46,6 +37,7 @@
     var fullscreen = window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches;
     var lines = [
       'display-mode: ' + (fullscreen ? 'fullscreen' : standalone ? 'standalone (installed app)' : 'browser tab'),
+      'colour scheme declared: ' + getComputedStyle(document.documentElement).colorScheme,
       'devicePixelRatio: ' + d,
       'innerWidth x innerHeight: ' + window.innerWidth + ' x ' + window.innerHeight,
       'innerHeight in device px: ' + (window.innerHeight * d).toFixed(2),
