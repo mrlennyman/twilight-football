@@ -392,7 +392,8 @@ button.link-button, form button[type="submit"].link-button {
   cursor: pointer;
   padding: 5px 14px;
   min-height: 34px;
-  font-size: 0.85rem;
+  font-family: inherit;
+  font-size: 0.88rem;
   font-weight: 600;
 }
 form button[type="submit"].link-button:hover { background: var(--panel); border-color: var(--gold); color: var(--wine-500); }
@@ -1236,3 +1237,8 @@ html.home-page-root, html.login-page-root {
    the bar's own colour, which made "Sponsored by" a dull dark grey on the cream pages.) */
 .site-footer a.sponsor, .home-page .site-footer a.sponsor { color: rgba(255, 255, 255, 0.88); }
 .site-footer a.sponsor .sponsor-text strong, .home-page .site-footer a.sponsor .sponsor-text strong { color: #f3d9a4; }
+
+/* ---------- Hidden leagues ---------- */
+.tag-hidden { background: #b3261e; }
+.visibility-form { display: inline-block; margin: 0 6px 8px 0; }
+.hidden-notice { margin: 14px 0 0; padding: 10px 14px; font-size: 0.9rem; color: #7a1a14; background: #fdeceb; border: 1px solid #e6b8b4; border-radius: 12px; }

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS leagues (
   kickoff_start_time TEXT,
   slot_minutes INTEGER NOT NULL DEFAULT 45,
   nav_tabs TEXT,
+  hidden INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

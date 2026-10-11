@@ -2,6 +2,9 @@
 // The league's name and season at the top of every public league page, so a shared link always says which one it is.
 // With more than one running league, a shiny Home button (the leagues list) sits opposite the title.
 %>
+<% if (league.hidden) { %>
+  <p class="hidden-notice" role="status"><strong>Hidden.</strong> Only you can see this league. Parents get a &ldquo;not found&rdquo; page. (Admin &rarr; Dashboard &rarr; Show on public site.)</p>
+<% } %>
 <header class="league-head">
   <div class="league-head-text">
     <h1 class="league-title"><%= league.name %></h1>

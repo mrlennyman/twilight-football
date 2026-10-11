@@ -16,7 +16,7 @@
         <tr>
           <td><%= league.name %></td>
           <td><%= league.season %></td>
-          <td><span class="tag tag-<%= league.status %>"><%= league.status.replace('_', ' ') %></span></td>
+          <td><span class="tag tag-<%= league.status %>"><%= league.status.replace('_', ' ') %></span><% if (league.hidden) { %> <span class="tag tag-hidden" title="Not visible to the public">hidden</span><% } %></td>
           <td><%= league.num_teams %></td>
           <td><%= league.num_pitches %></td>
           <td class="admin-actions">
@@ -26,6 +26,10 @@
             <a href="/admin/league/<%= league.id %>/pages">Info pages</a>
             <a href="/admin/league/<%= league.id %>/log">Change log</a>
             <a href="/admin/league/<%= league.id %>/navigation">Menu</a>
+            <form method="POST" action="/admin/league/<%= league.id %>/visibility" class="inline-form visibility-form">
+              <input type="hidden" name="hidden" value="<%= league.hidden ? '0' : '1' %>">
+              <button type="submit" class="link-button"><%= league.hidden ? 'Show on public site' : 'Hide from public' %></button>
+            </form>
             <a href="/admin/league/<%= league.id %>/delete" class="danger">Delete</a>
             <a href="/league/<%= league.id %>" target="_blank">View public page</a>
           </td>

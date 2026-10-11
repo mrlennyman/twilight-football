@@ -21,12 +21,24 @@ const { formatUpdated } = require('../lib/format');
 
 const router = express.Router();
 
+// Leagues that appear on the public home list: running (not still being set up) and not hidden by the admin.
+const isListed = (league) => league.status !== 'setup' && !league.hidden;
+
+// A hidden league answers 404 to the public, so its pages (and the children's names on them) can't be reached
+// even with the link; a logged-in admin can still open it to check it.
+function findLeague(req) {
+  const league = getLeague(db, req.params.id);
+  if (!league) return null;
+  if (league.hidden && !(req.session && req.session.isAdmin)) return null;
+  return league;
+}
+
 // The menu needs to know whether Info pages / knockouts exist (see lib/navTabs.js).
 router.param('id', (req, res, next, id) => {
   const leagueId = Number.parseInt(id, 10);
   res.locals.navCounts = Number.isInteger(leagueId) ? getNavCounts(db, leagueId) : {};
   // "Other leagues" link on the league pages once there is more than one running league.
-  res.locals.hasOtherLeagues = getAllLeagues(db).filter((l) => l.status !== 'setup').length > 1;
+  res.locals.hasOtherLeagues = getAllLeagues(db).filter(isListed).length > 1;
   next();
 });
 
@@ -50,7 +62,7 @@ router.get('/install', (req, res) => {
 });
 
 router.get('/', (req, res) => {
-  const leagues = getAllLeagues(db).filter((l) => l.status !== 'setup');
+  const leagues = getAllLeagues(db).filter(isListed);
 
   // With a single active league, skip the "list of leagues" screen entirely
   // and land straight on its standings - the leagues list is only useful
@@ -63,14 +75,14 @@ router.get('/', (req, res) => {
 });
 
 router.get('/league/:id', (req, res) => {
-  const league = getLeague(db, req.params.id);
+  const league = findLeague(req);
   if (!league) return res.status(404).render('404');
 
   renderLeagueHome(league, res);
 });
 
 router.get('/league/:id/teams', (req, res) => {
-  const league = getLeague(db, req.params.id);
+  const league = findLeague(req);
   if (!league) return res.status(404).render('404');
 
   const teams = getTeams(db, league.id).map((team) => ({
@@ -82,7 +94,7 @@ router.get('/league/:id/teams', (req, res) => {
 });
 
 router.get('/league/:id/fixtures', (req, res) => {
-  const league = getLeague(db, req.params.id);
+  const league = findLeague(req);
   if (!league) return res.status(404).render('404');
 
   const weekNumbers = getWeekNumbers(db, league.id);
@@ -101,7 +113,7 @@ router.get('/league/:id/fixtures', (req, res) => {
 
 // One team's own games, in order - so a parent finds their child's pitch without scanning every match.
 router.get('/league/:id/team/:teamId', (req, res) => {
-  const league = getLeague(db, req.params.id);
+  const league = findLeague(req);
   if (!league) return res.status(404).render('404');
   const team = db
     .prepare('SELECT * FROM teams WHERE id = ? AND league_id = ?')
@@ -153,7 +165,7 @@ router.get('/league/:id/team/:teamId', (req, res) => {
 });
 
 router.get('/league/:id/bracket', (req, res) => {
-  const league = getLeague(db, req.params.id);
+  const league = findLeague(req);
   if (!league) return res.status(404).render('404');
 
   const cupRounds = getRoundsWithMatches(db, league.id, 'cup');
@@ -163,7 +175,7 @@ router.get('/league/:id/bracket', (req, res) => {
 });
 
 router.get('/league/:id/info', (req, res) => {
-  const league = getLeague(db, req.params.id);
+  const league = findLeague(req);
   if (!league) return res.status(404).render('404');
 
   const pages = getPages(db, league.id, { publishedOnly: true });
@@ -171,7 +183,7 @@ router.get('/league/:id/info', (req, res) => {
 });
 
 router.get('/league/:id/info/:slug', (req, res) => {
-  const league = getLeague(db, req.params.id);
+  const league = findLeague(req);
   if (!league) return res.status(404).render('404');
 
   const page = getPublishedPageBySlug(db, league.id, req.params.slug);

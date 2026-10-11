@@ -246,6 +246,15 @@ router.post('/import', (req, res) => {
   res.redirect(`/admin/league/${createLeagueFromRoster(db, value, csv.teams)}/teams`);
 });
 
+// ---------- Hide / show a league on the public site ----------
+
+router.post('/league/:id/visibility', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  db.prepare('UPDATE leagues SET hidden = ? WHERE id = ?').run(req.body.hidden === '1' ? 1 : 0, league.id);
+  res.redirect('/admin');
+});
+
 // ---------- Delete a league ----------
 
 router.get('/league/:id/delete', (req, res) => {
