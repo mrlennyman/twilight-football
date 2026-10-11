@@ -131,3 +131,11 @@ test('screen edge test page exists, is public, and uses loud layer colours; admi
   await h.login();
   assert.match((await h.request('GET', '/admin')).text, /href="\/edge-test"/);
 });
+
+test('sponsor text: all wine, all the same light weight', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.join(__dirname, '../src/public/css/style.css'), 'utf8');
+  assert.match(css, /\.site-footer a\.sponsor, \.home-page \.site-footer a\.sponsor \{ color: var\(--wine-700\); font-weight: 400; \}/);
+  assert.match(css, /\.sponsor-text strong \{[^}]*font-weight:\s*400;[^}]*color:\s*var\(--wine-700\)/);
+});
