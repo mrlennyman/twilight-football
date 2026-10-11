@@ -60,3 +60,16 @@ test('app window colour is the dark wine, so a sub-pixel gap at the screen edge 
   assert.equal(manifest.background_color, '#240812');
   assert.equal(manifest.theme_color, '#6e1b2e');
 });
+
+test('footer: "Sponsored by websitealchemy.com" is a real link with the logo beside it, on every page', async () => {
+  for (const url of ['/', '/league/1', '/install', '/admin/login', '/nope']) {
+    const res = await h.request('GET', url);
+    if (url === '/admin/login') continue; // the login screen has no footer
+    assert.match(res.text, /<a class="sponsor" href="https:\/\/websitealchemy\.com\/" target="_blank" rel="noopener sponsored">/, url);
+    assert.match(res.text, /<img src="\/img\/websitealchemy-logo\.png" alt="" width="\d+" height="\d+"/, url);
+    assert.match(res.text, /Sponsored by <strong>websitealchemy\.com<\/strong>/, url);
+  }
+  const logo = await fetch(`${h.base}/img/websitealchemy-logo.png`);
+  assert.equal(logo.status, 200);
+  assert.equal(logo.headers.get('content-type'), 'image/png');
+});
