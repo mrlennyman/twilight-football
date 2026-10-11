@@ -1227,4 +1227,7 @@ html.home-page-root, html.login-page-root {
 /* Home screen: the bar sits at the very bottom of the screen, under the pinned club line */
 .home-page .footer-inner { padding: 0 16px; }
 .home-page .footer-club { margin-bottom: 10px; }
+/* The club name line is not shown on the home screen (the big title is right there) */
+.home-page .footer-name { display: none; }
+.home-page .footer-btn { margin-left: 0; }
 .home-page .sponsor { pointer-events: auto; }

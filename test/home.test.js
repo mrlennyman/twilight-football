@@ -84,3 +84,12 @@ test('sponsor bar: full width, square corners, nothing underneath it (CSS rules)
   const footer = css.match(/\.site-footer\s*\{[^}]*\}/)[0];
   assert.match(footer, /padding:\s*20px 0 0/, 'no padding below the footer');
 });
+
+test('home screen: the small "Bream Bay Twilight Football" footer text is hidden; other pages keep it', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.join(__dirname, '../src/public/css/style.css'), 'utf8');
+  assert.match(css, /\.home-page \.footer-name\s*\{\s*display:\s*none/);
+  const page = await h.request('GET', '/league/1');
+  assert.match(page.text, /<span class="footer-name">Bream Bay Twilight Football<\/span>/);
+});
