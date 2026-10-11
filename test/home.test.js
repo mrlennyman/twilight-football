@@ -67,10 +67,10 @@ test('footer: "Sponsored by websitealchemy.com" is a real link with the logo bes
     const res = await h.request('GET', url);
     if (url === '/admin/login') continue; // the login screen has no footer
     assert.match(res.text, /<a class="sponsor" href="https:\/\/websitealchemy\.com\/" target="_blank" rel="noopener sponsored">/, url);
-    assert.match(res.text, /<img src="\/img\/websitealchemy-logo-dark\.png" alt="" width="\d+" height="\d+"/, url);
+    assert.match(res.text, /<img src="\/img\/websitealchemy-logo\.png" alt="" width="\d+" height="\d+"/, url);
     assert.match(res.text, /Sponsored by <strong>websitealchemy\.com<\/strong>/, url);
   }
-  const logo = await fetch(`${h.base}/img/websitealchemy-logo-dark.png`);
+  const logo = await fetch(`${h.base}/img/websitealchemy-logo.png`);
   assert.equal(logo.status, 200);
   assert.equal(logo.headers.get('content-type'), 'image/png');
 });

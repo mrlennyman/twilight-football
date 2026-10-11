@@ -1194,9 +1194,10 @@ html.home-page-root, html.login-page-root {
 .prose a::after { content: ' \2197'; font-size: 0.85em; }
 .prose a:hover, .prose a:focus-visible { border-color: var(--gold); color: var(--wine-500); }
 
-/* ---------- Footer: sponsor bar (full width, flush with the bottom edge, square corners, champagne gold) ----------
-   Pale on purpose: on some phones a 1-pixel strip at the very bottom of the screen is painted white by the
-   browser and no page content can cover it - against a pale bar that strip is almost invisible. */
+/* ---------- Footer: sponsor bar (full width, flush with the bottom edge, square corners, dark wine) ----------
+   Note: on some phones (fractional pixel density) Chrome leaves a 1-pixel strip at the very bottom of an installed
+   app that no page content can cover; it shows as a faint pale line under dark bars. Tried and ruled out: fixed
+   overshoot, colour-scheme, manifest background_color. Pale bars hide it; the owner chose to keep dark wine. */
 .footer-inner { text-align: center; }
 .footer-club { margin: 0 0 14px; }
 .sponsor {
@@ -1209,20 +1210,20 @@ html.home-page-root, html.login-page-root {
   padding: 12px 16px max(12px, env(safe-area-inset-bottom));
   font-size: 0.82rem;
   line-height: 1.25;
-  color: var(--wine-900);
+  color: rgba(255, 255, 255, 0.88);
   text-decoration: none;
-  background: #f3e7c9; /* champagne gold */
+  background: linear-gradient(135deg, var(--wine-800), #240812);
   border: 0;
-  border-top: 1px solid rgba(201, 161, 90, 0.7);
+  border-top: 1px solid rgba(201, 161, 90, 0.55);
   border-radius: 0;
   transition: background 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.sponsor:hover, .sponsor:focus-visible { background: #efe0b8; }
+.sponsor:hover, .sponsor:focus-visible { background: linear-gradient(135deg, var(--wine-700), var(--wine-900)); }
 .sponsor:focus-visible { outline: 3px solid rgba(201, 161, 90, 0.7); outline-offset: -3px; }
 .sponsor-logo { flex: none; display: block; }
 .sponsor-logo img { display: block; width: 108px; height: auto; }
-.sponsor-text strong { display: block; font-size: 0.92rem; color: var(--wine-700); }
+.sponsor-text strong { display: block; font-size: 0.92rem; color: #f3d9a4; }
 
 /* Home screen: the bar sits at the very bottom of the screen, under the pinned club line */
 .home-page .footer-inner { padding: 0 16px; }
@@ -1234,8 +1235,8 @@ html.home-page-root, html.login-page-root {
 
 /* Sponsor bar: the same on every page. (A general ".site-footer a { color: inherit }" rule would otherwise win over
    the bar's own colours.) */
-.site-footer a.sponsor, .home-page .site-footer a.sponsor { color: var(--wine-900); }
-.site-footer a.sponsor .sponsor-text strong, .home-page .site-footer a.sponsor .sponsor-text strong { color: var(--wine-700); }
+.site-footer a.sponsor, .home-page .site-footer a.sponsor { color: rgba(255, 255, 255, 0.88); }
+.site-footer a.sponsor .sponsor-text strong, .home-page .site-footer a.sponsor .sponsor-text strong { color: #f3d9a4; }
 
 /* ---------- Hidden leagues ---------- */
 .tag-hidden { background: #b3261e; }
