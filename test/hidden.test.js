@@ -77,8 +77,8 @@ test('hide: the dashboard marks it hidden and offers Show; the Home button no lo
   const single = await asPublic(() => get(`/league/${a}`));
   assert.match(single.text, /class="home-btn"/, 'the Home button stays even with one visible league');
   const home = await asPublic(() => get('/'));
-  assert.match(home.text, /Kids Twilight/, 'a single visible league goes straight to its standings');
-  assert.doesNotMatch(home.text, /class="home-card"/);
+  assert.match(home.text, /Kids Twilight/);
+  assert.equal((home.text.match(/class="home-card"/g) || []).length, 1, 'a single visible league is shown as a card');
 });
 
 test('hide: with every league hidden the home page says nothing is running; Show brings one back', async () => {

@@ -1,0 +1,59 @@
+<%- include('../partials/header', { title: 'Screen edge test', bodyClass: 'edge-test', themeColor: '#3d0f1c' }) %>
+<style>
+  /* Every layer is a different loud colour, so a screenshot shows which layer a stray line belongs to. */
+  html.edge-test-root { background: #ff00ff; }               /* magenta = the page root (<html>) */
+  body.edge-test { margin: 0; min-height: 100lvh; background: #2030ff; color: #fff; font: 14px/1.4 ui-monospace, Menlo, Consolas, monospace; }  /* blue = <body> */
+  .edge-wrap { padding: 16px 14px 28px; }
+  .edge-test h1 { margin: 0 0 8px; font-size: 18px; color: #fff; }
+  .edge-test p { margin: 0 0 10px; }
+  .edge-bar { position: fixed; left: 0; right: 0; bottom: 0; height: 8px; background: #00e000; }   /* green = a bar fixed to the very bottom edge */
+  .edge-bar-top { position: fixed; left: 0; right: 0; top: 0; height: 8px; background: #ffe000; }  /* yellow = the same, at the very top */
+  #edge-out { margin: 12px 0; padding: 10px; background: rgba(0, 0, 0, 0.55); border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
+  .edge-back { display: inline-block; margin-top: 6px; padding: 10px 18px; color: #fff; background: #000; border-radius: 999px; text-decoration: none; font-family: sans-serif; font-weight: 700; }
+  .edge-probe { position: absolute; left: -9999px; top: 0; width: 1px; visibility: hidden; }
+</style>
+<div class="edge-bar-top"></div>
+<div class="edge-wrap">
+  <h1>Screen edge test</h1>
+  <p>Take a screenshot of this whole screen (including the very bottom edge) and send it to me.</p>
+  <p>Colours: <b style="color:#ff00ff">magenta</b> = page root, <b style="color:#8ab4ff">blue</b> = page body, <b style="color:#00e000">green</b> = bar fixed to the bottom edge, <b style="color:#ffe000">yellow</b> = bar at the top edge.</p>
+  <div id="edge-out">measuring...</div>
+  <a class="edge-back" href="/leagues">&larr; Back</a>
+</div>
+<div class="edge-bar"></div>
+<div class="edge-probe" id="p-vh" style="height:100vh"></div>
+<div class="edge-probe" id="p-dvh" style="height:100dvh"></div>
+<div class="edge-probe" id="p-svh" style="height:100svh"></div>
+<div class="edge-probe" id="p-lvh" style="height:100lvh"></div>
+<div class="edge-probe" id="p-sab" style="height:env(safe-area-inset-bottom)"></div>
+<div class="edge-probe" id="p-sat" style="height:env(safe-area-inset-top)"></div>
+<script>
+  function measure() {
+    var d = window.devicePixelRatio || 1;
+    var vv = window.visualViewport;
+    var h = function (id) { var el = document.getElementById(id); return el ? el.offsetHeight : 'n/a'; };
+    var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    var fullscreen = window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches;
+    var lines = [
+      'display-mode: ' + (fullscreen ? 'fullscreen' : standalone ? 'standalone (installed app)' : 'browser tab'),
+      'devicePixelRatio: ' + d,
+      'innerWidth x innerHeight: ' + window.innerWidth + ' x ' + window.innerHeight,
+      'innerHeight in device px: ' + (window.innerHeight * d).toFixed(2),
+      'outerHeight: ' + window.outerHeight,
+      'screen: ' + screen.width + ' x ' + screen.height + ' (avail ' + screen.availWidth + ' x ' + screen.availHeight + ')',
+      'screen height in device px: ' + (screen.height * d).toFixed(2),
+      'visualViewport: ' + (vv ? vv.width.toFixed(2) + ' x ' + vv.height.toFixed(2) + ' top ' + vv.offsetTop + ' scale ' + vv.scale : 'n/a'),
+      'documentElement.clientHeight: ' + document.documentElement.clientHeight,
+      'body height: ' + document.body.getBoundingClientRect().height.toFixed(2),
+      'page scroll height: ' + document.documentElement.scrollHeight,
+      '100vh / 100dvh / 100svh / 100lvh: ' + [h('p-vh'), h('p-dvh'), h('p-svh'), h('p-lvh')].join(' / '),
+      'safe-area inset top / bottom: ' + h('p-sat') + ' / ' + h('p-sab'),
+      'user agent: ' + navigator.userAgent.replace(/\(([^)]*)\)/, '($1)').slice(0, 120)
+    ];
+    document.getElementById('edge-out').textContent = lines.join('\n');
+  }
+  measure();
+  window.addEventListener('resize', measure);
+</script>
+</body>
+</html>

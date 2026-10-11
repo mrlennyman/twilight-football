@@ -61,23 +61,17 @@ router.get('/install', (req, res) => {
   res.render('public/install');
 });
 
-router.get('/', (req, res) => {
-  const leagues = getAllLeagues(db).filter(isListed);
-
-  // With a single active league, skip the "list of leagues" screen entirely
-  // and land straight on its standings - the leagues list is only useful
-  // once there's actually a choice to make.
-  if (leagues.length === 1) {
-    return renderLeagueHome(leagues[0], res);
-  }
-
-  res.render('public/home', { leagues });
-});
-
-// The leagues screen (the glowing cards) always shows, even with a single league - this is where the
-// Home button goes. ("/" skips straight to a lone league's standings so parents save a tap.)
-router.get('/leagues', (req, res) => {
+// The home page: the glowing league cards. It is always shown (even with a single league), so the app
+// always opens here and the Home button always comes back here.
+function renderHome(req, res) {
   res.render('public/home', { leagues: getAllLeagues(db).filter(isListed) });
+}
+router.get('/', renderHome);
+router.get('/leagues', renderHome);
+
+// A diagnostic page for tracking down display problems on a phone (see views/public/edge-test.ejs).
+router.get('/edge-test', (req, res) => {
+  res.render('public/edge-test');
 });
 
 router.get('/league/:id', (req, res) => {

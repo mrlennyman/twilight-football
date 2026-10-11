@@ -33,11 +33,12 @@ test('home: with two or more leagues every league is one whole-card link, in ord
   assert.match(res.text, /pointermove/, 'pointer glow script present');
 });
 
-test('home: a single running league still goes straight to its standings', async () => {
+test('home: with a single running league the home page still shows the league card (the app opens here)', async () => {
   h.db.exec("UPDATE leagues SET status = 'setup' WHERE id = 2");
   const res = await h.request('GET', '/');
-  assert.match(res.text, /class="league-title"/);
-  assert.doesNotMatch(res.text, /class="home-card"/);
+  assert.match(res.text, /<body class="home-page">/);
+  assert.equal((res.text.match(/class="home-card"/g) || []).length, 1);
+  assert.doesNotMatch(res.text, /class="league-title"/, 'not skipped straight to the standings');
 });
 
 test('footer: the "Get the app" link is wrapped so it can be hidden once the app is installed; home footer is pinned', async () => {
@@ -96,9 +97,10 @@ test('home screen: the small "Bream Bay Twilight Football" footer text is hidden
 
 test('Home button goes to /leagues, which always shows the league cards - even with a single league', async () => {
   // earlier tests left league 2 in "setup", so exactly one league is listed
-  const direct = await h.request('GET', '/');
-  assert.match(direct.text, /class="league-title"/, '"/" still goes straight to a lone league');
-  assert.match(direct.text, /<a class="home-btn" href="\/leagues"/);
+  const league = await h.request('GET', '/league/1');
+  assert.match(league.text, /<a class="home-btn" href="\/leagues"/);
+  const root = await h.request('GET', '/');
+  assert.equal((root.text.match(/class="home-card"/g) || []).length, 1, '"/" shows the cards too');
 
   const cards = await h.request('GET', '/leagues');
   assert.equal(cards.status, 200);
@@ -121,4 +123,15 @@ test('status bar colour: matches the header on content pages, the top of the gra
     const res = await h.request('GET', url);
     assert.match(res.text, /<meta name="theme-color" content="#6e1b2e">/, url);
   }
+});
+
+test('screen edge test page exists, is public, and uses loud layer colours; admin dashboard links to it', async () => {
+  const page = await h.request('GET', '/edge-test');
+  assert.equal(page.status, 200);
+  assert.match(page.text, /Screen edge test/);
+  assert.match(page.text, /edge-test-root/);
+  assert.match(page.text, /background: #ff00ff/);
+  assert.match(page.text, /devicePixelRatio/);
+  await h.login();
+  assert.match((await h.request('GET', '/admin')).text, /href="\/edge-test"/);
 });
