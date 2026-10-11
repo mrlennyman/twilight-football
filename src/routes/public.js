@@ -74,6 +74,12 @@ router.get('/', (req, res) => {
   res.render('public/home', { leagues });
 });
 
+// The leagues screen (the glowing cards) always shows, even with a single league - this is where the
+// Home button goes. ("/" skips straight to a lone league's standings so parents save a tap.)
+router.get('/leagues', (req, res) => {
+  res.render('public/home', { leagues: getAllLeagues(db).filter(isListed) });
+});
+
 router.get('/league/:id', (req, res) => {
   const league = findLeague(req);
   if (!league) return res.status(404).render('404');

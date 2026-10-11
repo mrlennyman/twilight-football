@@ -51,7 +51,7 @@ test('C1: a shiny Home button, opposite the title, appears once a second league 
   assert.ok(second > id);
   for (const url of [`/league/${id}`, `/league/${id}/teams`, `/league/${id}/fixtures`]) {
     const text = await get(url);
-    assert.match(text, /<a class="home-btn" href="\/" aria-label="Home - all leagues">[\s\S]*?<span>Home<\/span>/, url);
+    assert.match(text, /<a class="home-btn" href="\/leagues" aria-label="Home - all leagues">[\s\S]*?<span>Home<\/span>/, url);
     assert.ok(text.indexOf('league-head-text') < text.indexOf('home-btn'), 'title first, button opposite it');
     assert.doesNotMatch(text, /Other leagues/);
   }

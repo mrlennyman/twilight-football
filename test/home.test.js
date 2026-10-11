@@ -93,3 +93,21 @@ test('home screen: the small "Bream Bay Twilight Football" footer text is hidden
   const page = await h.request('GET', '/league/1');
   assert.match(page.text, /<span class="footer-name">Bream Bay Twilight Football<\/span>/);
 });
+
+test('Home button goes to /leagues, which always shows the league cards - even with a single league', async () => {
+  // earlier tests left league 2 in "setup", so exactly one league is listed
+  const direct = await h.request('GET', '/');
+  assert.match(direct.text, /class="league-title"/, '"/" still goes straight to a lone league');
+  assert.match(direct.text, /<a class="home-btn" href="\/leagues"/);
+
+  const cards = await h.request('GET', '/leagues');
+  assert.equal(cards.status, 200);
+  assert.match(cards.text, /<body class="home-page">/);
+  assert.equal((cards.text.match(/class="home-card"/g) || []).length, 1, 'the single league shown as a card');
+  assert.match(cards.text, /Choose your league/);
+  assert.match(cards.text, /Kids <\/b>|Kids &lt;b&gt;Twilight/, 'the league name is on the card');
+
+  h.db.exec('UPDATE leagues SET hidden = 1');
+  const none = await h.request('GET', '/leagues');
+  assert.match(none.text, /No leagues are running yet/);
+});
