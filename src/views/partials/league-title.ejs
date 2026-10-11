@@ -1,6 +1,6 @@
 <%
 // The league's name and season at the top of every public league page, so a shared link always says which one it is.
-// With more than one running league, a shiny Home button (the leagues list) sits opposite the title.
+// A shiny Home button (back to the home screen) always sits opposite the title.
 %>
 <% if (league.hidden) { %>
   <p class="hidden-notice" role="status"><strong>Hidden.</strong> Only you can see this league. Parents get a &ldquo;not found&rdquo; page. (Admin &rarr; Dashboard &rarr; Show on public site.)</p>
@@ -10,10 +10,8 @@
     <h1 class="league-title"><%= league.name %></h1>
     <p class="league-season"><%= league.season %></p>
   </div>
-  <% if (typeof hasOtherLeagues !== 'undefined' && hasOtherLeagues) { %>
-    <a class="home-btn" href="/" aria-label="Home - all leagues">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
-      <span>Home</span>
-    </a>
-  <% } %>
+  <a class="home-btn" href="/" aria-label="Home - all leagues">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
+    <span>Home</span>
+  </a>
 </header>

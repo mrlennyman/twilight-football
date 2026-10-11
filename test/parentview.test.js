@@ -43,7 +43,7 @@ test('C1: every public league page says which league it is', async () => {
   }
   const slug = h.db.prepare('SELECT slug FROM pages WHERE league_id = ? LIMIT 1').get(id).slug;
   assert.match(await get(`/league/${id}/info/${slug}`), /<h1 class="league-title">Kids Twilight<\/h1>/);
-  assert.doesNotMatch(await get(`/league/${id}`), /home-btn/, 'no Home button with a single league');
+  assert.match(await get(`/league/${id}`), /class="home-btn"/, 'the Home button shows even with a single league');
 });
 
 test('C1: a shiny Home button, opposite the title, appears once a second league is running', async () => {

@@ -75,7 +75,7 @@ test('hide: the dashboard marks it hidden and offers Show; the Home button no lo
 
   await h.request('POST', `/admin/league/${c}/visibility`, { hidden: '1' });
   const single = await asPublic(() => get(`/league/${a}`));
-  assert.doesNotMatch(single.text, /class="home-btn"/, 'only one visible league left');
+  assert.match(single.text, /class="home-btn"/, 'the Home button stays even with one visible league');
   const home = await asPublic(() => get('/'));
   assert.match(home.text, /Kids Twilight/, 'a single visible league goes straight to its standings');
   assert.doesNotMatch(home.text, /class="home-card"/);
