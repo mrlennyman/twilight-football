@@ -58,7 +58,7 @@ test('app window colour is the dark wine, so a sub-pixel gap at the screen edge 
   const res = await h.request('GET', '/manifest.json');
   const manifest = JSON.parse(res.text);
   assert.equal(manifest.background_color, '#240812');
-  assert.equal(manifest.theme_color, '#6e1b2e');
+  assert.equal(manifest.theme_color, '#000000', 'neutral status bar - no maroon tint above the header');
 });
 
 test('footer: "Sponsored by websitealchemy.com" is a real link with the logo beside it, on every page', async () => {
@@ -110,4 +110,11 @@ test('Home button goes to /leagues, which always shows the league cards - even w
   h.db.exec('UPDATE leagues SET hidden = 1');
   const none = await h.request('GET', '/leagues');
   assert.match(none.text, /No leagues are running yet/);
+});
+
+test('theme-color meta matches the manifest on every kind of page (no maroon status bar)', async () => {
+  for (const url of ['/', '/league/1', '/leagues', '/install', '/admin/login']) {
+    const res = await h.request('GET', url);
+    assert.match(res.text, /<meta name="theme-color" content="#000000">/, url);
+  }
 });
