@@ -1194,7 +1194,9 @@ html.home-page-root, html.login-page-root {
 .prose a::after { content: ' \2197'; font-size: 0.85em; }
 .prose a:hover, .prose a:focus-visible { border-color: var(--gold); color: var(--wine-500); }
 
-/* ---------- Footer: sponsor bar (full width, flush with the bottom edge, square corners) ---------- */
+/* ---------- Footer: sponsor bar (full width, flush with the bottom edge, square corners, WHITE) ----------
+   White on purpose: on some phones a 1-pixel strip at the very bottom of the screen is painted white by the
+   browser and no page content can cover it - a white bar makes that strip invisible. */
 .footer-inner { text-align: center; }
 .footer-club { margin: 0 0 14px; }
 .sponsor {
@@ -1204,24 +1206,23 @@ html.home-page-root, html.login-page-root {
   gap: 14px;
   width: 100%;
   margin: 0;
-  /* only the phone's own gesture/home-indicator area is left below the bar */
   padding: 12px 16px max(12px, env(safe-area-inset-bottom));
   font-size: 0.82rem;
   line-height: 1.25;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--muted);
   text-decoration: none;
-  background: linear-gradient(135deg, var(--wine-800), #240812);
+  background: #fff;
   border: 0;
-  border-top: 1px solid rgba(201, 161, 90, 0.55);
+  border-top: 1px solid var(--border);
   border-radius: 0;
   transition: background 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.sponsor:hover, .sponsor:focus-visible { background: linear-gradient(135deg, var(--wine-700), var(--wine-900)); }
+.sponsor:hover, .sponsor:focus-visible { background: #fbf6ee; }
 .sponsor:focus-visible { outline: 3px solid rgba(201, 161, 90, 0.7); outline-offset: -3px; }
 .sponsor-logo { flex: none; display: block; }
 .sponsor-logo img { display: block; width: 108px; height: auto; }
-.sponsor-text strong { display: block; font-size: 0.92rem; color: #f3d9a4; }
+.sponsor-text strong { display: block; font-size: 0.92rem; color: var(--wine-700); }
 
 /* Home screen: the bar sits at the very bottom of the screen, under the pinned club line */
 .home-page .footer-inner { padding: 0 16px; }
@@ -1231,15 +1232,12 @@ html.home-page-root, html.login-page-root {
 .home-page .footer-btn { margin-left: 0; }
 .home-page .sponsor { pointer-events: auto; }
 
-/* Sponsor bar: identical on every page. (A general ".site-footer a { color: inherit }" rule used to win over
-   the bar's own colour, which made "Sponsored by" a dull dark grey on the cream pages.) */
-.site-footer a.sponsor, .home-page .site-footer a.sponsor { color: rgba(255, 255, 255, 0.88); }
-.site-footer a.sponsor .sponsor-text strong, .home-page .site-footer a.sponsor .sponsor-text strong { color: #f3d9a4; }
+/* Sponsor bar: the same on every page. (A general ".site-footer a { color: inherit }" rule would otherwise win over
+   the bar's own colours.) */
+.site-footer a.sponsor, .home-page .site-footer a.sponsor { color: var(--muted); }
+.site-footer a.sponsor .sponsor-text strong, .home-page .site-footer a.sponsor .sponsor-text strong { color: var(--wine-700); }
 
 /* ---------- Hidden leagues ---------- */
 .tag-hidden { background: #b3261e; }
 .visibility-form { display: inline-block; margin: 0 6px 8px 0; }
 .hidden-notice { margin: 14px 0 0; padding: 10px 14px; font-size: 0.9rem; color: #7a1a14; background: #fdeceb; border: 1px solid #e6b8b4; border-radius: 12px; }
-
-.home-test { margin: 22px 0 0; text-align: center; }
-.home-page .home-test .footer-btn { margin-left: 0; color: rgba(255, 255, 255, 0.7); pointer-events: auto; }
