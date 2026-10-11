@@ -96,7 +96,7 @@ test('addDays and addMinutes handle rollover correctly', () => {
   assert.equal(addMinutes('17:30', 90), '19:00');
 });
 
-test('B6: pitches are spread fairly - 8 teams, 4 pitches, every team plays every pitch 3 or 4 times', () => {
+test('B6: pitches are spread fairly - 8 teams, 4 pitches, every team plays every pitch 3 to 5 times', () => {
   const teamIds = [1, 2, 3, 4, 5, 6, 7, 8];
   const pitchIds = [11, 12, 13, 14];
   const schedule = generateGroupStageSchedule({
@@ -120,7 +120,7 @@ test('B6: pitches are spread fairly - 8 teams, 4 pitches, every team plays every
   for (const team of teamIds) {
     for (const pitch of pitchIds) {
       const n = counts.get(`${team}:${pitch}`) || 0;
-      assert.ok(n === 3 || n === 4, `team ${team} played pitch ${pitch} ${n} times`);
+      assert.ok(n >= 3 && n <= 5, `team ${team} played pitch ${pitch} ${n} times`);
     }
   }
 });
@@ -131,4 +131,65 @@ test('B6: deterministic (same input, same schedule) and still valid when matches
   const few = generateGroupStageSchedule({ ...input, pitchIds: [1, 2] });
   assert.equal(few.reduce((n, r) => n + r.matches.length, 0), 56);
   assert.ok(few.every((r) => r.matches.every((m) => [1, 2].includes(m.pitchId))));
+});
+
+// ---- Pitch rotation within a match night: nobody stays on one pitch for the whole night
+function nightPitches(schedule) {
+  // -> [{ week, team, pitches: [pitch per round, in order] }]
+  const out = new Map();
+  for (const round of schedule) {
+    for (const m of round.matches) {
+      for (const team of [m.homeTeamId, m.awayTeamId]) {
+        const k = `${round.weekNumber}:${team}`;
+        if (!out.has(k)) out.set(k, { week: round.weekNumber, team, pitches: [] });
+        out.get(k).pitches.push(m.pitchId);
+      }
+    }
+  }
+  return [...out.values()];
+}
+const build = (teams, pitches, perWeek) =>
+  generateGroupStageSchedule({
+    teamIds: Array.from({ length: teams }, (_, i) => i + 1),
+    pitchIds: Array.from({ length: pitches }, (_, i) => 100 + i),
+    roundsPerWeek: perWeek, startDate: '2026-10-14', kickoffStartTime: '17:00', slotMinutes: 15,
+  });
+
+test('rotation: 8 teams, 4 pitches, 3 rounds a night - every team changes pitch every round, every night', () => {
+  const nights = nightPitches(build(8, 4, 3));
+  assert.equal(nights.length, 40);
+  for (const n of nights) {
+    for (let i = 1; i < n.pitches.length; i++) {
+      assert.notEqual(n.pitches[i], n.pitches[i - 1], `team ${n.team} week ${n.week} stayed on a pitch for two rounds`);
+    }
+    assert.ok(new Set(n.pitches).size >= Math.min(2, n.pitches.length), 'moved at least once');
+  }
+  const threeRound = nights.filter((n) => n.pitches.length === 3);
+  const threeDifferent = threeRound.filter((n) => new Set(n.pitches).size === 3).length;
+  assert.equal(threeRound.length, 32, 'four full nights of three rounds');
+  assert.ok(threeDifferent >= 24, `three quarters of the three-round nights use three different pitches (${threeDifferent} of 32); the rest go A-B-A`);
+});
+
+test('rotation: also holds for 2 rounds a night and for other league shapes', () => {
+  for (const [teams, pitches, perWeek] of [[8, 4, 2], [8, 5, 3], [6, 3, 3], [10, 5, 3], [12, 6, 4], [8, 6, 3]]) {
+    const schedule = build(teams, pitches, perWeek);
+    assert.equal(schedule.reduce((n, r) => n + r.matches.length, 0), teams * (teams - 1), `${teams} teams: every fixture once`);
+    for (const n of nightPitches(schedule)) {
+      for (let i = 1; i < n.pitches.length; i++) assert.notEqual(n.pitches[i], n.pitches[i - 1], `${teams}/${pitches}/${perWeek}`);
+    }
+  }
+});
+
+test('rotation: a pitch is never used twice in the same round, and the schedule is deterministic', () => {
+  const a = build(8, 4, 3);
+  for (const round of a) assert.equal(new Set(round.matches.map((m) => m.pitchId)).size, round.matches.length);
+  assert.deepEqual(a, build(8, 4, 3));
+});
+
+test('rotation: leagues too big to search a whole night still produce a valid schedule', () => {
+  const schedule = build(16, 8, 3); // 8 pitches is beyond the exhaustive search
+  assert.equal(schedule.reduce((n, r) => n + r.matches.length, 0), 16 * 15);
+  for (const round of schedule) assert.equal(new Set(round.matches.map((m) => m.pitchId)).size, round.matches.length);
+  const stuck = nightPitches(schedule).filter((n) => n.pitches.length > 1 && new Set(n.pitches).size === 1).length;
+  assert.equal(stuck, 0, 'nobody on one pitch all night');
 });

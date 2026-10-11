@@ -1231,3 +1231,8 @@ html.home-page-root, html.login-page-root {
 .home-page .footer-name { display: none; }
 .home-page .footer-btn { margin-left: 0; }
 .home-page .sponsor { pointer-events: auto; }
+
+/* Sponsor bar: identical on every page. (A general ".site-footer a { color: inherit }" rule used to win over
+   the bar's own colour, which made "Sponsored by" a dull dark grey on the cream pages.) */
+.site-footer a.sponsor, .home-page .site-footer a.sponsor { color: rgba(255, 255, 255, 0.88); }
+.site-footer a.sponsor .sponsor-text strong, .home-page .site-footer a.sponsor .sponsor-text strong { color: #f3d9a4; }

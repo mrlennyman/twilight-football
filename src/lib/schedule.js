@@ -85,6 +85,167 @@ function assignPitchesBalanced(pairings, pitchIds, state) {
   });
 }
 
+const SAME_PITCH_BACK_TO_BACK = 1000; // a team on the same pitch in two rounds in a row (almost never allowed)
+const SAME_PITCH_SAME_NIGHT = 60; // a team on the same pitch twice in one night (avoided where possible)
+const MAX_NIGHT_COMBINATIONS = 60000; // upper limit on perms^rounds searched exhaustively for one night
+
+/**
+ * Chooses pitches for every round of one match night together, so that:
+ *   1. no team is on the same pitch two rounds running (every team moves at least once, usually twice),
+ *   2. teams get as many different pitches as possible within the night,
+ *   3. over the whole season every team plays each pitch about equally often.
+ * Tries every combination for the night (cheap: 4 pitches x 3 rounds = 13,824) and keeps the lowest cost;
+ * the same input always gives the same schedule. `state.counts` carries season totals between nights.
+ * Returns one assignment (pitchIds index per match) for each round of the night.
+ */
+function assignWeekPitches(weekRounds, pitchIds, state) {
+  const pitchCount = pitchIds.length;
+  const countOf = (team, pitch) => state.counts.get(`${team}:${pitch}`) || 0;
+  const tooBig =
+    weekRounds.some((pairings) => pairings.length > pitchCount) ||
+    pitchCount > MAX_PITCHES_TO_PERMUTE ||
+    Math.pow(factorial(pitchCount), weekRounds.length) > MAX_NIGHT_COMBINATIONS;
+
+  if (tooBig) {
+    // Fall back: round by round, still avoiding back-to-back repeats where it can.
+    const last = new Map();
+    return weekRounds.map((pairings) => {
+      const assignment = assignRoundGreedy(pairings, pitchIds, state, last);
+      pairings.forEach(([home, away], i) => {
+        last.set(home, pitchIds[assignment[i]]);
+        last.set(away, pitchIds[assignment[i]]);
+      });
+      return assignment;
+    });
+  }
+
+  if (!state.perms) state.perms = permutations(pitchIds.map((_, i) => i));
+  const perms = state.perms;
+  const counts = new Map(state.counts); // working copy for the search
+  const key = (team, pitch) => `${team}:${pitch}`;
+  const last = new Map(); // team -> pitch it played in the previous round of this night
+  const usedTonight = new Map(); // `${team}:${pitch}` -> 1 when already played tonight
+  let best = null;
+  const chosen = [];
+
+  function search(roundIndex, cost) {
+    if (best !== null && cost >= best.cost) return;
+    if (roundIndex === weekRounds.length) {
+      best = { cost, chosen: chosen.slice() };
+      return;
+    }
+    const pairings = weekRounds[roundIndex];
+    for (const perm of perms) {
+      let roundCost = 0;
+      for (let i = 0; i < pairings.length; i++) {
+        const pitch = pitchIds[perm[i]];
+        for (const team of pairings[i]) {
+          roundCost += 2 * (counts.get(key(team, pitch)) || 0) + 1;
+          if (last.get(team) === pitch) roundCost += SAME_PITCH_BACK_TO_BACK;
+          else if (usedTonight.has(key(team, pitch))) roundCost += SAME_PITCH_SAME_NIGHT;
+        }
+      }
+      if (best !== null && cost + roundCost >= best.cost) continue;
+
+      // apply, recurse, undo
+      const previousLast = [];
+      pairings.forEach((pair, i) => {
+        const pitch = pitchIds[perm[i]];
+        for (const team of pair) {
+          previousLast.push([team, last.get(team)]);
+          counts.set(key(team, pitch), (counts.get(key(team, pitch)) || 0) + 1);
+          last.set(team, pitch);
+          usedTonight.set(key(team, pitch), (usedTonight.get(key(team, pitch)) || 0) + 1);
+        }
+      });
+      chosen.push(perm);
+      search(roundIndex + 1, cost + roundCost);
+      chosen.pop();
+      pairings.forEach((pair, i) => {
+        const pitch = pitchIds[perm[i]];
+        for (const team of pair) {
+          counts.set(key(team, pitch), counts.get(key(team, pitch)) - 1);
+          const left = usedTonight.get(key(team, pitch)) - 1;
+          if (left === 0) usedTonight.delete(key(team, pitch));
+          else usedTonight.set(key(team, pitch), left);
+        }
+      });
+      for (let n = previousLast.length - 1; n >= 0; n--) {
+        const [team, pitch] = previousLast[n];
+        if (pitch === undefined) last.delete(team);
+        else last.set(team, pitch);
+      }
+    }
+  }
+  search(0, 0);
+
+  // commit the winning night to the season totals
+  best.chosen.forEach((perm, r) => {
+    weekRounds[r].forEach((pair, i) => {
+      for (const team of pair) state.counts.set(key(team, pitchIds[perm[i]]), (state.counts.get(key(team, pitchIds[perm[i]])) || 0) + 1);
+    });
+  });
+  return best.chosen;
+}
+
+function factorial(n) {
+  let out = 1;
+  for (let i = 2; i <= n; i++) out *= i;
+  return out;
+}
+
+/** One round, greedy (used only when a night is too big to search whole): balance + avoid repeating the last round's pitch. */
+function assignRoundGreedy(pairings, pitchIds, state, last) {
+  const pitchCount = pitchIds.length;
+  const countOf = (team, pitch) => state.counts.get(`${team}:${pitch}`) || 0;
+  let assignment;
+  if (pairings.length > pitchCount) {
+    assignment = pairings.map((_, i) => i % pitchCount); // more matches than pitches: some must share
+  } else if (pitchCount > MAX_PITCHES_TO_PERMUTE) {
+    // Many pitches: give each match, in order, the cheapest pitch still free (balance + not the last round's pitch).
+    const taken = new Set();
+    assignment = pairings.map((pair) => {
+      let bestIndex = -1;
+      let bestCost = Infinity;
+      for (let index = 0; index < pitchCount; index++) {
+        if (taken.has(index)) continue;
+        let cost = 0;
+        for (const team of pair) {
+          cost += 2 * countOf(team, pitchIds[index]) + 1;
+          if (last.get(team) === pitchIds[index]) cost += SAME_PITCH_BACK_TO_BACK;
+        }
+        if (cost < bestCost) {
+          bestCost = cost;
+          bestIndex = index;
+        }
+      }
+      taken.add(bestIndex);
+      return bestIndex;
+    });
+  } else {
+    if (!state.perms) state.perms = permutations(pitchIds.map((_, i) => i));
+    let best = null;
+    for (const perm of state.perms) {
+      let cost = 0;
+      pairings.forEach((pair, i) => {
+        for (const team of pair) {
+          cost += 2 * countOf(team, pitchIds[perm[i]]) + 1;
+          if (last.get(team) === pitchIds[perm[i]]) cost += SAME_PITCH_BACK_TO_BACK;
+        }
+      });
+      if (best === null || cost < best.cost) best = { cost, perm };
+    }
+    assignment = best.perm;
+  }
+  pairings.forEach(([home, away], i) => {
+    for (const team of [home, away]) {
+      const k = `${team}:${pitchIds[assignment[i]]}`;
+      state.counts.set(k, (state.counts.get(k) || 0) + 1);
+    }
+  });
+  return assignment;
+}
+
 function chunkIntoWeeks(rounds, roundsPerWeek) {
   const weeks = [];
   for (let i = 0; i < rounds.length; i += roundsPerWeek) {
@@ -129,6 +290,7 @@ function generateGroupStageSchedule({
   weeks.forEach((weekRounds, weekIndex) => {
     const weekNumber = weekIndex + 1;
     const date = addDays(startDate, weekIndex * 7);
+    const nightPitches = assignWeekPitches(weekRounds, pitchIds, pitchState);
     weekRounds.forEach((pairings, positionInWeek) => {
       roundNumber += 1;
       schedule.push({
@@ -137,7 +299,11 @@ function generateGroupStageSchedule({
         stage: 'group',
         date,
         kickoffTime: addMinutes(kickoffStartTime, positionInWeek * slotMinutes),
-        matches: assignPitchesBalanced(pairings, pitchIds, pitchState),
+        matches: pairings.map(([homeTeamId, awayTeamId], i) => ({
+          homeTeamId,
+          awayTeamId,
+          pitchId: pitchIds[nightPitches[positionInWeek][i]],
+        })),
       });
     });
   });
@@ -232,6 +398,7 @@ module.exports = {
   doubleRoundRobin,
   assignPitches,
   assignPitchesBalanced,
+  assignWeekPitches,
   chunkIntoWeeks,
   addDays,
   addMinutes,

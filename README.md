@@ -104,7 +104,9 @@ install it as an app.
 2. **Schedule** -> first match night -> *Generate*. Renaming teams afterwards is fine. *Regenerating* wipes all
    results, so once any result exists you must type the league name to confirm, and the app saves a safety copy
    of the database first (`data/backups/bream-bay-pre-regenerate-...`). A league needs at least half as many
-   pitches as teams (8 teams -> 4 pitches).
+   pitches as teams (8 teams -> 4 pitches). Pitches are shared out fairly, and **a team never plays two rounds in
+   a row on the same pitch** (so nobody is stuck on one pitch/goal all night): on a three-round night most teams
+   use three different pitches, the rest go A-B-A. Regenerate the schedule to get this on an existing league.
 3. **Info pages** -> add the starter pages (Rules, Referee guide, Parents and supporters) as drafts, edit them,
    and tick *Published* when ready. The *Info* tab only appears on the public site once something is published.
 4. Enter scores under **Results**: type a round's scores and press **Save round** (one tap per round). **Clear**
