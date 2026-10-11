@@ -139,3 +139,12 @@ test('sponsor text: all wine, all the same light weight', () => {
   assert.match(css, /\.site-footer a\.sponsor, \.home-page \.site-footer a\.sponsor \{ color: var\(--wine-700\); font-weight: 400; \}/);
   assert.match(css, /\.sponsor-text strong \{[^}]*font-weight:\s*400;[^}]*color:\s*var\(--wine-700\)/);
 });
+
+test('sponsor bar is compact (about 30% smaller than the first version)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.join(__dirname, '../src/public/css/style.css'), 'utf8');
+  assert.match(css, /\.sponsor-logo img \{ display: block; width: 98px;/);
+  assert.match(css, /\n\.sponsor \{[^}]*padding:\s*8px 12px/);
+  assert.match(css, /\n\.sponsor \{[^}]*font-size:\s*0\.62rem/);
+});
