@@ -16,10 +16,29 @@
     opts = opts || {};
     if (opts.standalone) return 'standalone';
     ua = String(ua || '');
+    // DuckDuckGo's browser is built on the system web view ("; wv)"), so check it before the in-app test below.
+    if (/DuckDuckGo\/|Ddg\//i.test(ua)) return phoneOs(ua, opts);
     // Mini-browsers inside messaging/social apps can't install anything.
     if (/FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Line\/|MicroMessenger|Snapchat|Twitter|TikTok|; wv\)/i.test(ua)) return 'inapp';
+    return phoneOs(ua, opts);
+  }
+
+  function phoneOs(ua, opts) {
     if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && opts.touchPoints > 1)) return 'ios';
     if (/Android/i.test(ua)) return 'android';
+    return 'other';
+  }
+
+  /** 'duckduckgo' | 'firefox' | 'samsung' | 'edge' | 'opera' | 'chrome' | 'safari' | 'other' */
+  function detectBrowser(ua) {
+    ua = String(ua || '');
+    if (/DuckDuckGo\/|Ddg\//i.test(ua)) return 'duckduckgo';
+    if (/Firefox\/|FxiOS/i.test(ua)) return 'firefox';
+    if (/SamsungBrowser/i.test(ua)) return 'samsung';
+    if (/EdgA|EdgiOS|Edg\//i.test(ua)) return 'edge';
+    if (/OPR\/|OPT\/|Opera/i.test(ua)) return 'opera';
+    if (/CriOS|Chrome\//i.test(ua)) return 'chrome';
+    if (/Safari\//i.test(ua)) return 'safari';
     return 'other';
   }
 
@@ -47,6 +66,7 @@
     if (path.indexOf('/admin') === 0) return;
 
     var platform = detectPlatform(navigator.userAgent, { standalone: standalone, touchPoints: navigator.maxTouchPoints });
+    var browser = detectBrowser(navigator.userAgent);
     var onInstallPage = path === '/install';
     var deferredPrompt = null;
     var banner = null;
@@ -54,10 +74,37 @@
     // The /install page shows only the instructions that fit this device (all show if scripts are off).
     doc.documentElement.setAttribute('data-install-platform', platform);
     doc.querySelectorAll('[data-show-for]').forEach(function (el) {
-      var target = el.getAttribute('data-show-for');
-      var unknownPhone = platform === 'inapp' && (target === 'ios' || target === 'android');
-      el.hidden = !(target === platform || unknownPhone);
+      var targets = (el.getAttribute('data-show-for') || '').split(' ');
+      var unknownPhone = platform === 'inapp' && (targets.indexOf('ios') !== -1 || targets.indexOf('android') !== -1);
+      el.hidden = !(targets.indexOf(platform) !== -1 || unknownPhone);
     });
+
+    // Steps differ by browser: [data-browser] blocks show for the matching browser (Chrome's steps are the fallback
+    // on Android), [data-not-browser] blocks hide for it. Anything unmatched stays visible.
+    function showSteps(group) {
+      var blocks = group.querySelectorAll('[data-browser]');
+      var match = null;
+      blocks.forEach(function (el) {
+        if ((el.getAttribute('data-browser') || '').split(' ').indexOf(browser) !== -1) match = true;
+      });
+      blocks.forEach(function (el) {
+        var names = (el.getAttribute('data-browser') || '').split(' ');
+        el.hidden = match ? names.indexOf(browser) === -1 : names.indexOf('default') === -1;
+      });
+    }
+    doc.querySelectorAll('[data-browser-group]').forEach(showSteps);
+    doc.querySelectorAll('[data-not-browser]').forEach(function (el) {
+      el.hidden = (el.getAttribute('data-not-browser') || '').split(' ').indexOf(browser) !== -1;
+    });
+    var shareButton = doc.getElementById('share-install-link');
+    if (shareButton) {
+      if (navigator.share) {
+        shareButton.hidden = false;
+        shareButton.addEventListener('click', function () {
+          navigator.share({ title: 'Bream Bay Twilight Football', url: location.origin + '/' }).catch(function () {});
+        });
+      }
+    }
 
     function remember() {
       try {
@@ -174,12 +221,11 @@
         }
       });
     }
-    var copyButton = doc.getElementById('copy-install-link');
-    if (copyButton) {
+    doc.querySelectorAll('#copy-install-link, .install-copy').forEach(function (copyButton) {
       copyButton.addEventListener('click', function () {
         copyLink(copyButton);
       });
-    }
+    });
 
     if (platform === 'ios') showBanner('ios');
     else if (platform === 'inapp') showBanner('inapp');
@@ -191,5 +237,5 @@
     else run();
   }
 
-  return { detectPlatform: detectPlatform, isDismissed: isDismissed };
+  return { detectPlatform: detectPlatform, detectBrowser: detectBrowser, isDismissed: isDismissed };
 });

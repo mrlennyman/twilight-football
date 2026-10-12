@@ -43,3 +43,28 @@ test('dismissal is remembered for 14 days and storage errors are harmless', () =
   assert.equal(isDismissed(store(null), now), false);
   assert.equal(isDismissed({ getItem() { throw new Error('blocked'); } }, now), false);
 });
+
+const BROWSERS = {
+  androidFirefox: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0',
+  androidDuckDuckGo: 'Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.0.0 Mobile Safari/537.36 DuckDuckGo/5',
+  iphoneDuckDuckGo: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1 Ddg/17.4',
+  iphoneFirefox: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/130.0 Mobile/15E148 Safari/605.1.15',
+  androidSamsung: 'Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/25.0 Chrome/121.0.0.0 Mobile Safari/537.36',
+};
+
+test('Firefox and DuckDuckGo are treated as real browsers, not as in-app browsers', () => {
+  const { detectBrowser } = require('../src/public/js/install');
+  assert.equal(detectPlatform(BROWSERS.androidFirefox), 'android');
+  assert.equal(detectPlatform(BROWSERS.androidDuckDuckGo), 'android');
+  assert.equal(detectPlatform(BROWSERS.iphoneFirefox), 'ios');
+  assert.equal(detectBrowser(BROWSERS.androidFirefox), 'firefox');
+  assert.equal(detectBrowser(BROWSERS.iphoneFirefox), 'firefox');
+  assert.equal(detectBrowser(BROWSERS.androidDuckDuckGo), 'duckduckgo');
+  assert.equal(detectBrowser(BROWSERS.iphoneDuckDuckGo), 'duckduckgo');
+  assert.equal(detectBrowser(BROWSERS.androidSamsung), 'samsung');
+  assert.equal(detectBrowser(UA.androidChrome), 'chrome');
+  assert.equal(detectBrowser(UA.iphoneChrome), 'chrome');
+  assert.equal(detectBrowser(UA.iphoneSafari), 'safari');
+  // genuine in-app browsers are still caught
+  assert.equal(detectPlatform(UA.androidMessenger), 'inapp');
+});

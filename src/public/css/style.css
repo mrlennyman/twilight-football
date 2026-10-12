@@ -743,6 +743,10 @@ form button[type="submit"].link-button.danger:hover { border-color: var(--error)
 }
 .install-btn:hover { background: var(--wine-500); }
 .install-back { margin-top: 20px; font-size: 0.9rem; }
+.install-note-first { margin: 0 0 10px; }
+.install-card-quiet { border-top-color: var(--border); }
+.install-card-quiet .install-btn { margin-bottom: 8px; }
+.install-card-quiet .install-btn:last-child { margin-bottom: 0; }
 .site-footer a { color: inherit; }
 
 .diagnostics th { width: 38%; text-align: left; font-weight: 600; }
