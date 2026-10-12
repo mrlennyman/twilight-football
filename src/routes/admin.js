@@ -18,6 +18,7 @@ const fs = require('fs');
 const { snapshot, newestBackup, defaultBackupDir } = require('../lib/backup');
 const { formatNzDateTime } = require('../lib/format');
 const { resolveDbPath } = require('../lib/paths');
+const { getUsageStats } = require('../lib/usage');
 const { saveScore, clearScore } = require('../lib/results');
 const {
   getPages,
@@ -200,6 +201,10 @@ router.get('/diagnostics', (req, res) => {
       backupStale: backupAgeHours === null || backupAgeHours > 36,
     },
   });
+});
+
+router.get('/usage', (req, res) => {
+  res.render('admin/usage', { stats: getUsageStats(db) });
 });
 
 router.post('/leagues', (req, res) => {

@@ -95,3 +95,22 @@ CREATE TABLE IF NOT EXISTS result_log (
   new_status TEXT,
   ip TEXT
 );
+
+-- Anonymous install / usage counter: one random id per phone (kept in the phone's own storage), no names or addresses.
+CREATE TABLE IF NOT EXISTS app_devices (
+  id TEXT PRIMARY KEY,
+  first_seen TEXT NOT NULL DEFAULT (datetime('now')),
+  last_seen TEXT NOT NULL DEFAULT (datetime('now')),
+  platform TEXT,
+  browser TEXT,
+  installed_at TEXT,     -- the browser reported the app was installed
+  app_first_open TEXT    -- first time it ran as an installed app
+);
+-- One row per device per New Zealand day per way of using it: 'app' (installed) or 'web' (browser tab).
+CREATE TABLE IF NOT EXISTS app_daily (
+  day TEXT NOT NULL,
+  device_id TEXT NOT NULL REFERENCES app_devices(id) ON DELETE CASCADE,
+  mode TEXT NOT NULL CHECK (mode IN ('app', 'web')),
+  PRIMARY KEY (day, device_id, mode)
+);
+CREATE INDEX IF NOT EXISTS idx_app_daily_day ON app_daily(day);

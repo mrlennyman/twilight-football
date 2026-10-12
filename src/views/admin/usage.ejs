@@ -1,0 +1,47 @@
+<%- include('../partials/header', { title: 'Installs & usage' }) %>
+<div class="admin-bar">
+  <h1>Installs &amp; usage</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p class="muted">An anonymous count: each phone keeps a random code in its own storage and reports once a day whether it opened the site as the installed app or in a browser. No names, accounts or addresses are stored. Counting began <%= stats.firstSeen ? stats.firstSeen.slice(0, 10) : 'with the first visit after this was added' %>.</p>
+
+<div class="table-scroll">
+<table class="admin-table usage-totals">
+  <tbody>
+    <tr><th>Phones with the app installed</th><td><strong><%= stats.installedDevices %></strong></td><td class="muted">Installed (reported by the browser) or opened from the home-screen icon</td></tr>
+    <tr><th>Opened the app today</th><td><strong><%= stats.appToday %></strong></td><td class="muted">Phones, New Zealand day</td></tr>
+    <tr><th>Opened the app in the last 7 days</th><td><strong><%= stats.appWeek %></strong></td><td class="muted"></td></tr>
+    <tr><th>Browser-only phones</th><td><strong><%= stats.webOnlyDevices %></strong></td><td class="muted">Use the website but never opened the installed app</td></tr>
+    <tr><th>Install confirmations</th><td><strong><%= stats.installEvents %></strong></td><td class="muted">Android Chrome, Edge and Samsung send these; iPhone and Firefox don't</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="muted">An iPhone keeps separate storage for the home-screen app, so it can appear once under browser-only and once under installed. Clearing a phone's browser data also makes it count as a new phone.</p>
+
+<h2>Last 14 days</h2>
+<div class="table-scroll">
+<table class="admin-table">
+  <thead><tr><th>Day</th><th>App phones</th><th>Browser phones</th><th>New app phones</th></tr></thead>
+  <tbody>
+    <% stats.days.forEach(d => { %>
+      <tr><td><%= d.day %></td><td><%= d.app %></td><td><%= d.web %></td><td><%= d.newApp %></td></tr>
+    <% }) %>
+  </tbody>
+</table>
+</div>
+
+<% if (stats.breakdown.length) { %>
+  <h2>Installed phones by browser</h2>
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead><tr><th>Phone</th><th>Browser</th><th>Count</th></tr></thead>
+    <tbody>
+      <% stats.breakdown.forEach(b => { %>
+        <tr><td><%= b.platform %></td><td><%= b.browser %></td><td><%= b.n %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

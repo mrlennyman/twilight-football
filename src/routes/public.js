@@ -19,7 +19,22 @@ const {
 const { renderMarkup } = require('../lib/markup');
 const { formatUpdated } = require('../lib/format');
 
+const { recordUsage } = require('../lib/usage');
+const { createLimiter } = require('../middleware/loginLimiter');
+
 const router = express.Router();
+
+// Anonymous install / usage counter (see lib/usage.js and public/js/usage.js). A phone sends about two reports a
+// day, so a per-address cap of 60 an hour stops a script flooding the table without ever touching a real phone.
+const usageLimiter = createLimiter({ max: 60, windowMs: 3600 * 1000 });
+router.post('/api/usage', (req, res) => {
+  if (!usageLimiter.check(req.ip).blocked) {
+    usageLimiter.recordFailure(req.ip);
+    const { id, mode, event } = req.body || {};
+    recordUsage(db, { id, mode, event, userAgent: req.get('user-agent') });
+  }
+  res.status(204).end();
+});
 
 // Leagues that appear on the public home list: running (not still being set up) and not hidden by the admin.
 const isListed = (league) => league.status !== 'setup' && !league.hidden;
