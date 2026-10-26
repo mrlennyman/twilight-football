@@ -19,6 +19,7 @@ const { snapshot, newestBackup, defaultBackupDir } = require('../lib/backup');
 const { formatNzDateTime } = require('../lib/format');
 const { resolveDbPath } = require('../lib/paths');
 const { getUsageStats } = require('../lib/usage');
+const { parseFixtureCsv, planFixtureImport, applyFixtureImport } = require('../lib/fixtureImport');
 const { saveScore, clearScore } = require('../lib/results');
 const {
   getPages,
@@ -490,6 +491,51 @@ router.post('/league/:id/schedule/generate', (req, res) => {
   });
   persist();
 
+  res.redirect(`/admin/league/${league.id}/schedule`);
+});
+
+// ---------- Load a ready-made draw (fixture list) ----------
+
+function readFixturePaste(body, league) {
+  const text = String(body.text ?? '');
+  const parsed = parseFixtureCsv(text);
+  const plan = parsed.errors.length ? null : planFixtureImport(db, league, parsed.rows);
+  const errors = [...parsed.errors, ...(plan ? plan.errors : [])];
+  return { form: { text }, errors, plan: errors.length ? null : plan };
+}
+
+router.get('/league/:id/fixture-import', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  res.render('admin/fixture-import', { league, form: { text: '' }, errors: [], plan: null, stats: scheduleStats(league.id) });
+});
+
+router.post('/league/:id/fixture-import/preview', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const result = readFixturePaste(req.body, league);
+  res.render('admin/fixture-import', { league, ...result, stats: scheduleStats(league.id) });
+});
+
+router.post('/league/:id/fixture-import/confirm', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  // Worked out again from the pasted text - the browser's idea of the plan is never trusted.
+  const result = readFixturePaste(req.body, league);
+  const stats = scheduleStats(league.id);
+  if (result.errors.length) return res.render('admin/fixture-import', { league, ...result, stats });
+  if (stats.played > 0 || stats.knockoutRounds > 0) {
+    if (String(req.body.confirm_name ?? '').trim() !== league.name) {
+      return fail(
+        res,
+        `Importing would delete ${stats.played} result${stats.played === 1 ? '' : 's'}` +
+          `${stats.knockoutRounds ? ' and the Cup/Plate brackets' : ''}. ` +
+          'Nothing was changed. To go ahead, type the league name exactly in the confirmation box.'
+      );
+    }
+  }
+  if (stats.rounds > 0 && !safetyBackup(res, 'fixture-import')) return;
+  applyFixtureImport(db, league, result.plan);
   res.redirect(`/admin/league/${league.id}/schedule`);
 });
 

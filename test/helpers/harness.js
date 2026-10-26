@@ -57,7 +57,7 @@ async function startApp(extraEnv = {}) {
     });
     const id = db.prepare('SELECT MAX(id) AS id FROM leagues').get().id;
     const res = await request('POST', `/admin/league/${id}/schedule/generate`, {
-      start_date: '2026-10-14', kickoff_start_time: '17:00', slot_minutes: '15',
+      start_date: '2035-10-17', kickoff_start_time: '17:00', slot_minutes: '15',
     });
     if (res.status !== 302) throw new Error(`generate failed: ${res.status} ${res.text.slice(0, 200)}`);
     return id;

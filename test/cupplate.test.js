@@ -21,7 +21,7 @@ const base = {
   plateTeamIds: [5, 6, 7, 8],
   roundNumberStart: 15,
   weekNumber: 6,
-  date: '2026-11-18',
+  date: '2035-11-21',
   kickoffStartTime: '17:00',
   slotMinutes: 15,
 };
@@ -76,7 +76,7 @@ test('B1: a real league - generated brackets share no (date, time, pitch) with a
     assert.equal(knockout.length, 6);
     const roundNumbers = h.db.prepare("SELECT round_number FROM rounds WHERE league_id = ? AND stage != 'group'").all(id);
     assert.equal(new Set(roundNumbers.map((r) => r.round_number)).size, 4, 'four distinct knockout round numbers');
-    assert.equal(knockout[0].date, '2026-11-18', 'the Wednesday after the last group night');
+    assert.equal(knockout[0].date, '2035-11-21', 'the Wednesday after the last group night');
   } finally {
     await h.close();
   }

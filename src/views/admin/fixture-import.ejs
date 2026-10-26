@@ -1,0 +1,116 @@
+<%- include('../partials/header', { title: league.name + ' — Import fixtures' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Import fixtures</h1>
+  <a href="/admin/league/<%= league.id %>/schedule">&larr; Schedule</a>
+</div>
+
+<% if (errors.length) { %>
+  <div class="callout callout-warn">
+    <strong>Nothing was changed.</strong> Please fix this and try again:
+    <ul>
+      <% errors.forEach(e => { %><li><%= e %></li><% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<% if (plan) { %>
+  <h2>Check this, then apply</h2>
+  <p class="muted">Nothing has changed yet. A safety copy of the database is saved first when you apply.</p>
+
+  <% if (plan.warnings.length) { %>
+    <div class="callout">
+      <strong>Worth a look:</strong>
+      <ul><% plan.warnings.forEach(w => { %><li><%= w %></li><% }) %></ul>
+    </div>
+  <% } %>
+
+  <div class="table-scroll">
+  <table class="admin-table usage-totals">
+    <tbody>
+      <tr><th>Matches</th><td><strong><%= plan.matchCount %></strong> in <%= plan.rounds.length %> rounds over <%= plan.weeks %> weeks (<%= plan.roundsPerWeek %> rounds a week)</td></tr>
+      <tr><th>First match</th><td><%= plan.startDate %> at <%= plan.kickoffStartTime %>, <%= plan.slotMinutes %> minutes between rounds</td></tr>
+      <tr><th>Pitches</th><td><%= plan.pitchCount %></td></tr>
+      <tr><th>Teams</th><td><%= plan.teams.length %></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Teams</h3>
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead><tr><th>In the file</th><th>In the league</th><th>Matches</th></tr></thead>
+    <tbody>
+      <% plan.teams.forEach(t => { %>
+        <tr>
+          <td><strong><%= t.name %></strong></td>
+          <td><%= t.action === 'keep' ? 'existing team' : t.action === 'rename' ? 'renames ' + t.oldName : 'new team' %></td>
+          <td><%= t.matches %></td>
+        </tr>
+      <% }) %>
+      <% plan.removals.forEach(t => { %>
+        <tr><td class="muted">(not in the file)</td><td><%= t.name %> is removed (no players in it)</td><td></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Weeks</h3>
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead><tr><th>Week</th><th>Date</th><th>Rounds</th></tr></thead>
+    <tbody>
+      <% const seen = new Set(); plan.rounds.forEach(r => { if (seen.has(r.weekNumber)) return; seen.add(r.weekNumber); const inWeek = plan.rounds.filter(x => x.weekNumber === r.weekNumber); %>
+        <tr><td><%= r.weekNumber %></td><td><%= r.date %></td><td><%= inWeek.map(x => x.time + ' (' + x.matches.length + ' matches)').join(', ') %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+
+  <form method="POST" action="/admin/league/<%= league.id %>/fixture-import/confirm" class="admin-form">
+    <input type="hidden" name="text" value="<%= form.text %>">
+    <% if (stats.rounds > 0) { %>
+      <p class="callout callout-warn">This <strong>replaces the whole existing schedule</strong> (<%= stats.rounds %> rounds)<% if (stats.played > 0) { %>, including <strong><%= stats.played %> result<%= stats.played === 1 ? '' : 's' %></strong><% } %><%= stats.knockoutRounds ? ' and the Cup/Plate brackets' : '' %>.</p>
+      <% if (stats.played > 0 || stats.knockoutRounds > 0) { %>
+        <label>Type the league name (<strong><%= league.name %></strong>) to confirm
+          <input type="text" name="confirm_name" autocomplete="off" required>
+        </label>
+      <% } %>
+    <% } %>
+    <button type="submit">Import these fixtures</button>
+    <a class="btn btn-light" href="/admin/league/<%= league.id %>/fixture-import">Start again</a>
+  </form>
+<% } else { %>
+  <p class="muted">Load a ready-made draw instead of letting the app generate one. Choose the file (or paste its contents), and check the preview before anything changes. Teams in the file go into the league's teams <strong>by name</strong>; any team not found takes the next one still called &ldquo;Team 1&rdquo;, &ldquo;Team 2&rdquo; and so on (and renames it), or is added as a new team.</p>
+
+  <form method="POST" action="/admin/league/<%= league.id %>/fixture-import/preview" class="admin-form admin-form-wide">
+    <label>Choose a CSV file
+      <input type="file" id="fixture-file" accept=".csv,.txt,text/csv,text/plain">
+    </label>
+    <label>&hellip;or paste it here
+      <textarea name="text" id="fixture-box" class="roster-box roster-box-big" rows="12" maxlength="90000" required placeholder="date,time,match,home,away,pitch&#10;2026-10-28,17:30,1,Rovers,Wanderers,1"><%= form.text %></textarea>
+    </label>
+    <button type="submit">Preview</button>
+  </form>
+  <script>
+    document.getElementById('fixture-file').addEventListener('change', function (event) {
+      var file = event.target.files && event.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () { document.getElementById('fixture-box').value = String(reader.result || ''); };
+      reader.readAsText(file);
+    });
+  </script>
+
+  <div class="callout">
+    <strong>Layout</strong> (one row per match; the header row is optional)
+    <div class="example-grid">
+      <pre>date,time,match,home,away,pitch
+2026-10-28,17:30,1,Rovers,Wanderers,1
+2026-10-28,17:30,2,United,City,2
+2026-10-28,18:05,1,Rovers,City,1</pre>
+    </div>
+    <p class="muted">Matches with the same date and time are one round, and each new date is a new week. Dates can be written <em>28 Oct 2026</em> or <em>28/10/2026</em>, times as <em>5:30 PM</em>.</p>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

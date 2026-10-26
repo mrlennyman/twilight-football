@@ -5,6 +5,7 @@
 </div>
 
 <% if (groupRounds.length === 0) { %>
+  <p class="callout">Already have a draw (a fixture list from a spreadsheet or PDF)? <a class="btn btn-light btn-sm" href="/admin/league/<%= league.id %>/fixture-import">Import fixtures from a file</a></p>
   <p>No schedule generated yet. This will create the full double round-robin group stage across your <%= pitches.length %> pitches, split into weeks of <%= league.rounds_per_week %> rounds.</p>
   <form method="POST" action="/admin/league/<%= league.id %>/schedule/generate" class="admin-form">
     <label>First match night
@@ -20,6 +21,8 @@
   </form>
 <% } else { %>
   <p class="muted">Schedule generated. Enter results on the <a class="btn btn-light btn-sm" href="/admin/league/<%= league.id %>/results">Results</a> page.</p>
+
+  <p><a class="btn btn-light btn-sm" href="/admin/league/<%= league.id %>/fixture-import">Import fixtures from a file</a> <span class="muted">(replaces this schedule with a ready-made draw)</span></p>
 
   <details>
     <summary>Regenerate schedule (this deletes every match, result and Cup/Plate bracket so far)</summary>
