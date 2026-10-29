@@ -16,7 +16,8 @@
   <fieldset class="format-choice">
     <legend>Finals format</legend>
     <label class="check-row"><input type="radio" name="format" value="standard" <%= !isThreeGroupFinals(league) ? 'checked' : '' %> <%= drawn ? 'disabled' : '' %>> <span><strong>Cup &amp; Plate</strong> - the top half play for the Cup and the bottom half for the Plate (semi-finals and a final in each). 4 teams in each from 8 to 11 teams; 6 in each (with quarter-finals) from 12.</span></label>
-    <label class="check-row"><input type="radio" name="format" value="three" <%= isThreeGroupFinals(league) ? 'checked' : '' %> <%= drawn ? 'disabled' : '' %>> <span><strong>Cup, Plate &amp; Bowl</strong> - three groups of 4 by ranking (1st-4th, 5th-8th, 9th-12th). Each group has semi-finals (1st v 4th, 2nd v 3rd) and a Grand Final, all on one night. Needs exactly 12 teams.</span></label>
+    <label class="check-row"><input type="radio" name="format" value="three" <%= league.finals_format === 'three' ? 'checked' : '' %> <%= drawn ? 'disabled' : '' %>> <span><strong>Cup, Plate &amp; Bowl - straight to the knockouts</strong> - three groups of 4 by ranking (1st-4th, 5th-8th, 9th-12th). Each group has semi-finals (1st v 4th, 2nd v 3rd) and a Grand Final, all on one night. Needs exactly 12 teams.</span></label>
+    <label class="check-row"><input type="radio" name="format" value="three_rr" <%= league.finals_format === 'three_rr' ? 'checked' : '' %> <%= drawn ? 'disabled' : '' %>> <span><strong>Cup, Plate &amp; Bowl - round robin first</strong> - the same three groups of 4, but each plays a mini round robin first (week 1, everyone starts on zero, each group gets its own table), then semi-finals (1st v 4th, 2nd v 3rd) and a Grand Final from that table (week 2). Needs exactly 12 teams.</span></label>
   </fieldset>
   <% if (drawn) { %>
     <p class="callout">The finals have been drawn, so the format is locked. To change it, use <em>Reset the brackets</em> on the Results page first.</p>

@@ -20,6 +20,8 @@ const { renderMarkup } = require('../lib/markup');
 const { formatUpdated } = require('../lib/format');
 
 const { recordUsage } = require('../lib/usage');
+const { isRoundRobinFirst } = require('../lib/knockoutResult');
+const { getFinalsGroups } = require('../lib/finalsGroups');
 const { createLimiter } = require('../middleware/loginLimiter');
 
 const router = express.Router();
@@ -66,6 +68,7 @@ function renderLeagueHome(league, res) {
   res.render('public/league', {
     league,
     standings,
+    finalsGroups: isRoundRobinFirst(league) ? getFinalsGroups(db, league.id) : [],
     currentWeek,
     thisWeekRounds,
     updatedText: formatUpdated(getLastUpdated(db, league.id)),
@@ -183,11 +186,18 @@ router.get('/league/:id/bracket', (req, res) => {
   const league = findLeague(req);
   if (!league) return res.status(404).render('404');
 
-  const cupRounds = getRoundsWithMatches(db, league.id, 'cup');
-  const plateRounds = getRoundsWithMatches(db, league.id, 'plate');
-  const bowlRounds = getRoundsWithMatches(db, league.id, 'bowl');
+  // A round-robin-first league keeps its round robins (shown as three tables) apart from its knockout brackets.
+  const finalsGroups = isRoundRobinFirst(league) ? getFinalsGroups(db, league.id) : [];
+  const bracketRounds = (stage) =>
+    isRoundRobinFirst(league) ? (finalsGroups.find((g) => g.stage === stage) || { koRounds: [] }).koRounds : getRoundsWithMatches(db, league.id, stage);
 
-  res.render('public/bracket', { league, cupRounds, plateRounds, bowlRounds });
+  res.render('public/bracket', {
+    league,
+    finalsGroups,
+    cupRounds: bracketRounds('cup'),
+    plateRounds: bracketRounds('plate'),
+    bowlRounds: bracketRounds('bowl'),
+  });
 });
 
 router.get('/league/:id/info', (req, res) => {

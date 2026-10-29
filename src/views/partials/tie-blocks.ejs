@@ -1,0 +1,38 @@
+<%# Expects: blocks (from getOpenTieBlocks), league, note. Optional: stage (cup|plate|bowl; default the group stage), heading %>
+<% if (blocks.length > 0) { %>
+  <div class="callout">
+    <h3>Record the shootout results<%= typeof heading !== 'undefined' ? ' - ' + heading : '' %></h3>
+    <p>These teams are level on points and goal difference. Record who won each shootout - one tap per pair - to settle the order. <%= note %></p>
+    <% blocks.forEach(block => { %>
+      <h4 class="tie-heading"><%= block.teams.map(t => t.name).join(', ') %> <span class="muted">(<%= block.points %> pts, goal difference <%= block.goalDifference > 0 ? '+' : '' %><%= block.goalDifference %>)</span></h4>
+      <div class="tie-pairs">
+        <% block.pairs.forEach(pair => { %>
+          <div class="tie-pair">
+            <% if (pair.winnerId) { %>
+              <% const winner = pair.winnerId === pair.a.id ? pair.a : pair.b; const other = winner === pair.a ? pair.b : pair.a; %>
+              <span class="tie-done"><strong><%= winner.name %></strong> beat <%= other.name %></span>
+              <form method="POST" action="/admin/league/<%= league.id %>/tie-break" class="inline-form">
+                <input type="hidden" name="stage" value="<%= typeof stage !== 'undefined' ? stage : 'group' %>">
+                <input type="hidden" name="team_a_id" value="<%= pair.a.id %>">
+                <input type="hidden" name="team_b_id" value="<%= pair.b.id %>">
+                <input type="hidden" name="winner_team_id" value="<%= other.id %>">
+                <button type="submit" class="link-button">Change</button>
+              </form>
+            <% } else { %>
+              <span class="tie-vs"><%= pair.a.name %> v <%= pair.b.name %></span>
+              <% [pair.a, pair.b].forEach(side => { %>
+                <form method="POST" action="/admin/league/<%= league.id %>/tie-break" class="inline-form">
+                  <input type="hidden" name="stage" value="<%= typeof stage !== 'undefined' ? stage : 'group' %>">
+                <input type="hidden" name="team_a_id" value="<%= pair.a.id %>">
+                  <input type="hidden" name="team_b_id" value="<%= pair.b.id %>">
+                  <input type="hidden" name="winner_team_id" value="<%= side.id %>">
+                  <button type="submit"><%= side.name %> won</button>
+                </form>
+              <% }) %>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    <% }) %>
+  </div>
+<% } %>

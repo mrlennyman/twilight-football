@@ -35,7 +35,7 @@ function readSaved(league) {
 function getSplitSettings(league) {
   const saved = readSaved(league);
   // Until someone saves their own choice, a Cup / Plate / Bowl league shows its three groups.
-  if (Object.keys(saved).length === 0 && league && league.finals_format === 'three') {
+  if (Object.keys(saved).length === 0 && league && (league.finals_format === 'three' || league.finals_format === 'three_rr')) {
     return { mode: 'labels', three: true, after: null, after2: null, top: 'Cup', middle: 'Plate', bottom: 'Bowl' };
   }
   return {

@@ -25,43 +25,12 @@
 <h2>Standings</h2>
 <%- include('../partials/standings-table', { standings, splitMarks: resolveSplit(league, standings.length, { mode: 'line', three: isThreeGroupFinals(league), after: null, after2: null }) }) %>
 
-<% if (tieBlocks.length > 0) { %>
-  <div class="callout">
-    <h3>Record the shootout results</h3>
-    <p>These teams are level on points and goal difference. Record who won each shootout - one tap per pair - to settle the order. The Cup &amp; Plate brackets can't be drawn until every tie is settled.</p>
-    <% tieBlocks.forEach(block => { %>
-      <h4 class="tie-heading"><%= block.teams.map(t => t.name).join(', ') %> <span class="muted">(<%= block.points %> pts, goal difference <%= block.goalDifference > 0 ? '+' : '' %><%= block.goalDifference %>)</span></h4>
-      <div class="tie-pairs">
-        <% block.pairs.forEach(pair => { %>
-          <div class="tie-pair">
-            <% if (pair.winnerId) { %>
-              <% const winner = pair.winnerId === pair.a.id ? pair.a : pair.b; const other = winner === pair.a ? pair.b : pair.a; %>
-              <span class="tie-done"><strong><%= winner.name %></strong> beat <%= other.name %></span>
-              <form method="POST" action="/admin/league/<%= league.id %>/tie-break" class="inline-form">
-                <input type="hidden" name="team_a_id" value="<%= pair.a.id %>">
-                <input type="hidden" name="team_b_id" value="<%= pair.b.id %>">
-                <input type="hidden" name="winner_team_id" value="<%= other.id %>">
-                <button type="submit" class="link-button">Change</button>
-              </form>
-            <% } else { %>
-              <span class="tie-vs"><%= pair.a.name %> v <%= pair.b.name %></span>
-              <% [pair.a, pair.b].forEach(side => { %>
-                <form method="POST" action="/admin/league/<%= league.id %>/tie-break" class="inline-form">
-                  <input type="hidden" name="team_a_id" value="<%= pair.a.id %>">
-                  <input type="hidden" name="team_b_id" value="<%= pair.b.id %>">
-                  <input type="hidden" name="winner_team_id" value="<%= side.id %>">
-                  <button type="submit"><%= side.name %> won</button>
-                </form>
-              <% }) %>
-            <% } %>
-          </div>
-        <% }) %>
-      </div>
-    <% }) %>
-  </div>
-<% } %>
+<%- include('../partials/tie-blocks', { blocks: tieBlocks, league, note: isRoundRobinFirst(league) ? "The finals groups can't be drawn until every tie is settled." : "The Cup & Plate brackets can't be drawn until every tie is settled." }) %>
 
 <h2><%- isThreeGroupFinals(league) ? 'Cup, Plate &amp; Bowl finals' : 'Cup &amp; Plate knockouts' %></h2>
+<% if (isRoundRobinFirst(league)) { %>
+  <%- include('../partials/finals-admin', { league, stageComplete, tieBlocks, finalsGroups, finalsState }) %>
+<% } else { %>
 <% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
   <% if (stageComplete && tieBlocks.length > 0) { %>
     <p class="muted">Settle the tied teams above first, then the brackets can be drawn.</p>
@@ -94,6 +63,7 @@
       <button type="submit">Reset the brackets</button>
     </form>
   </details>
+<% } %>
 <% } %>
 
 <%- include('../partials/footer') %>

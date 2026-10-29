@@ -1,0 +1,8 @@
+<%# Expects: groups (from getFinalsGroups, round-robin ones), league. Optional: showRounds (boolean) %>
+<% groups.filter(g => g.rrRounds.length > 0).forEach(group => { %>
+  <h2><%= group.name %> <span class="muted small">(places <%= group.places[0] %> to <%= group.places[1] %>)</span></h2>
+  <%- include('../partials/standings-table', { standings: group.standings, linkTeams: true }) %>
+  <% if (typeof showRounds !== 'undefined' && showRounds) { %>
+    <%- include('../partials/round-list', { rounds: group.rrRounds, editable: false, linkTeams: true }) %>
+  <% } %>
+<% }) %>

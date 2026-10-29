@@ -30,7 +30,7 @@ function getNavSettings(league) {
   const saved = readSaved(league);
   return TABS.map((tab, index) => {
     const s = saved[tab.key] && typeof saved[tab.key] === 'object' ? saved[tab.key] : {};
-    const fallback = tab.key === 'bracket' && league && league.finals_format === 'three' ? 'Finals' : tab.label;
+    const fallback = tab.key === 'bracket' && league && (league.finals_format === 'three' || league.finals_format === 'three_rr') ? 'Finals' : tab.label;
     const label = typeof s.label === 'string' && s.label.trim() ? s.label.trim().slice(0, MAX_LABEL) : fallback;
     const mode = tab.modes.includes(s.mode) ? s.mode : tab.defaultMode;
     const order = Number.isInteger(s.order) ? s.order : index + 1;

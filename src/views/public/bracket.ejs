@@ -3,11 +3,14 @@
 <%- include('../partials/league-title', { league }) %>
 
 <%- include('../partials/finals-blurb') %>
-<% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
+<% if (finalsGroups.length > 0) { %>
+  <%- include('../partials/finals-groups', { groups: finalsGroups, league, showRounds: true }) %>
+<% } %>
+<% if (cupRounds.length === 0 && plateRounds.length === 0 && finalsGroups.length === 0) { %>
   <p>The <%= isThreeGroupFinals(league) ? 'finals' : 'Cup and Plate knockouts' %> haven't started yet — they'll appear here once the group stage is complete.</p>
 <% } else { %>
   <% [{ label: 'Cup', rounds: cupRounds }, { label: 'Plate', rounds: plateRounds }, { label: 'Bowl', rounds: bowlRounds }].filter(bracket => bracket.rounds.length > 0).forEach(bracket => { %>
-    <h2><%= bracket.label %></h2>
+    <h2><%= bracket.label %><%= finalsGroups.length > 0 ? ' knockout' : '' %></h2>
     <div class="bracket">
       <% bracket.rounds.forEach(round => { %>
         <div class="bracket-round">

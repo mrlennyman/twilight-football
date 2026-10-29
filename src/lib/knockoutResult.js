@@ -23,6 +23,7 @@ const FEEDS = {
 
 /** "quarter-final", "semi-final" or "final" for a bracket slot. */
 function slotName(slot) {
+  if (slot === 'rr') return 'round-robin match';
   if (slot === 'final') return 'final';
   if (slot && slot.startsWith('semi')) return 'semi-final';
   if (slot && slot.startsWith('qf')) return 'quarter-final';
@@ -31,6 +32,7 @@ function slotName(slot) {
 
 /** The plural heading for a round of a bracket, from the slot of its first match. */
 function roundName(slot) {
+  if (slot === 'rr') return 'Round robin';
   const name = slotName(slot);
   return name === 'final' ? 'Final' : name === 'match' ? 'Matches' : `${name.charAt(0).toUpperCase()}${name.slice(1)}s`;
 }
@@ -89,6 +91,9 @@ const STAGE_NAMES = { cup: 'Cup', plate: 'Plate', bowl: 'Bowl' };
 const stageName = (stage) => STAGE_NAMES[stage] || 'Group';
 
 /** True when the league plays the finals as Cup / Plate / Bowl (three groups of 4) rather than Cup and Plate. */
-const isThreeGroupFinals = (league) => !!league && league.finals_format === 'three';
+const isThreeGroupFinals = (league) => !!league && (league.finals_format === 'three' || league.finals_format === 'three_rr');
 
-module.exports = { matchWinner, tryFillFinal, feedOf, slotName, roundName, bracketSize, stageName, isThreeGroupFinals };
+/** True when those three groups play a round robin first and the knockouts the week after. */
+const isRoundRobinFirst = (league) => !!league && league.finals_format === 'three_rr';
+
+module.exports = { matchWinner, tryFillFinal, feedOf, slotName, roundName, bracketSize, stageName, isThreeGroupFinals, isRoundRobinFirst };

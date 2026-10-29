@@ -1,0 +1,66 @@
+<%# Expects: league, stageComplete, tieBlocks (main table), finalsGroups, finalsState %>
+<% const groupsDrawn = finalsGroups.some(g => g.rrRounds.length > 0); %>
+<% if (!groupsDrawn) { %>
+  <% if (stageComplete && tieBlocks.length > 0) { %>
+    <p class="muted">Settle the tied teams above first, then the three finals groups can be drawn.</p>
+    <button type="button" disabled>Draw the Cup, Plate &amp; Bowl groups</button>
+  <% } else if (stageComplete) { %>
+    <p class="muted">The group stage is finished. Drawing the groups puts the top 4 in the Cup, 5th to 8th in the Plate and 9th to 12th in the Bowl, each with its own round robin the Wednesday after the last group night.</p>
+    <form method="POST" action="/admin/league/<%= league.id %>/generate-finals-groups">
+      <button type="submit">Draw the Cup, Plate &amp; Bowl groups</button>
+    </form>
+  <% } else { %>
+    <p class="muted">Available once every group-stage match has a result.</p>
+  <% } %>
+<% } else { %>
+  <h3>Finals week 1: round robin</h3>
+  <% finalsGroups.forEach(group => { %>
+    <h4><%= group.name %> <span class="muted">(places <%= group.places[0] %> to <%= group.places[1] %> in the group stage)</span></h4>
+    <%- include('../partials/standings-table', { standings: group.standings }) %>
+    <%- include('../partials/tie-blocks', { blocks: group.tieBlocks, league, stage: group.stage, heading: group.name, note: "The knockouts can't be drawn until every tie is settled." }) %>
+    <%- include('../partials/round-list', { rounds: group.rrRounds, editable: !finalsState.knockoutsDrawn, knockout: true, league }) %>
+  <% }) %>
+
+  <h3>Finals week 2: knockouts</h3>
+  <% if (!finalsState.knockoutsDrawn) { %>
+    <% if (finalsState.canDrawKnockouts) { %>
+      <p class="muted">Every round-robin game has a result. Drawing the knockouts seeds each group from its table: semi-finals 1st v 4th and 2nd v 3rd, then the Grand Final, on the Wednesday after the round robin.</p>
+      <form method="POST" action="/admin/league/<%= league.id %>/generate-finals-knockouts">
+        <button type="submit">Draw the knockouts (semi-finals &amp; Grand Finals)</button>
+      </form>
+    <% } else if (finalsState.openTies) { %>
+      <p class="muted">Settle the tied teams above first, then the knockouts can be drawn.</p>
+      <button type="button" disabled>Draw the knockouts</button>
+    <% } else { %>
+      <p class="muted">Available once every round-robin game has a result.</p>
+    <% } %>
+  <% } else { %>
+    <% finalsGroups.filter(g => g.koRounds.length > 0).forEach(group => { %>
+      <h4><%= group.name %></h4>
+      <%- include('../partials/round-list', { rounds: group.koRounds, editable: true, knockout: true, league }) %>
+    <% }) %>
+    <details class="reset-brackets">
+      <summary>Reset the knockouts (a round-robin score was wrong)</summary>
+      <form method="POST" action="/admin/league/<%= league.id %>/finals-knockouts/reset" class="admin-form">
+        <p class="callout">This deletes the semi-finals and finals and their results, keeps the round robins, and unlocks the round-robin scores so you can correct them. A safety copy of the database is saved first. Then draw the knockouts again.</p>
+        <label>Type the league name (<strong><%= league.name %></strong>) to confirm
+          <input type="text" name="confirm_name" autocomplete="off" required>
+        </label>
+        <button type="submit">Reset the knockouts</button>
+      </form>
+    </details>
+  <% } %>
+<% } %>
+
+<% if (groupsDrawn) { %>
+  <details class="reset-brackets">
+    <summary>Reset everything in the finals (a group-stage score was wrong)</summary>
+    <form method="POST" action="/admin/league/<%= league.id %>/knockouts/reset" class="admin-form">
+      <p class="callout">This deletes the three finals groups, their round robins and knockouts and every finals result so far, and unlocks the group results so you can correct them. A safety copy of the database is saved first. Then draw the groups again.</p>
+      <label>Type the league name (<strong><%= league.name %></strong>) to confirm
+        <input type="text" name="confirm_name" autocomplete="off" required>
+      </label>
+      <button type="submit">Reset the finals</button>
+    </form>
+  </details>
+<% } %>

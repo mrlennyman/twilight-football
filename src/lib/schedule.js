@@ -451,7 +451,44 @@ function generateCupPlateBowl({ groups, pitchIds, roundNumberStart, weekNumber, 
   });
 }
 
+/**
+ * Finals week 1: each of three groups of 4 plays a round robin (3 rounds of 2 matches; every team plays the other
+ * three once). Seeds a,b,c,d are the group's teams in order of the group-stage table.
+ *   round 1: a v d, b v c    round 2: a v c, d v b    round 3: a v b, c v d
+ * Laid out like generateCupPlateBowl (6+ pitches: all three groups side by side), but each wave takes 3 slots.
+ * Round numbers: group g, round r = roundNumberStart + g * 3 + r.
+ */
+function generateFinalsRoundRobins({ groups, pitchIds, roundNumberStart, weekNumber, date, kickoffStartTime, slotMinutes }) {
+  if (pitchIds.length < 2) throw new Error('The finals need at least 2 pitches');
+  const stages = ['cup', 'plate', 'bowl'];
+  const side = pitchIds.length >= 6 ? 3 : pitchIds.length >= 4 ? 2 : 1;
+  const pairings = [
+    [[0, 3], [1, 2]],
+    [[0, 2], [3, 1]],
+    [[0, 1], [2, 3]],
+  ];
+  return groups.flatMap((seeds, g) => {
+    const wave = Math.floor(g / side);
+    const slot = g % side;
+    const groupPitches = side === 1 ? pitchIds.slice(0, 2) : pitchIds.slice(slot * 2, slot * 2 + 2);
+    return pairings.map((pairs, r) => ({
+      roundNumber: roundNumberStart + g * 3 + r,
+      weekNumber,
+      stage: stages[g],
+      date,
+      kickoffTime: addMinutes(kickoffStartTime, (wave * 3 + r) * slotMinutes),
+      matches: pairs.map(([h, a], i) => ({
+        homeTeamId: seeds[h],
+        awayTeamId: seeds[a],
+        pitchId: groupPitches[(i + r) % 2],
+        bracketSlot: 'rr',
+      })),
+    }));
+  });
+}
+
 module.exports = {
+  generateFinalsRoundRobins,
   generateCupPlateBowl,
   generateCupAndPlate,
   circleMethodRounds,

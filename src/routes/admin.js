@@ -3,8 +3,9 @@ const db = require('../db');
 const { checkPassword, requireAdmin, safeReturnTo } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/loginLimiter');
 const { computeStandings, getOpenTieBlocks, groupStageComplete } = require('../lib/standings');
-const { generateGroupStageSchedule, generateCupAndPlate, generateCupPlateBowl, addDays } = require('../lib/schedule');
-const { tryFillFinal, feedOf, slotName, bracketSize, stageName, isThreeGroupFinals } = require('../lib/knockoutResult');
+const { generateGroupStageSchedule, generateCupAndPlate, generateCupPlateBowl, generateFinalsRoundRobins, addDays } = require('../lib/schedule');
+const { tryFillFinal, feedOf, slotName, bracketSize, stageName, isThreeGroupFinals, isRoundRobinFirst } = require('../lib/knockoutResult');
+const { getFinalsGroups, getFinalsState } = require('../lib/finalsGroups');
 const {
   parseScore,
   parseLeagueInput,
@@ -588,6 +589,8 @@ router.get('/league/:id/results', (req, res) => {
   const cupRounds = getRoundsWithMatches(db, league.id, 'cup');
   const plateRounds = getRoundsWithMatches(db, league.id, 'plate');
   const bowlRounds = getRoundsWithMatches(db, league.id, 'bowl');
+  const finalsGroups = isRoundRobinFirst(league) ? getFinalsGroups(db, league.id) : [];
+  const finalsState = isRoundRobinFirst(league) ? getFinalsState(db, league.id, finalsGroups) : null;
 
   res.render('admin/results', {
     league,
@@ -600,6 +603,8 @@ router.get('/league/:id/results', (req, res) => {
     cupRounds,
     plateRounds,
     bowlRounds,
+    finalsGroups,
+    finalsState,
     tieBlocks: getOpenTieBlocks(db, league.id, standings),
     missed: missedResults(league.id),
     groupLocked: cupRounds.length > 0 || plateRounds.length > 0 || bowlRounds.length > 0,
@@ -678,7 +683,11 @@ router.post('/league/:id/results/round/:roundId', (req, res) => {
 });
 
 router.post('/league/:id/tie-break', (req, res) => {
-  if (groupResultsLocked(Number(req.params.id))) return fail(res, GROUP_LOCKED_MESSAGE);
+  const stage = ['cup', 'plate', 'bowl'].includes(req.body.stage) ? req.body.stage : 'group';
+  if (stage === 'group' && groupResultsLocked(Number(req.params.id))) return fail(res, GROUP_LOCKED_MESSAGE);
+  if (stage !== 'group' && finalsKnockoutsDrawn(Number(req.params.id))) {
+    return fail(res, 'The knockouts have been drawn from this table, so its order is locked. Use "Reset the knockouts" first.');
+  }
   const leagueId = Number(req.params.id);
   const a = Number(req.body.team_a_id);
   const b = Number(req.body.team_b_id);
@@ -692,12 +701,12 @@ router.post('/league/:id/tie-break', (req, res) => {
   }
 
   db.prepare(
-    `DELETE FROM tie_breaks WHERE league_id = ?
+    `DELETE FROM tie_breaks WHERE league_id = ? AND stage = ?
        AND ((team_a_id = ? AND team_b_id = ?) OR (team_a_id = ? AND team_b_id = ?))`
-  ).run(leagueId, a, b, b, a);
+  ).run(leagueId, stage, a, b, b, a);
   db.prepare(
-    'INSERT INTO tie_breaks (league_id, team_a_id, team_b_id, winner_team_id) VALUES (?, ?, ?, ?)'
-  ).run(leagueId, a, b, winner);
+    'INSERT INTO tie_breaks (league_id, team_a_id, team_b_id, winner_team_id, stage) VALUES (?, ?, ?, ?, ?)'
+  ).run(leagueId, a, b, winner, stage);
   res.redirect(`/admin/league/${leagueId}/results`);
 });
 
@@ -706,6 +715,7 @@ router.post('/league/:id/tie-break', (req, res) => {
 router.post('/league/:id/generate-knockouts', (req, res) => {
   const league = getLeague(db, req.params.id);
   if (!league) return res.status(404).render('404');
+  if (isRoundRobinFirst(league)) return res.redirect(`/admin/league/${league.id}/results`);
 
   const alreadyGenerated = db
     .prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')")
@@ -806,6 +816,119 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   res.redirect(`/admin/league/${league.id}/results`);
 });
 
+// Round-robin-first finals, step 1: draw the three groups of 4 from the final group-stage table.
+router.post('/league/:id/generate-finals-groups', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const back = `/admin/league/${league.id}/results`;
+  if (!isRoundRobinFirst(league)) return res.redirect(back);
+  const already = db.prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')").get(league.id).c;
+  if (already > 0 || !groupStageComplete(db, league.id)) return res.redirect(back);
+
+  const standings = computeStandings(db, league.id);
+  if (standings.length !== 12) return fail(res, 'Cup / Plate / Bowl finals need exactly 12 teams in the league (three groups of 4).');
+  const openTies = standings.filter((s) => s.tied && !s.tieResolved);
+  if (openTies.length > 0) {
+    return fail(res, `${openTies.length} teams are still tied on points and goal difference (${openTies.map((t) => t.name).join(', ')}). Record the shootout results on the Results page first, then draw the groups.`);
+  }
+  const pitchIds = getPitches(db).slice(0, league.num_pitches).map((p) => p.id);
+  if (pitchIds.length < 2) return fail(res, 'The finals need at least 2 pitches.');
+
+  const last = db
+    .prepare("SELECT MAX(round_number) AS n, MAX(week_number) AS w, MAX(date) AS d FROM rounds WHERE league_id = ? AND stage = 'group'")
+    .get(league.id);
+  const rounds = generateFinalsRoundRobins({
+    groups: [0, 4, 8].map((from) => standings.slice(from, from + 4).map((s) => s.teamId)),
+    pitchIds,
+    roundNumberStart: last.n + 1,
+    weekNumber: last.w + 1,
+    date: addDays(last.d || league.start_date, 7),
+    kickoffStartTime: league.kickoff_start_time || '17:00',
+    slotMinutes: league.slot_minutes || 45,
+  });
+  if (!safetyBackup(res, 'finals-groups')) return;
+  insertFinalsRounds(league.id, rounds);
+  res.redirect(back);
+});
+
+// Round-robin-first finals, step 2: the knockouts (1v4, 2v3, then the Grand Final) from the three mini tables.
+router.post('/league/:id/generate-finals-knockouts', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const back = `/admin/league/${league.id}/results`;
+  if (!isRoundRobinFirst(league)) return res.redirect(back);
+  const groups = getFinalsGroups(db, league.id);
+  const state = getFinalsState(db, league.id, groups);
+  if (state.knockoutsDrawn || !state.roundRobinsComplete) return res.redirect(back);
+  if (state.openTies) return fail(res, 'Some teams in the finals groups are still level. Record the shootout results first, then draw the knockouts.');
+
+  const pitchIds = getPitches(db).slice(0, league.num_pitches).map((p) => p.id);
+  const last = db
+    .prepare("SELECT MAX(round_number) AS n, MAX(week_number) AS w, MAX(date) AS d FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')")
+    .get(league.id);
+  const rounds = generateCupPlateBowl({
+    groups: groups.map((g) => g.standings.map((s) => s.teamId)),
+    pitchIds,
+    roundNumberStart: last.n + 1,
+    weekNumber: last.w + 1,
+    date: addDays(last.d, 7),
+    kickoffStartTime: league.kickoff_start_time || '17:00',
+    slotMinutes: league.slot_minutes || 45,
+  });
+  if (!safetyBackup(res, 'finals-knockouts')) return;
+  insertFinalsRounds(league.id, rounds);
+  res.redirect(back);
+});
+
+function insertFinalsRounds(leagueId, rounds) {
+  const insertRound = db.prepare(
+    "INSERT INTO rounds (league_id, round_number, week_number, stage, date, kickoff_time) VALUES (?, ?, ?, ?, ?, ?)"
+  );
+  const insertMatch = db.prepare(
+    'INSERT INTO matches (round_id, pitch_id, home_team_id, away_team_id, bracket_slot) VALUES (?, ?, ?, ?, ?)'
+  );
+  db.transaction(() => {
+    for (const round of rounds) {
+      const info = insertRound.run(leagueId, round.roundNumber, round.weekNumber, round.stage, round.date, round.kickoffTime);
+      for (const m of round.matches) insertMatch.run(info.lastInsertRowid, m.pitchId, m.homeTeamId, m.awayTeamId, m.bracketSlot);
+    }
+    db.prepare("UPDATE leagues SET status = 'in_progress' WHERE id = ?").run(leagueId);
+  })();
+}
+
+/** True once the knockouts (semi-finals / final) of a round-robin-first league have been drawn. */
+function finalsKnockoutsDrawn(leagueId) {
+  return !!db
+    .prepare(
+      `SELECT 1 FROM matches m JOIN rounds r ON r.id = m.round_id
+       WHERE r.league_id = ? AND r.stage IN ('cup', 'plate', 'bowl') AND m.bracket_slot IN ('semi_1', 'semi_2', 'final')`
+    )
+    .get(leagueId);
+}
+
+// Throw only the knockouts away (a round-robin score was wrong), keeping the round-robin results.
+router.post('/league/:id/finals-knockouts/reset', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  if (String(req.body.confirm_name ?? '').trim() !== league.name) {
+    return fail(res, 'The name you typed did not match, so the knockouts were not reset.');
+  }
+  if (!finalsKnockoutsDrawn(league.id)) return res.redirect(`/admin/league/${league.id}/results`);
+  if (!safetyBackup(res, 'reset-finals-knockouts')) return;
+  db.transaction(() => {
+    db.prepare(
+      `DELETE FROM matches WHERE bracket_slot IN ('semi_1', 'semi_2', 'final')
+         AND round_id IN (SELECT id FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl'))`
+    ).run(league.id);
+    db.prepare(
+      `DELETE FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')
+         AND NOT EXISTS (SELECT 1 FROM matches m WHERE m.round_id = rounds.id)`
+    ).run(league.id);
+    db.prepare("UPDATE leagues SET status = 'in_progress' WHERE id = ?").run(league.id);
+  })();
+  res.redirect(`/admin/league/${league.id}/results`);
+});
+
 router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
   const leagueId = Number(req.params.id);
   const match = getMatchForLeague(Number(req.params.matchId), leagueId);
@@ -814,6 +937,10 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
     return fail(res, 'This match is not set yet - enter the results of the round before it first.');
   }
 
+  const isRoundRobinMatch = match.bracket_slot === 'rr';
+  if (isRoundRobinMatch && finalsKnockoutsDrawn(leagueId)) {
+    return fail(res, 'The knockouts have been drawn from the round-robin results, so they are locked. Use "Reset the knockouts" on the Results page first.');
+  }
   const laterPlayed = playedMatchFedBy(leagueId, match);
   if (laterPlayed) return fail(res, `Clear the ${slotName(laterPlayed.bracket_slot)} first.`);
 
@@ -824,7 +951,7 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
   }
 
   let penaltyWinnerId = null;
-  if (homeScore === awayScore) {
+  if (homeScore === awayScore && !isRoundRobinMatch) {
     const picked = Number(req.body.penalty_winner_id);
     if (picked !== match.home_team_id && picked !== match.away_team_id) {
       return fail(res, 'A drawn knockout match needs a shootout winner - pick one and save again.');
@@ -886,6 +1013,7 @@ router.post('/league/:id/knockouts/reset', (req, res) => {
       "DELETE FROM matches WHERE round_id IN (SELECT id FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl'))"
     ).run(league.id);
     db.prepare("DELETE FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')").run(league.id);
+    db.prepare("DELETE FROM tie_breaks WHERE league_id = ? AND stage != 'group'").run(league.id);
     db.prepare("UPDATE leagues SET status = 'in_progress' WHERE id = ?").run(league.id);
   })();
   res.redirect(`/admin/league/${league.id}/results`);
@@ -914,6 +1042,9 @@ router.post('/league/:id/knockout-results/match/:matchId/clear', (req, res) => {
   const match = getMatchForLeague(Number(req.params.matchId), leagueId);
   if (!match || match.stage === 'group') return res.status(404).render('404');
 
+  if (match.bracket_slot === 'rr' && finalsKnockoutsDrawn(leagueId)) {
+    return fail(res, 'The knockouts have been drawn from the round-robin results, so they are locked. Use "Reset the knockouts" on the Results page first.');
+  }
   const later = matchFedBy(leagueId, match);
   if (later && later.status === 'played') {
     return fail(res, `Clear the ${slotName(later.bracket_slot)} first.`);
@@ -936,13 +1067,15 @@ router.post('/league/:id/knockout-results/match/:matchId/clear', (req, res) => {
 function allBracketsComplete(leagueId) {
   const rows = db
     .prepare(
-      `SELECT r.stage, SUM(CASE WHEN m.status = 'played' THEN 1 ELSE 0 END) AS played, COUNT(*) AS total
+      `SELECT r.stage, SUM(CASE WHEN m.status = 'played' THEN 1 ELSE 0 END) AS played, COUNT(*) AS total,
+              SUM(CASE WHEN m.bracket_slot = 'final' THEN 1 ELSE 0 END) AS finals
        FROM matches m JOIN rounds r ON r.id = m.round_id
        WHERE r.league_id = ? AND r.stage IN ('cup', 'plate', 'bowl')
        GROUP BY r.stage`
     )
     .all(leagueId);
-  return rows.length > 0 && rows.every((row) => row.total > 0 && row.played === row.total);
+  // (a round-robin-first league has not finished until its knockouts are drawn and played too)
+  return rows.length > 0 && rows.every((row) => row.total > 0 && row.played === row.total && row.finals > 0);
 }
 
 // ---------- Public menu (which tabs show, their names and order) ----------
@@ -988,22 +1121,22 @@ router.get('/league/:id/finals-format', (req, res) => {
 router.post('/league/:id/finals-format', (req, res) => {
   const league = getLeague(db, req.params.id);
   if (!league) return res.status(404).render('404');
-  const wanted = req.body.format === 'three' ? 'three' : 'standard';
+  const wanted = ['three', 'three_rr'].includes(req.body.format) ? req.body.format : 'standard';
   const numTeams = db.prepare('SELECT COUNT(*) AS n FROM teams WHERE league_id = ?').get(league.id).n;
   if (scheduleStats(league.id).knockoutRounds > 0) {
     return renderFinalsForm(res, league, { errors: ['The finals have already been drawn, so the format is locked. Reset the brackets on the Results page first if you need to change it.'] });
   }
-  if (wanted === 'three' && numTeams !== 12) {
+  if (wanted !== 'standard' && numTeams !== 12) {
     return renderFinalsForm(res, league, { errors: [`Cup / Plate / Bowl needs exactly 12 teams (three groups of 4). This league has ${numTeams}.`] });
   }
-  db.prepare('UPDATE leagues SET finals_format = ? WHERE id = ?').run(wanted === 'three' ? 'three' : null, league.id);
+  db.prepare('UPDATE leagues SET finals_format = ? WHERE id = ?').run(wanted === 'standard' ? null : wanted, league.id);
   res.redirect(`/admin/league/${league.id}/finals-format?saved=1`);
 });
 
 router.post('/league/:id/finals-blurb', (req, res) => {
   const league = getLeague(db, req.params.id);
   if (!league) return res.status(404).render('404');
-  const { errors, value } = parseBlurbInput(req.body);
+  const { errors, value } = parseBlurbInput(req.body, league);
   if (errors.length) return fail(res, errors.join(' '));
   db.prepare('UPDATE leagues SET finals_blurb = ? WHERE id = ?').run(value, league.id);
   res.redirect(`/admin/league/${league.id}/finals-format?saved=1`);

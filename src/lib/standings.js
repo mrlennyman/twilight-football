@@ -3,10 +3,24 @@
  * Standings are never stored - always derived from the matches table.
  */
 
-function computeStandings(db, leagueId) {
-  const teams = db
-    .prepare('SELECT id, name FROM teams WHERE league_id = ? ORDER BY id')
-    .all(leagueId);
+/**
+ * stage 'group' (default) = the main table from the group stage (everyone plays everyone twice).
+ * stage 'cup' | 'plate' | 'bowl' = that finals group's round-robin table (the four teams play each other once; the
+ * table starts from zero).
+ */
+function computeStandings(db, leagueId, { stage = 'group' } = {}) {
+  const roundRobin = stage !== 'group';
+  const meetings = roundRobin ? 1 : 2;
+  const teams = roundRobin
+    ? db
+        .prepare(
+          `SELECT DISTINCT t.id, t.name FROM teams t
+           JOIN matches m ON m.home_team_id = t.id OR m.away_team_id = t.id
+           JOIN rounds r ON r.id = m.round_id
+           WHERE r.league_id = ? AND r.stage = ? AND m.bracket_slot = 'rr' ORDER BY t.id`
+        )
+        .all(leagueId, stage)
+    : db.prepare('SELECT id, name FROM teams WHERE league_id = ? ORDER BY id').all(leagueId);
 
   const table = new Map();
   for (const team of teams) {
@@ -29,9 +43,9 @@ function computeStandings(db, leagueId) {
       `SELECT m.home_team_id, m.away_team_id, m.home_score, m.away_score
        FROM matches m
        JOIN rounds r ON r.id = m.round_id
-       WHERE r.league_id = ? AND r.stage = 'group' AND m.status = 'played'`
+       WHERE r.league_id = ? AND r.stage = ? AND (? = 0 OR m.bracket_slot = 'rr') AND m.status = 'played'`
     )
-    .all(leagueId);
+    .all(leagueId, stage, roundRobin ? 1 : 0);
 
   for (const match of playedMatches) {
     const home = table.get(match.home_team_id);
@@ -66,8 +80,8 @@ function computeStandings(db, leagueId) {
   }
 
   const tieBreaks = db
-    .prepare('SELECT team_a_id, team_b_id, winner_team_id FROM tie_breaks WHERE league_id = ?')
-    .all(leagueId);
+    .prepare('SELECT team_a_id, team_b_id, winner_team_id FROM tie_breaks WHERE league_id = ? AND stage = ?')
+    .all(leagueId, stage);
   const tieBreakWinner = (aId, bId) => {
     const match = tieBreaks.find(
       (tb) =>
@@ -84,7 +98,7 @@ function computeStandings(db, leagueId) {
   // stage (that's when the top4/bottom4 split needs deciding) - flagging
   // them mid-season, when most teams are still tied at 0 pts, is just noise.
   const groupStageDone =
-    rows.length > 0 && rows.every((r) => r.played === (rows.length - 1) * 2);
+    rows.length > 0 && rows.every((r) => r.played === (rows.length - 1) * meetings);
   if (!groupStageDone) {
     for (const row of rows) {
       row.tied = false;
@@ -143,10 +157,10 @@ function computeStandings(db, leagueId) {
  * The open (unsettled) ties, ready for the admin screen: for each block of teams level on points and goal
  * difference, every pair of them with its recorded shootout winner (or null if still to do).
  */
-function getOpenTieBlocks(db, leagueId, standings) {
+function getOpenTieBlocks(db, leagueId, standings, stage = 'group') {
   const recorded = db
-    .prepare('SELECT team_a_id, team_b_id, winner_team_id FROM tie_breaks WHERE league_id = ?')
-    .all(leagueId);
+    .prepare('SELECT team_a_id, team_b_id, winner_team_id FROM tie_breaks WHERE league_id = ? AND stage = ?')
+    .all(leagueId, stage);
   const winnerOf = (a, b) => {
     const hit = recorded.find(
       (tb) => (tb.team_a_id === a && tb.team_b_id === b) || (tb.team_a_id === b && tb.team_b_id === a)
@@ -189,4 +203,16 @@ function groupStageComplete(db, leagueId) {
   return counts.total > 0 && counts.played === counts.total;
 }
 
-module.exports = { computeStandings, getOpenTieBlocks, groupStageComplete };
+/** True once every round-robin match of one finals group (cup / plate / bowl) has a result. */
+function finalsGroupComplete(db, leagueId, stage) {
+  const counts = db
+    .prepare(
+      `SELECT SUM(CASE WHEN m.status = 'played' THEN 1 ELSE 0 END) AS played, COUNT(*) AS total
+       FROM matches m JOIN rounds r ON r.id = m.round_id
+       WHERE r.league_id = ? AND r.stage = ? AND m.bracket_slot = 'rr'`
+    )
+    .get(leagueId, stage);
+  return counts.total > 0 && counts.played === counts.total;
+}
+
+module.exports = { computeStandings, getOpenTieBlocks, groupStageComplete, finalsGroupComplete };

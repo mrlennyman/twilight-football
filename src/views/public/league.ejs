@@ -2,8 +2,15 @@
 <%- include('../partials/nav', { league, active: 'standings' }) %>
 <%- include('../partials/league-title', { league }) %>
 
-<h2>Standings</h2>
-<%- include('../partials/updated') %>
+<% if (finalsGroups.some(g => g.rrRounds.length > 0)) { %>
+  <h2>Finals groups</h2>
+  <%- include('../partials/updated') %>
+  <%- include('../partials/finals-groups', { groups: finalsGroups, league }) %>
+  <h2>Group stage table</h2>
+<% } else { %>
+  <h2>Standings</h2>
+  <%- include('../partials/updated') %>
+<% } %>
 <%- include('../partials/standings-table', { standings, splitMarks: resolveSplit(league, standings.length), linkTeams: true }) %>
 
 <% if (thisWeekRounds.length > 0) { %>

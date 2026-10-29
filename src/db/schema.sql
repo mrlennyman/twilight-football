@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS tie_breaks (
   league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
   team_a_id INTEGER NOT NULL REFERENCES teams(id),
   team_b_id INTEGER NOT NULL REFERENCES teams(id),
-  winner_team_id INTEGER NOT NULL REFERENCES teams(id)
+  winner_team_id INTEGER NOT NULL REFERENCES teams(id),
+  stage TEXT NOT NULL DEFAULT 'group'
 );
 
 CREATE TABLE IF NOT EXISTS pages (

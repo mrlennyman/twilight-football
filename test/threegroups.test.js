@@ -177,8 +177,12 @@ test('resetting the brackets removes the Bowl too and unlocks the format', async
 test('a database made before the Bowl existed is upgraded in place, keeping every row', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bbold-'));
   const file = path.join(dir, 'old.sqlite');
-  const schema = fs.readFileSync(path.join(__dirname, '../src/db/schema.sql'), 'utf8').replace("'plate', 'bowl'", "'plate'");
+  const schema = fs
+    .readFileSync(path.join(__dirname, '../src/db/schema.sql'), 'utf8')
+    .replace("'plate', 'bowl'", "'plate'")
+    .replace(/,\s*stage TEXT NOT NULL DEFAULT 'group'\s*\)/, ')');
   assert.ok(!schema.includes("'bowl'"), 'built the old schema');
+  assert.ok(!/winner_team_id[^;]*stage TEXT/.test(schema), 'the old tie_breaks table has no stage column');
   const old = new DatabaseSync(file);
   old.exec(schema);
   old.exec("INSERT INTO leagues (id, name, season) VALUES (1, 'Old League', 'S')");
@@ -198,6 +202,7 @@ test('a database made before the Bowl existed is upgraded in place, keeping ever
       fk: db.prepare('PRAGMA foreign_key_check').all().length,
       index: !!db.prepare("SELECT 1 FROM sqlite_master WHERE name = 'idx_rounds_league'").get(),
       finals: db.prepare('PRAGMA table_info(leagues)').all().some((c) => c.name === 'finals_format'),
+      tieStage: db.prepare('PRAGMA table_info(tie_breaks)').all().some((c) => c.name === 'stage'),
     };
     db.prepare("INSERT INTO rounds (league_id, round_number, week_number, stage) VALUES (1, 3, 3, 'bowl')").run();
     out.bowlInserted = db.prepare("SELECT COUNT(*) AS n FROM rounds WHERE stage = 'bowl'").get().n;
@@ -216,6 +221,7 @@ test('a database made before the Bowl existed is upgraded in place, keeping ever
   assert.equal(out.fk, 0, 'no broken references');
   assert.equal(out.index, true);
   assert.equal(out.finals, true);
+  assert.equal(out.tieStage, true, 'the tie-break scope column is added to an old database');
   assert.equal(out.bowlInserted, 1);
   assert.deepEqual(out.afterDelete, { rounds: 0, matches: 0 }, 'cascading deletes still work through the rebuilt table');
   assert.ok(fs.readdirSync(path.join(dir, 'backups')).some((f) => /pre-bowl-migration/.test(f)), 'a safety copy was taken first');
