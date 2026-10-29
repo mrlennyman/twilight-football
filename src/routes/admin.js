@@ -960,7 +960,8 @@ function renderSplitForm(res, league, saved, status = 200) {
     league,
     numTeams,
     settings: getSplitSettings(league),
-    preview: resolveSplit(league, numTeams, { mode: 'labels', after: null }),
+    preview: resolveSplit(league, numTeams, { mode: 'labels', three: false, after: null }),
+    previewThirds: resolveSplit(league, numTeams, { mode: 'labels', three: true, after: null, after2: null }),
     saved,
   });
 }

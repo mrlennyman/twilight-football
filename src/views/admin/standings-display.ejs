@@ -15,14 +15,22 @@
     <label class="check-row"><input type="radio" name="mode" value="off" <%= settings.mode === 'off' ? 'checked' : '' %>> Nothing - a plain table</label>
   </fieldset>
 
-  <label>Text above the top half <span class="muted">(blank = &ldquo;Top <%= preview.after || 'N' %>&rdquo;)</span>
-    <input type="text" name="top" value="<%= settings.top %>" maxlength="30" placeholder="e.g. Championship">
+  <label class="check-row"><input type="checkbox" name="three" <%= settings.three ? 'checked' : '' %>> Add a second line (three groups instead of two, e.g. Cup / Plate / Bowl)</label>
+
+  <label>Text above the top group <span class="muted">(blank = &ldquo;Top N&rdquo;)</span>
+    <input type="text" name="top" value="<%= settings.top %>" maxlength="30" placeholder="e.g. Cup">
   </label>
-  <label>Text above the bottom half <span class="muted">(blank = &ldquo;Bottom <%= preview.after ? numTeams - preview.after : 'N' %>&rdquo;)</span>
-    <input type="text" name="bottom" value="<%= settings.bottom %>" maxlength="30" placeholder="e.g. Challenge">
+  <label>Text above the middle group <span class="muted">(only used with the second line; blank = &ldquo;Middle N&rdquo;)</span>
+    <input type="text" name="middle" value="<%= settings.middle %>" maxlength="30" placeholder="e.g. Plate">
   </label>
-  <label>Split after place <span class="muted">(blank = halfway<%= preview.after ? ', which is after ' + preview.after : ' - this league has no automatic split, so type a number to get one' %>)</span>
+  <label>Text above the bottom group <span class="muted">(blank = &ldquo;Bottom N&rdquo;)</span>
+    <input type="text" name="bottom" value="<%= settings.bottom %>" maxlength="30" placeholder="e.g. Bowl">
+  </label>
+  <label>First line after place <span class="muted">(blank = automatic: <%= preview.cuts.length ? 'halfway, after ' + preview.cuts[0] : 'this league has no automatic two-group split, so type a number to get one' %><%= previewThirds.cuts.length === 2 ? '; with the second line, thirds, after ' + previewThirds.cuts.join(' and ') : '' %>)</span>
     <input type="number" name="after" value="<%= settings.after || '' %>" min="1" max="<%= numTeams - 1 %>" placeholder="automatic">
+  </label>
+  <label>Second line after place <span class="muted">(only used with the second line; blank = automatic)</span>
+    <input type="number" name="after2" value="<%= settings.after2 || '' %>" min="1" max="<%= numTeams - 1 %>" placeholder="automatic">
   </label>
   <button type="submit">Save</button>
 </form>

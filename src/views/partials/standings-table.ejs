@@ -2,7 +2,7 @@
 // Expects: standings (array from computeStandings)
 // Optional: split - from resolveSplit(league, standings.length): marks the top / bottom halves with labels or a line
 // Optional: linkTeams (boolean) - team names link to the team page
-const split = typeof splitMarks !== 'undefined' && splitMarks ? splitMarks : { mode: 'off', after: null };
+const split = typeof splitMarks !== 'undefined' && splitMarks ? splitMarks : { mode: 'off', cuts: [], texts: [] };
 %>
 <div class="table-scroll">
 <table class="standings-table">
@@ -13,10 +13,10 @@ const split = typeof splitMarks !== 'undefined' && splitMarks ? splitMarks : { m
   </thead>
   <tbody>
     <% standings.forEach((row, i) => { %>
-      <% if (split.mode === 'labels' && (i === 0 || i === split.after)) { %>
-        <tr class="split-label"><td colspan="9"><%= i === 0 ? split.topText : split.bottomText %></td></tr>
+      <% if (split.mode === 'labels' && (i === 0 || split.cuts.includes(i))) { %>
+        <tr class="split-label"><td colspan="9"><%= split.texts[i === 0 ? 0 : split.cuts.indexOf(i) + 1] %></td></tr>
       <% } %>
-      <tr class="<%= (split.mode === 'line' && i === split.after - 1) ? 'split-row' : '' %>" data-team-id="<%= row.teamId %>">
+      <tr class="<%= (split.mode === 'line' && split.cuts.includes(i + 1)) ? 'split-row' : '' %>" data-team-id="<%= row.teamId %>">
         <td><%= i + 1 %></td>
         <td>
           <% if (typeof linkTeams !== 'undefined' && linkTeams && typeof league !== 'undefined') { %><a href="/league/<%= league.id %>/team/<%= row.teamId %>"><%= row.name %></a><% } else { %><%= row.name %><% } %>
