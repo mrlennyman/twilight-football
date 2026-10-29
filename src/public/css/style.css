@@ -194,6 +194,21 @@ th {
 tbody tr:last-child td { border-bottom: none; }
 .standings-table td:nth-child(n+3), .standings-table th:nth-child(n+3) { text-align: center; }
 .split-row td { border-bottom: 2px solid var(--gold); }
+/* "Top 6" / "Bottom 6" band across the standings table */
+.standings-table tr.split-label td {
+  padding: 5px 12px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--wine-700);
+  background: #f6ecd9;
+  border-top: 2px solid var(--gold);
+  border-bottom: 1px solid var(--border);
+}
+.standings-table tr.split-label:first-child td { border-top: 0; }
+.standings-table tbody tr.split-label + tr td { border-top: 0; }
 
 @media (max-width: 400px) {
   .standings-table th, .standings-table td { padding: 8px 5px; }

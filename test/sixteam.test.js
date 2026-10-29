@@ -141,3 +141,11 @@ test('the team page and the change log name quarter-finals', async () => {
   const log = (await h.request('GET', `/admin/league/${id}/log`)).text;
   assert.match(log, /Cup quarter-final|Cup semi-final|Cup final/);
 });
+
+test('the public standings label the top and bottom halves (12 teams: Top 6 / Bottom 6)', async () => {
+  const page = (await h.request('GET', `/league/${id}`)).text;
+  assert.match(page, /<tr class="split-label"><td colspan="9">Top 6<\/td><\/tr>/);
+  assert.match(page, /<tr class="split-label"><td colspan="9">Bottom 6<\/td><\/tr>/);
+  const order = [...page.matchAll(/class="split-label"|data-team-id="\d+"/g)].map((m) => (m[0].startsWith('class') ? 'L' : 't')).join('');
+  assert.match(order, /^Lt{6}Lt{6}/, 'a label above rows 1-6 and another above rows 7-12');
+});

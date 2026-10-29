@@ -148,3 +148,9 @@ test('sponsor bar is compact (about 30% smaller than the first version)', () => 
   assert.match(css, /\n\.sponsor \{[^}]*padding:\s*8px 12px/);
   assert.match(css, /\n\.sponsor \{[^}]*font-size:\s*0\.62rem/);
 });
+
+test('an 8-team league labels its halves Top 4 / Bottom 4', async () => {
+  const eight = await h.request('GET', '/league/1');
+  assert.match(eight.text, /Top 4<\/td>/);
+  assert.match(eight.text, /Bottom 4<\/td>/);
+});

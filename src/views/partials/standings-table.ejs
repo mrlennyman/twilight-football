@@ -1,6 +1,11 @@
 <%
 // Expects: standings (array from computeStandings)
+// Optional: showGroups (boolean) - labels the top and bottom halves ("Top 6" / "Bottom 6") when the table splits evenly
 // Optional: highlightSplit (boolean) - draws a line between the Cup and Plate places (after 4th, or after 6th in a league of 12+)
+%>
+<%
+const half = knockoutSize(standings.length);
+const showHalves = typeof showGroups !== 'undefined' && showGroups && standings.length >= 8 && half * 2 === standings.length;
 %>
 <div class="table-scroll">
 <table class="standings-table">
@@ -11,6 +16,9 @@
   </thead>
   <tbody>
     <% standings.forEach((row, i) => { %>
+      <% if (showHalves && (i === 0 || i === half)) { %>
+        <tr class="split-label"><td colspan="9"><%= i === 0 ? 'Top ' : 'Bottom ' %><%= half %></td></tr>
+      <% } %>
       <tr class="<%= (typeof highlightSplit !== 'undefined' && highlightSplit && i === knockoutSize(standings.length) - 1) ? 'split-row' : '' %>" data-team-id="<%= row.teamId %>">
         <td><%= i + 1 %></td>
         <td>
