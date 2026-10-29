@@ -200,8 +200,10 @@ tbody tr:last-child td { border-bottom: none; }
 .finals-blurb-fold summary::-webkit-details-marker { display: none; }
 .finals-blurb-fold summary::after { content: '+'; float: right; color: var(--wine-700); font-size: 1.2rem; line-height: 1; }
 .finals-blurb-fold[open] summary::after { content: '\2212'; }
-.finals-blurb-fold > :not(summary) { padding-left: 16px; padding-right: 16px; }
-.finals-blurb-fold > :last-child { padding-bottom: 6px; }
+.finals-blurb-fold > :not(summary) { margin: 0 16px 12px; padding: 0; }
+.finals-blurb-fold > ul, .finals-blurb-fold > ol { padding-left: 1.4rem; }
+.finals-blurb-fold > h2, .finals-blurb-fold > h3 { margin-top: 4px; font-size: 1.05rem; }
+.finals-blurb-fold > :last-child { margin-bottom: 16px; }
 .finals-tabs { margin-top: 4px; }
 /* "Top 6" / "Bottom 6" band across the standings table */
 .standings-table tr.split-label td {

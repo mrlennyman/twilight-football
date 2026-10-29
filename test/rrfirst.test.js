@@ -124,7 +124,7 @@ test('after the group stage the three groups are drawn, each with a round robin 
   const rrDate = rowsOf('cup', 'rr')[0].date;
   assert.equal((new Date(`${rrDate}T12:00:00Z`) - new Date(`${lastGroupDate}T12:00:00Z`)) / 86400000, 7, 'the Wednesday after the last group night');
 
-  // one table per group, every team on zero, on the Finals page and the Standings page
+  // one table per group, every team on zero, on the Finals page
   const finals = await get('/league/bracket');
   // one group at a time, with tabs: Cup first, the others a tap away
   assert.match(finals, /class="week-tabs finals-tabs"/);
@@ -139,9 +139,9 @@ test('after the group stage the three groups are drawn, each with a round robin 
     assert.equal((tab.text.match(/<table class="standings-table">/g) || []).length, 1);
   }
   assert.match((await h.request('GET', `/league/${id}/bracket?group=nonsense`)).text, /<h2>Cup <span/, 'an unknown tab falls back to the Cup');
-  assert.match(await get('/league'), /Finals groups/);
-  assert.match(await get('/league'), /Group stage table/);
-  assert.equal((await get('/league')).match(/<table class="standings-table">/g).length, 4, 'three mini tables and the group-stage table');
+  // the Standings page stays just the group-stage table
+  assert.doesNotMatch(await get('/league'), /Finals groups/);
+  assert.equal((await get('/league')).match(/<table class="standings-table">/g).length, 1, 'only the group-stage table');
 
   // the format is locked now, and the knockouts can't be drawn early
   assert.match((await post('/finals-format', { format: 'standard' })).text, /locked/);

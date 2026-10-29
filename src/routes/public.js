@@ -68,7 +68,6 @@ function renderLeagueHome(league, res) {
   res.render('public/league', {
     league,
     standings,
-    finalsGroups: isRoundRobinFirst(league) ? getFinalsGroups(db, league.id) : [],
     currentWeek,
     thisWeekRounds,
     updatedText: formatUpdated(getLastUpdated(db, league.id)),
