@@ -425,7 +425,34 @@ function generateCupAndPlate({
   return [...cup, ...plate];
 }
 
+/**
+ * Cup / Plate / Bowl: three groups of 4 (ranked 1st..4th within each group), each with semi-finals (1v4, 2v3) and a
+ * final. 6+ pitches: all three groups side by side (Cup on pitches 1-2, Plate 3-4, Bowl 5-6). 4-5 pitches: Cup and
+ * Plate side by side, the Bowl two slots later. Fewer: one group after another.
+ * Round numbers are distinct: Cup n, n+1; Plate n+2, n+3; Bowl n+4, n+5.
+ */
+function generateCupPlateBowl({ groups, pitchIds, roundNumberStart, weekNumber, date, kickoffStartTime, slotMinutes }) {
+  if (pitchIds.length < 2) throw new Error('The finals need at least 2 pitches');
+  const stages = ['cup', 'plate', 'bowl'];
+  const side = pitchIds.length >= 6 ? 3 : pitchIds.length >= 4 ? 2 : 1; // how many groups play at the same time
+  return groups.flatMap((rankedTeamIds, g) => {
+    const wave = Math.floor(g / side);
+    const slot = g % side;
+    return generateKnockoutBracket({
+      rankedTeamIds,
+      stage: stages[g],
+      pitchIds: side === 1 ? pitchIds.slice(0, 2) : pitchIds.slice(slot * 2, slot * 2 + 2),
+      roundNumberStart: roundNumberStart + g * 2,
+      weekNumber,
+      date,
+      kickoffStartTime: addMinutes(kickoffStartTime, wave * 2 * slotMinutes),
+      slotMinutes,
+    });
+  });
+}
+
 module.exports = {
+  generateCupPlateBowl,
   generateCupAndPlate,
   circleMethodRounds,
   doubleRoundRobin,

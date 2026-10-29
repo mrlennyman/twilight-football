@@ -8,7 +8,7 @@ const { resolveDbPath } = require('./lib/paths');
 
 const { formatDate, formatTime } = require('./lib/format');
 const { resolveNavTabs } = require('./lib/navTabs');
-const { slotName, roundName, bracketSize } = require('./lib/knockoutResult');
+const { slotName, roundName, bracketSize, stageName, isThreeGroupFinals } = require('./lib/knockoutResult');
 const { resolveSplit } = require('./lib/standingsSplit');
 const { parseTrustProxy } = require('./lib/proxy');
 const publicRoutes = require('./routes/public');
@@ -85,6 +85,8 @@ app.locals.slotName = slotName;
 app.locals.roundName = roundName;
 app.locals.knockoutSize = bracketSize;
 app.locals.resolveSplit = resolveSplit;
+app.locals.stageName = stageName;
+app.locals.isThreeGroupFinals = isThreeGroupFinals;
 
 app.use('/', publicRoutes);
 app.use('/admin', adminRoutes);

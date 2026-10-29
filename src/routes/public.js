@@ -185,8 +185,9 @@ router.get('/league/:id/bracket', (req, res) => {
 
   const cupRounds = getRoundsWithMatches(db, league.id, 'cup');
   const plateRounds = getRoundsWithMatches(db, league.id, 'plate');
+  const bowlRounds = getRoundsWithMatches(db, league.id, 'bowl');
 
-  res.render('public/bracket', { league, cupRounds, plateRounds });
+  res.render('public/bracket', { league, cupRounds, plateRounds, bowlRounds });
 });
 
 router.get('/league/:id/info', (req, res) => {

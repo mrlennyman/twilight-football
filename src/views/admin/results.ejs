@@ -23,7 +23,7 @@
 <% } %>
 
 <h2>Standings</h2>
-<%- include('../partials/standings-table', { standings, splitMarks: resolveSplit(league, standings.length, { mode: 'line', three: false, after: null }) }) %>
+<%- include('../partials/standings-table', { standings, splitMarks: resolveSplit(league, standings.length, { mode: 'line', three: isThreeGroupFinals(league), after: null, after2: null }) }) %>
 
 <% if (tieBlocks.length > 0) { %>
   <div class="callout">
@@ -61,28 +61,33 @@
   </div>
 <% } %>
 
-<h2>Cup &amp; Plate knockouts</h2>
+<h2><%- isThreeGroupFinals(league) ? 'Cup, Plate &amp; Bowl finals' : 'Cup &amp; Plate knockouts' %></h2>
 <% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
   <% if (stageComplete && tieBlocks.length > 0) { %>
     <p class="muted">Settle the tied teams above first, then the brackets can be drawn.</p>
-    <button type="button" disabled>Generate Cup &amp; Plate brackets</button>
+    <button type="button" disabled><%- isThreeGroupFinals(league) ? 'Generate the finals brackets' : 'Generate Cup &amp; Plate brackets' %></button>
   <% } else if (stageComplete) { %>
     <form method="POST" action="/admin/league/<%= league.id %>/generate-knockouts">
-      <button type="submit">Generate Cup &amp; Plate brackets</button>
+      <button type="submit"><%- isThreeGroupFinals(league) ? 'Generate the finals brackets' : 'Generate Cup &amp; Plate brackets' %></button>
     </form>
   <% } else { %>
     <p class="muted">Available once every group-stage match has a result.</p>
   <% } %>
 <% } else { %>
-  <h3>Cup (top <%= knockoutSize(standings.length) %>)</h3>
+  <% const groupSize = isThreeGroupFinals(league) ? 4 : knockoutSize(standings.length); %>
+  <h3>Cup (top <%= groupSize %>)</h3>
   <%- include('../partials/round-list', { rounds: cupRounds, editable: true, knockout: true, league }) %>
-  <h3>Plate (places <%= knockoutSize(standings.length) + 1 %> to <%= knockoutSize(standings.length) * 2 %>)</h3>
+  <h3>Plate (places <%= groupSize + 1 %> to <%= groupSize * 2 %>)</h3>
   <%- include('../partials/round-list', { rounds: plateRounds, editable: true, knockout: true, league }) %>
+  <% if (bowlRounds.length > 0) { %>
+    <h3>Bowl (places 9 to 12)</h3>
+    <%- include('../partials/round-list', { rounds: bowlRounds, editable: true, knockout: true, league }) %>
+  <% } %>
 
   <details class="reset-brackets">
     <summary>Reset the brackets (a group score was wrong)</summary>
     <form method="POST" action="/admin/league/<%= league.id %>/knockouts/reset" class="admin-form">
-      <p class="callout">This deletes both brackets and every Cup/Plate result so far, and unlocks the group results so you can correct them. A safety copy of the database is saved first. Then draw the brackets again.</p>
+      <p class="callout">This deletes the brackets and every finals result so far, and unlocks the group results so you can correct them. A safety copy of the database is saved first. Then draw the brackets again.</p>
       <label>Type the league name (<strong><%= league.name %></strong>) to confirm
         <input type="text" name="confirm_name" autocomplete="off" required>
       </label>

@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS rounds (
   league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
   round_number INTEGER NOT NULL,
   week_number INTEGER NOT NULL,
-  stage TEXT NOT NULL DEFAULT 'group' CHECK (stage IN ('group', 'cup', 'plate')),
+  stage TEXT NOT NULL DEFAULT 'group' CHECK (stage IN ('group', 'cup', 'plate', 'bowl')),
   date TEXT,
   kickoff_time TEXT
 );

@@ -85,4 +85,10 @@ function feedOf(slot) {
   return FEEDS[slot] || null;
 }
 
-module.exports = { matchWinner, tryFillFinal, feedOf, slotName, roundName, bracketSize };
+const STAGE_NAMES = { cup: 'Cup', plate: 'Plate', bowl: 'Bowl' };
+const stageName = (stage) => STAGE_NAMES[stage] || 'Group';
+
+/** True when the league plays the finals as Cup / Plate / Bowl (three groups of 4) rather than Cup and Plate. */
+const isThreeGroupFinals = (league) => !!league && league.finals_format === 'three';
+
+module.exports = { matchWinner, tryFillFinal, feedOf, slotName, roundName, bracketSize, stageName, isThreeGroupFinals };

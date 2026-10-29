@@ -1,4 +1,4 @@
 <%- include('../partials/header', { title: league.name + ' — Standings', printCss: true }) %>
 <h1><%= league.name %> — Standings</h1>
-<%- include('../partials/standings-table', { standings, splitMarks: resolveSplit(league, standings.length, { mode: 'line', three: false, after: null }) }) %>
+<%- include('../partials/standings-table', { standings, splitMarks: resolveSplit(league, standings.length, { mode: 'line', three: isThreeGroupFinals(league), after: null, after2: null }) }) %>
 <%- include('../partials/footer') %>

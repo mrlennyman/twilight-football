@@ -1,0 +1,32 @@
+<%- include('../partials/header', { title: league.name + ' — Finals' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Finals</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p class="muted">How this league finishes once the group games are done. This league has <%= numTeams %> teams.</p>
+
+<% if (saved) { %><p class="callout">Saved. <a class="btn btn-light btn-sm" href="/league/<%= league.id %>/bracket" target="_blank">See the public finals page</a></p><% } %>
+<% if (errors.length) { %>
+  <div class="callout callout-warn"><strong>Nothing was changed.</strong>
+    <ul><% errors.forEach(e => { %><li><%= e %></li><% }) %></ul>
+  </div>
+<% } %>
+
+<form method="POST" action="/admin/league/<%= league.id %>/finals-format" class="admin-form admin-form-wide">
+  <fieldset class="format-choice">
+    <legend>Finals format</legend>
+    <label class="check-row"><input type="radio" name="format" value="standard" <%= !isThreeGroupFinals(league) ? 'checked' : '' %> <%= drawn ? 'disabled' : '' %>> <span><strong>Cup &amp; Plate</strong> - the top half play for the Cup and the bottom half for the Plate (semi-finals and a final in each). 4 teams in each from 8 to 11 teams; 6 in each (with quarter-finals) from 12.</span></label>
+    <label class="check-row"><input type="radio" name="format" value="three" <%= isThreeGroupFinals(league) ? 'checked' : '' %> <%= drawn ? 'disabled' : '' %>> <span><strong>Cup, Plate &amp; Bowl</strong> - three groups of 4 by ranking (1st-4th, 5th-8th, 9th-12th). Each group has semi-finals (1st v 4th, 2nd v 3rd) and a Grand Final, all on one night. Needs exactly 12 teams.</span></label>
+  </fieldset>
+  <% if (drawn) { %>
+    <p class="callout">The finals have been drawn, so the format is locked. To change it, use <em>Reset the brackets</em> on the Results page first.</p>
+  <% } else { %>
+    <button type="submit">Save</button>
+  <% } %>
+</form>
+
+<h2>The explanation parents see (Cup, Plate &amp; Bowl)</h2>
+<p class="muted">This shows at the top of the public finals page when the Cup, Plate &amp; Bowl format is on. It also changes the table's groups and the menu tab (&ldquo;Finals&rdquo;) unless you've set those yourself.</p>
+<%- include('../partials/finals-blurb') %>
+
+<%- include('../partials/footer') %>

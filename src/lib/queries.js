@@ -133,7 +133,7 @@ function countPublishedPages(db, leagueId) {
 
 function countKnockoutRounds(db, leagueId) {
   return db
-    .prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate')")
+    .prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')")
     .get(leagueId).c;
 }
 

@@ -3,8 +3,8 @@ const db = require('../db');
 const { checkPassword, requireAdmin, safeReturnTo } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/loginLimiter');
 const { computeStandings, getOpenTieBlocks, groupStageComplete } = require('../lib/standings');
-const { generateGroupStageSchedule, generateCupAndPlate, addDays } = require('../lib/schedule');
-const { tryFillFinal, feedOf, slotName, bracketSize } = require('../lib/knockoutResult');
+const { generateGroupStageSchedule, generateCupAndPlate, generateCupPlateBowl, addDays } = require('../lib/schedule');
+const { tryFillFinal, feedOf, slotName, bracketSize, stageName, isThreeGroupFinals } = require('../lib/knockoutResult');
 const {
   parseScore,
   parseLeagueInput,
@@ -80,7 +80,7 @@ function scheduleStats(leagueId) {
       `SELECT
          COUNT(DISTINCT r.id) AS rounds,
          COUNT(CASE WHEN m.status = 'played' THEN 1 END) AS played,
-         COUNT(DISTINCT CASE WHEN r.stage IN ('cup', 'plate') THEN r.id END) AS knockout_rounds
+         COUNT(DISTINCT CASE WHEN r.stage IN ('cup', 'plate', 'bowl') THEN r.id END) AS knockout_rounds
        FROM rounds r LEFT JOIN matches m ON m.round_id = r.id
        WHERE r.league_id = ?`
     )
@@ -89,7 +89,7 @@ function scheduleStats(leagueId) {
 }
 
 const GROUP_LOCKED_MESSAGE =
-  'Group results are locked because the Cup and Plate brackets have been drawn. ' +
+  'Group results are locked because the finals brackets have been drawn. ' +
   'Reset the brackets first if a group score was wrong.';
 
 function groupResultsLocked(leagueId) {
@@ -469,7 +469,7 @@ router.post('/league/:id/schedule/generate', (req, res) => {
       return fail(
         res,
         `Regenerating would delete ${existing.played} result${existing.played === 1 ? '' : 's'}` +
-          `${existing.knockoutRounds ? ' and the Cup/Plate brackets' : ''}. ` +
+          `${existing.knockoutRounds ? ' and the finals brackets' : ''}. ` +
           'Nothing was changed. To go ahead, type the league name exactly in the confirmation box.'
       );
     }
@@ -561,7 +561,7 @@ router.post('/league/:id/fixture-import/confirm', (req, res) => {
       return fail(
         res,
         `Importing would delete ${stats.played} result${stats.played === 1 ? '' : 's'}` +
-          `${stats.knockoutRounds ? ' and the Cup/Plate brackets' : ''}. ` +
+          `${stats.knockoutRounds ? ' and the finals brackets' : ''}. ` +
           'Nothing was changed. To go ahead, type the league name exactly in the confirmation box.'
       );
     }
@@ -586,6 +586,7 @@ router.get('/league/:id/results', (req, res) => {
 
   const cupRounds = getRoundsWithMatches(db, league.id, 'cup');
   const plateRounds = getRoundsWithMatches(db, league.id, 'plate');
+  const bowlRounds = getRoundsWithMatches(db, league.id, 'bowl');
 
   res.render('admin/results', {
     league,
@@ -597,9 +598,10 @@ router.get('/league/:id/results', (req, res) => {
     teams,
     cupRounds,
     plateRounds,
+    bowlRounds,
     tieBlocks: getOpenTieBlocks(db, league.id, standings),
     missed: missedResults(league.id),
-    groupLocked: cupRounds.length > 0 || plateRounds.length > 0,
+    groupLocked: cupRounds.length > 0 || plateRounds.length > 0 || bowlRounds.length > 0,
   });
 });
 
@@ -705,7 +707,7 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   if (!league) return res.status(404).render('404');
 
   const alreadyGenerated = db
-    .prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate')")
+    .prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')")
     .get(league.id).c;
   if (alreadyGenerated > 0 || !groupStageComplete(db, league.id)) {
     return res.redirect(`/admin/league/${league.id}/results`);
@@ -713,8 +715,12 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
 
   const standings = computeStandings(db, league.id);
   // 4 teams in each bracket (8 to 11 teams in the league), or 6 in each from 12 teams up.
+  const threeGroups = isThreeGroupFinals(league);
   const size = bracketSize(standings.length);
-  if (standings.length < 2 * size) {
+  if (threeGroups && standings.length !== 12) {
+    return fail(res, 'Cup / Plate / Bowl finals need exactly 12 teams in the league (three groups of 4).');
+  }
+  if (!threeGroups && standings.length < 2 * size) {
     return fail(res, 'Cup/Plate knockouts need at least 8 teams in the league.');
   }
 
@@ -730,6 +736,7 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
 
   const cupTeams = standings.slice(0, size).map((s) => s.teamId);
   const plateTeams = standings.slice(size, size * 2).map((s) => s.teamId);
+  const groupsOfFour = [0, 4, 8].map((from) => standings.slice(from, from + 4).map((s) => s.teamId));
   const pitchIds = getPitches(db)
     .slice(0, league.num_pitches)
     .map((p) => p.id);
@@ -749,16 +756,16 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   const kickoffTime = league.kickoff_start_time || '17:00';
   const slotMinutes = league.slot_minutes || 45;
 
-  const knockoutRounds = generateCupAndPlate({
-    cupTeamIds: cupTeams,
-    plateTeamIds: plateTeams,
-    pitchIds,
+  const when = {
     roundNumberStart: lastGroupRound + 1,
     weekNumber: lastGroupWeek + 1,
     date: knockoutDate,
     kickoffStartTime: kickoffTime,
     slotMinutes,
-  });
+  };
+  const knockoutRounds = threeGroups
+    ? generateCupPlateBowl({ groups: groupsOfFour, pitchIds, ...when })
+    : generateCupAndPlate({ cupTeamIds: cupTeams, plateTeamIds: plateTeams, pitchIds, ...when });
 
   if (!safetyBackup(res, 'knockouts')) return;
 
@@ -827,7 +834,7 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
   saveScore(db, match.id, homeScore, awayScore, penaltyWinnerId, { ip: req.ip });
 
   tryFillFinal(db, leagueId, match.stage);
-  if (isBracketComplete(leagueId, 'cup') && isBracketComplete(leagueId, 'plate')) {
+  if (allBracketsComplete(leagueId)) {
     db.prepare("UPDATE leagues SET status = 'complete' WHERE id = ?").run(leagueId);
   }
 
@@ -856,14 +863,14 @@ router.get('/league/:id/log', (req, res) => {
       where:
         e.stage === 'group'
           ? `Round ${e.round_number}`
-          : `${e.stage === 'cup' ? 'Cup' : 'Plate'} ${slotName(e.bracket_slot)}`,
+          : `${stageName(e.stage)} ${slotName(e.bracket_slot)}`,
       oldText: e.old_status === 'played' ? `${e.old_home}-${e.old_away}` : 'no result',
       newText: e.new_status === 'played' ? `${e.new_home}-${e.new_away}` : 'cleared',
     }));
   res.render('admin/log', { league, entries });
 });
 
-// Throw the Cup/Plate brackets away (e.g. a group score turns out to be wrong) so they can be drawn again.
+// Throw the finals brackets away (e.g. a group score turns out to be wrong) so they can be drawn again.
 router.post('/league/:id/knockouts/reset', (req, res) => {
   const league = getLeague(db, req.params.id);
   if (!league) return res.status(404).render('404');
@@ -875,9 +882,9 @@ router.post('/league/:id/knockouts/reset', (req, res) => {
 
   db.transaction(() => {
     db.prepare(
-      "DELETE FROM matches WHERE round_id IN (SELECT id FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate'))"
+      "DELETE FROM matches WHERE round_id IN (SELECT id FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl'))"
     ).run(league.id);
-    db.prepare("DELETE FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate')").run(league.id);
+    db.prepare("DELETE FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')").run(league.id);
     db.prepare("UPDATE leagues SET status = 'in_progress' WHERE id = ?").run(league.id);
   })();
   res.redirect(`/admin/league/${league.id}/results`);
@@ -924,15 +931,17 @@ router.post('/league/:id/knockout-results/match/:matchId/clear', (req, res) => {
   res.redirect(`/admin/league/${leagueId}/results#round-${match.round_id}`);
 });
 
-function isBracketComplete(leagueId, stage) {
-  const counts = db
+/** True once there are finals brackets and every match in every one of them (Cup, Plate, Bowl) has been played. */
+function allBracketsComplete(leagueId) {
+  const rows = db
     .prepare(
-      `SELECT SUM(CASE WHEN m.status = 'played' THEN 1 ELSE 0 END) AS played, COUNT(*) AS total
+      `SELECT r.stage, SUM(CASE WHEN m.status = 'played' THEN 1 ELSE 0 END) AS played, COUNT(*) AS total
        FROM matches m JOIN rounds r ON r.id = m.round_id
-       WHERE r.league_id = ? AND r.stage = ?`
+       WHERE r.league_id = ? AND r.stage IN ('cup', 'plate', 'bowl')
+       GROUP BY r.stage`
     )
-    .get(leagueId, stage);
-  return counts.total > 0 && counts.played === counts.total;
+    .all(leagueId);
+  return rows.length > 0 && rows.every((row) => row.total > 0 && row.played === row.total);
 }
 
 // ---------- Public menu (which tabs show, their names and order) ----------
@@ -950,6 +959,34 @@ router.post('/league/:id/navigation', (req, res) => {
   if (errors.length) return fail(res, errors.join(' '));
   db.prepare('UPDATE leagues SET nav_tabs = ? WHERE id = ?').run(value, league.id);
   res.redirect(`/admin/league/${league.id}/navigation?saved=1`);
+});
+
+// ---------- Finals format (Cup & Plate, or Cup / Plate / Bowl) ----------
+
+function renderFinalsForm(res, league, { saved = false, errors = [] } = {}) {
+  const numTeams = db.prepare('SELECT COUNT(*) AS n FROM teams WHERE league_id = ?').get(league.id).n;
+  res.render('admin/finals-format', { league, numTeams, saved, errors, drawn: scheduleStats(league.id).knockoutRounds > 0 });
+}
+
+router.get('/league/:id/finals-format', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  renderFinalsForm(res, league, { saved: req.query.saved === '1' });
+});
+
+router.post('/league/:id/finals-format', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const wanted = req.body.format === 'three' ? 'three' : 'standard';
+  const numTeams = db.prepare('SELECT COUNT(*) AS n FROM teams WHERE league_id = ?').get(league.id).n;
+  if (scheduleStats(league.id).knockoutRounds > 0) {
+    return renderFinalsForm(res, league, { errors: ['The finals have already been drawn, so the format is locked. Reset the brackets on the Results page first if you need to change it.'] });
+  }
+  if (wanted === 'three' && numTeams !== 12) {
+    return renderFinalsForm(res, league, { errors: [`Cup / Plate / Bowl needs exactly 12 teams (three groups of 4). This league has ${numTeams}.`] });
+  }
+  db.prepare('UPDATE leagues SET finals_format = ? WHERE id = ?').run(wanted === 'three' ? 'three' : null, league.id);
+  res.redirect(`/admin/league/${league.id}/finals-format?saved=1`);
 });
 
 // ---------- Standings display (the top / bottom split marker) ----------
