@@ -10,6 +10,7 @@ const { formatDate, formatTime } = require('./lib/format');
 const { resolveNavTabs } = require('./lib/navTabs');
 const { slotName, roundName, bracketSize, stageName, isThreeGroupFinals } = require('./lib/knockoutResult');
 const { resolveSplit } = require('./lib/standingsSplit');
+const { finalsBlurbHtml } = require('./lib/finalsBlurb');
 const { parseTrustProxy } = require('./lib/proxy');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
@@ -86,6 +87,7 @@ app.locals.roundName = roundName;
 app.locals.knockoutSize = bracketSize;
 app.locals.resolveSplit = resolveSplit;
 app.locals.stageName = stageName;
+app.locals.finalsBlurbHtml = finalsBlurbHtml;
 app.locals.isThreeGroupFinals = isThreeGroupFinals;
 
 app.use('/', publicRoutes);

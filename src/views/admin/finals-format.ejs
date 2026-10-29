@@ -25,8 +25,24 @@
   <% } %>
 </form>
 
-<h2>The explanation parents see (Cup, Plate &amp; Bowl)</h2>
-<p class="muted">This shows at the top of the public finals page when the Cup, Plate &amp; Bowl format is on. It also changes the table's groups and the menu tab (&ldquo;Finals&rdquo;) unless you've set those yourself.</p>
+<h2>The explanation parents see</h2>
+<p class="muted">Shown at the top of the public finals page. <%= isThreeGroupFinals(league) ? 'With the Cup, Plate & Bowl format on, the standard wording below is used until you change it.' : 'This league has no explanation until you write one.' %> Edit it any time.</p>
+
+<form method="POST" action="/admin/league/<%= league.id %>/finals-blurb" class="admin-form admin-form-wide">
+  <label>Explanation
+    <textarea name="text" rows="14" maxlength="<%= blurbMax %>"><%= blurbText %></textarea>
+  </label>
+  <p class="help">
+    Formatting: <code># Big heading</code> &middot; start a line with <code>- </code> for bullets or <code>1. </code> for numbers &middot;
+    <code>**bold**</code> &middot; <code>[link text](https://example.com)</code>. A blank line starts a new paragraph.
+  </p>
+  <button type="submit">Save explanation</button>
+  <% if (!blurbIsDefault) { %>
+    <button type="submit" name="reset" value="1" class="btn-light" formnovalidate><%= isThreeGroupFinals(league) ? 'Put back the standard wording' : 'Remove the explanation' %></button>
+  <% } %>
+</form>
+
+<h3>How it looks</h3>
 <%- include('../partials/finals-blurb') %>
 
 <%- include('../partials/footer') %>

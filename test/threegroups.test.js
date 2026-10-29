@@ -79,8 +79,9 @@ const ko = (m, home, away) => h.request('POST', `/admin/league/${id}/knockout-re
 test('the Finals settings page loads, and Cup / Plate / Bowl needs exactly 12 teams', async () => {
   const page = await h.request('GET', `/admin/league/${id}/finals-format`);
   assert.equal(page.status, 200);
-  assert.match(page.text, /How the finals work/);
+  assert.match(page.text, /The explanation parents see/);
   assert.match(page.text, /three groups of 4/);
+  assert.doesNotMatch(page.text, /How the finals work/, 'a standard league has no explanation until one is written');
   assert.match((await h.request('GET', '/admin')).text, new RegExp(`/admin/league/${id}/finals-format`));
 
   const refused = await setFormat(eight, 'three');
@@ -218,4 +219,48 @@ test('a database made before the Bowl existed is upgraded in place, keeping ever
   assert.equal(out.bowlInserted, 1);
   assert.deepEqual(out.afterDelete, { rounds: 0, matches: 0 }, 'cascading deletes still work through the rebuilt table');
   assert.ok(fs.readdirSync(path.join(dir, 'backups')).some((f) => /pre-bowl-migration/.test(f)), 'a safety copy was taken first');
+});
+
+test('the explanation can be edited, shows on the public page, and can be put back', async () => {
+  await setFormat(id, 'three');
+  const save = (form) => h.request('POST', `/admin/league/${id}/finals-blurb`, form);
+  const editor = (await h.request('GET', `/admin/league/${id}/finals-format`)).text;
+  assert.match(editor, /<textarea name="text"[^>]*>[^<]*How the finals work/, 'the standard wording is pre-filled');
+  assert.doesNotMatch(editor, /Put back the standard wording/);
+
+  const mine = ['# Finals night', '', 'Top 4 play for the **Cup**.', '', '- Plate: 5th-8th', '- Bowl: 9th-12th'].join('\n');
+  assert.equal((await save({ text: mine })).status, 302);
+  assert.equal(h.db.prepare('SELECT finals_blurb FROM leagues WHERE id = ?').get(id).finals_blurb, mine);
+  const pub = (await h.request('GET', `/league/${id}/bracket`)).text;
+  assert.match(pub, /<h2>Finals night<\/h2>/);
+  assert.match(pub, /Top 4 play for the <strong>Cup<\/strong>/);
+  assert.match(pub, /<li>Bowl: 9th-12th<\/li>/);
+  assert.doesNotMatch(pub, /How the finals work/);
+  assert.match((await h.request('GET', `/admin/league/${id}/finals-format`)).text, /Put back the standard wording/);
+
+  // markup is escaped, never run
+  await save({ text: '<script>alert(1)</script> **hi**' });
+  const escaped = (await h.request('GET', `/league/${id}/bracket`)).text;
+  assert.doesNotMatch(escaped, /<script>alert/);
+  assert.match(escaped, /&lt;script&gt;/);
+
+  // put back the standard wording
+  await save({ reset: '1', text: 'ignored' });
+  assert.equal(h.db.prepare('SELECT finals_blurb FROM leagues WHERE id = ?').get(id).finals_blurb, null);
+  assert.match((await h.request('GET', `/league/${id}/bracket`)).text, /How the finals work/);
+
+  // saving the standard wording unchanged stores nothing (so later wording updates reach the league)
+  const std = (await h.request('GET', `/admin/league/${id}/finals-format`)).text.match(/<textarea name="text"[^>]*>([^<]*)<\/textarea>/)[1].replace(/&#34;/g, '"').replace(/&amp;/g, '&');
+  await save({ text: std });
+  assert.equal(h.db.prepare('SELECT finals_blurb FROM leagues WHERE id = ?').get(id).finals_blurb, null);
+
+  // too long is refused
+  assert.equal((await save({ text: 'x'.repeat(5001) })).status, 400);
+
+  // a standard-format league can have its own explanation too
+  await h.request('POST', `/admin/league/${eight}/finals-blurb`, { text: 'Top 4 Cup, bottom 4 Plate.' });
+  assert.match((await h.request('GET', `/league/${eight}/bracket`)).text, /Top 4 Cup, bottom 4 Plate\./);
+  await h.request('POST', `/admin/league/${eight}/finals-blurb`, { text: '' });
+  assert.doesNotMatch((await h.request('GET', `/league/${eight}/bracket`)).text, /finals-blurb/);
+  await setFormat(id, 'standard');
 });

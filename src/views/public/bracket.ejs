@@ -2,9 +2,7 @@
 <%- include('../partials/nav', { league, active: 'bracket' }) %>
 <%- include('../partials/league-title', { league }) %>
 
-<% if (isThreeGroupFinals(league)) { %>
-  <%- include('../partials/finals-blurb') %>
-<% } %>
+<%- include('../partials/finals-blurb') %>
 <% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
   <p>The <%= isThreeGroupFinals(league) ? 'finals' : 'Cup and Plate knockouts' %> haven't started yet — they'll appear here once the group stage is complete.</p>
 <% } else { %>

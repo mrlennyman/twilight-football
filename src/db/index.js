@@ -39,6 +39,7 @@ if (!playerColumns.includes('is_captain')) db.exec('ALTER TABLE players ADD COLU
 const matchColumns = db.prepare('PRAGMA table_info(matches)').all().map((c) => c.name);
 if (!matchColumns.includes('updated_at')) db.exec('ALTER TABLE matches ADD COLUMN updated_at TEXT');
 
+if (!leagueColumns.includes('finals_blurb')) db.exec('ALTER TABLE leagues ADD COLUMN finals_blurb TEXT');
 if (!leagueColumns.includes('finals_format')) db.exec('ALTER TABLE leagues ADD COLUMN finals_format TEXT');
 
 // Databases created before the Bowl existed have a CHECK on rounds.stage that only allows group/cup/plate. SQLite can't

@@ -20,6 +20,7 @@ const { formatNzDateTime } = require('../lib/format');
 const { resolveDbPath } = require('../lib/paths');
 const { getUsageStats } = require('../lib/usage');
 const { getSplitSettings, resolveSplit, parseSplitInput } = require('../lib/standingsSplit');
+const { DEFAULT_BLURB, MAX_LENGTH: BLURB_MAX, getFinalsBlurb, parseBlurbInput } = require('../lib/finalsBlurb');
 const { parseFixtureCsv, planFixtureImport, applyFixtureImport, looksLikeFixtureCsv } = require('../lib/fixtureImport');
 const { saveScore, clearScore } = require('../lib/results');
 const {
@@ -965,7 +966,17 @@ router.post('/league/:id/navigation', (req, res) => {
 
 function renderFinalsForm(res, league, { saved = false, errors = [] } = {}) {
   const numTeams = db.prepare('SELECT COUNT(*) AS n FROM teams WHERE league_id = ?').get(league.id).n;
-  res.render('admin/finals-format', { league, numTeams, saved, errors, drawn: scheduleStats(league.id).knockoutRounds > 0 });
+  res.render('admin/finals-format', {
+    league,
+    numTeams,
+    saved,
+    errors,
+    drawn: scheduleStats(league.id).knockoutRounds > 0,
+    blurbText: getFinalsBlurb(league),
+    blurbMax: BLURB_MAX,
+    blurbIsDefault: !league.finals_blurb,
+    defaultBlurb: DEFAULT_BLURB,
+  });
 }
 
 router.get('/league/:id/finals-format', (req, res) => {
@@ -986,6 +997,15 @@ router.post('/league/:id/finals-format', (req, res) => {
     return renderFinalsForm(res, league, { errors: [`Cup / Plate / Bowl needs exactly 12 teams (three groups of 4). This league has ${numTeams}.`] });
   }
   db.prepare('UPDATE leagues SET finals_format = ? WHERE id = ?').run(wanted === 'three' ? 'three' : null, league.id);
+  res.redirect(`/admin/league/${league.id}/finals-format?saved=1`);
+});
+
+router.post('/league/:id/finals-blurb', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const { errors, value } = parseBlurbInput(req.body);
+  if (errors.length) return fail(res, errors.join(' '));
+  db.prepare('UPDATE leagues SET finals_blurb = ? WHERE id = ?').run(value, league.id);
   res.redirect(`/admin/league/${league.id}/finals-format?saved=1`);
 });
 
