@@ -12,7 +12,7 @@ const canLink = typeof linkTeams !== 'undefined' && linkTeams && typeof league !
 %>
   <div class="round-block" id="round-<%= round.id %>">
     <h3>
-      <%= round.stage === 'group' ? 'Round ' + round.round_number : (round.matches.length > 1 ? 'Semi-finals' : 'Final') %>
+      <%= round.stage === 'group' ? 'Round ' + round.round_number : roundName(round.matches[0] && round.matches[0].bracket_slot) %>
       <span class="muted"><%= formatDate(round.date) %></span>
       <% if (groupEditable) { %>
         <span class="round-count <%= scored === round.matches.length ? 'is-done' : '' %>"><%= scored %> of <%= round.matches.length %> scored</span>

@@ -38,7 +38,7 @@
         <div class="match-list">
           <% matches.forEach(m => { %>
             <div class="match-card team-match">
-              <div class="team-match-when"><%= formatDate(m.date) %> &middot; <%= m.stage === 'group' ? 'Round ' + m.round_number : (m.stage === 'cup' ? 'Cup ' : 'Plate ') + (m.bracket_slot === 'final' ? 'final' : 'semi-final') %></div>
+              <div class="team-match-when"><%= formatDate(m.date) %> &middot; <%= m.stage === 'group' ? 'Round ' + m.round_number : (m.stage === 'cup' ? 'Cup ' : 'Plate ') + slotName(m.bracket_slot) %></div>
               <div class="team-match-main">
                 <span>vs <% if (m.opponent_id) { %><a class="opp-btn" href="/league/<%= league.id %>/team/<%= m.opponent_id %>"><%= m.opponent_name %></a><% } else { %><%= m.opponent_name %><% } %></span>
                 <% if (m.status === 'played') { %>

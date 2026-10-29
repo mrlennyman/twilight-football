@@ -116,15 +116,14 @@ a { color: var(--wine-700); text-decoration: none; }
 .app-nav-icon svg { width: 100%; height: 100%; }
 .app-nav a.active .app-nav-icon { color: var(--gold); }
 
+/* Bigger screens: same stacked layout (icon above its label), just roomier. */
 @media (min-width: 768px) {
   .app-nav a {
-    flex-direction: row;
-    font-size: 0.85rem;
-    padding: 12px 16px;
-    gap: 8px;
-    justify-content: center;
+    font-size: 0.8rem;
+    padding: 12px 16px 10px;
+    gap: 4px;
   }
-  .app-nav-icon { width: 18px; height: 18px; }
+  .app-nav-icon { width: 24px; height: 24px; }
 }
 
 /* Old flat subnav still used on admin pages that don't have per-league tabs */

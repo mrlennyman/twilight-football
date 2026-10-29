@@ -1,6 +1,6 @@
 <%
 // Expects: standings (array from computeStandings)
-// Optional: highlightSplit (boolean) - draws a line between rank 4 and 5
+// Optional: highlightSplit (boolean) - draws a line between the Cup and Plate places (after 4th, or after 6th in a league of 12+)
 %>
 <div class="table-scroll">
 <table class="standings-table">
@@ -11,7 +11,7 @@
   </thead>
   <tbody>
     <% standings.forEach((row, i) => { %>
-      <tr class="<%= (typeof highlightSplit !== 'undefined' && highlightSplit && i === 3) ? 'split-row' : '' %>" data-team-id="<%= row.teamId %>">
+      <tr class="<%= (typeof highlightSplit !== 'undefined' && highlightSplit && i === knockoutSize(standings.length) - 1) ? 'split-row' : '' %>" data-team-id="<%= row.teamId %>">
         <td><%= i + 1 %></td>
         <td>
           <% if (typeof linkTeams !== 'undefined' && linkTeams && typeof league !== 'undefined') { %><a href="/league/<%= league.id %>/team/<%= row.teamId %>"><%= row.name %></a><% } else { %><%= row.name %><% } %>

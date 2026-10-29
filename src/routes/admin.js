@@ -4,7 +4,7 @@ const { checkPassword, requireAdmin, safeReturnTo } = require('../middleware/aut
 const { createLimiter } = require('../middleware/loginLimiter');
 const { computeStandings, getOpenTieBlocks, groupStageComplete } = require('../lib/standings');
 const { generateGroupStageSchedule, generateCupAndPlate, addDays } = require('../lib/schedule');
-const { tryFillFinal } = require('../lib/knockoutResult');
+const { tryFillFinal, feedOf, slotName, bracketSize } = require('../lib/knockoutResult');
 const {
   parseScore,
   parseLeagueInput,
@@ -711,11 +711,13 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   }
 
   const standings = computeStandings(db, league.id);
-  if (standings.length !== 8) {
-    return fail(res, 'Cup/Plate knockouts currently need exactly 8 teams in the league.');
+  // 4 teams in each bracket (8 to 11 teams in the league), or 6 in each from 12 teams up.
+  const size = bracketSize(standings.length);
+  if (standings.length < 2 * size) {
+    return fail(res, 'Cup/Plate knockouts need at least 8 teams in the league.');
   }
 
-  // Any open tie changes who is seeded where (not just the top-4 / bottom-4 split), so settle them all first.
+  // Any open tie changes who is seeded where (not just the Cup/Plate split), so settle them all first.
   const openTies = standings.filter((s) => s.tied && !s.tieResolved);
   if (openTies.length > 0) {
     return fail(
@@ -725,8 +727,8 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
     );
   }
 
-  const top4 = standings.slice(0, 4).map((s) => s.teamId);
-  const bottom4 = standings.slice(4, 8).map((s) => s.teamId);
+  const cupTeams = standings.slice(0, size).map((s) => s.teamId);
+  const plateTeams = standings.slice(size, size * 2).map((s) => s.teamId);
   const pitchIds = getPitches(db)
     .slice(0, league.num_pitches)
     .map((p) => p.id);
@@ -747,8 +749,8 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   const slotMinutes = league.slot_minutes || 45;
 
   const knockoutRounds = generateCupAndPlate({
-    cupTeamIds: top4,
-    plateTeamIds: bottom4,
+    cupTeamIds: cupTeams,
+    plateTeamIds: plateTeams,
     pitchIds,
     roundNumberStart: lastGroupRound + 1,
     weekNumber: lastGroupWeek + 1,
@@ -800,19 +802,11 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
   const match = getMatchForLeague(Number(req.params.matchId), leagueId);
   if (!match || match.stage === 'group') return res.status(404).render('404');
   if (!match.home_team_id || !match.away_team_id) {
-    return fail(res, 'This match is not set yet - enter the semi-final results first.');
+    return fail(res, 'This match is not set yet - enter the results of the round before it first.');
   }
 
-  const isSemi = match.bracket_slot === 'semi_1' || match.bracket_slot === 'semi_2';
-  if (isSemi) {
-    const playedFinal = db
-      .prepare(
-        `SELECT 1 FROM matches m JOIN rounds r ON r.id = m.round_id
-         WHERE r.league_id = ? AND r.stage = ? AND m.bracket_slot = 'final' AND m.status = 'played'`
-      )
-      .get(leagueId, match.stage);
-    if (playedFinal) return fail(res, 'Clear the final first.');
-  }
+  const laterPlayed = playedMatchFedBy(leagueId, match);
+  if (laterPlayed) return fail(res, `Clear the ${slotName(laterPlayed.bracket_slot)} first.`);
 
   const homeScore = parseScore(req.body.home_score);
   const awayScore = parseScore(req.body.away_score);
@@ -861,7 +855,7 @@ router.get('/league/:id/log', (req, res) => {
       where:
         e.stage === 'group'
           ? `Round ${e.round_number}`
-          : `${e.stage === 'cup' ? 'Cup' : 'Plate'} ${e.bracket_slot === 'final' ? 'final' : 'semi-final'}`,
+          : `${e.stage === 'cup' ? 'Cup' : 'Plate'} ${slotName(e.bracket_slot)}`,
       oldText: e.old_status === 'played' ? `${e.old_home}-${e.old_away}` : 'no result',
       newText: e.new_status === 'played' ? `${e.new_home}-${e.new_away}` : 'cleared',
     }));
@@ -888,27 +882,41 @@ router.post('/league/:id/knockouts/reset', (req, res) => {
   res.redirect(`/admin/league/${league.id}/results`);
 });
 
-// Clear a knockout result. Clearing a semi also un-sets the (unplayed) final's teams.
+/** The knockout match that a match feeds its winner into (quarter -> semi, semi -> final), if any. */
+function matchFedBy(leagueId, match) {
+  const feed = feedOf(match.bracket_slot);
+  if (!feed) return null;
+  return db
+    .prepare(
+      `SELECT m.* FROM matches m JOIN rounds r ON r.id = m.round_id
+       WHERE r.league_id = ? AND r.stage = ? AND m.bracket_slot = ?`
+    )
+    .get(leagueId, match.stage, feed.slot) || null;
+}
+
+function playedMatchFedBy(leagueId, match) {
+  const later = matchFedBy(leagueId, match);
+  return later && later.status === 'played' ? later : null;
+}
+
+// Clear a knockout result. Clearing a quarter or semi also un-sets the (unplayed) match it fed.
 router.post('/league/:id/knockout-results/match/:matchId/clear', (req, res) => {
   const leagueId = Number(req.params.id);
   const match = getMatchForLeague(Number(req.params.matchId), leagueId);
   if (!match || match.stage === 'group') return res.status(404).render('404');
 
-  const final = db
-    .prepare(
-      `SELECT m.* FROM matches m JOIN rounds r ON r.id = m.round_id
-       WHERE r.league_id = ? AND r.stage = ? AND m.bracket_slot = 'final'`
-    )
-    .get(leagueId, match.stage);
-  const isSemi = match.bracket_slot === 'semi_1' || match.bracket_slot === 'semi_2';
-  if (isSemi && final && final.status === 'played') {
-    return fail(res, 'Clear the final first.');
+  const later = matchFedBy(leagueId, match);
+  if (later && later.status === 'played') {
+    return fail(res, `Clear the ${slotName(later.bracket_slot)} first.`);
   }
 
   db.transaction(() => {
     clearScore(db, match.id, { ip: req.ip });
-    if (isSemi && final) {
-      db.prepare('UPDATE matches SET home_team_id = NULL, away_team_id = NULL WHERE id = ?').run(final.id);
+    if (later) {
+      // A quarter-final feeds one side of its semi; a semi-final feeds both sides of the final.
+      const feed = feedOf(match.bracket_slot);
+      const clearColumns = later.bracket_slot === 'final' ? 'home_team_id = NULL, away_team_id = NULL' : `${feed.side} = NULL`;
+      db.prepare(`UPDATE matches SET ${clearColumns} WHERE id = ?`).run(later.id);
     }
     db.prepare("UPDATE leagues SET status = 'in_progress' WHERE id = ? AND status = 'complete'").run(leagueId);
   })();

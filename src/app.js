@@ -8,6 +8,7 @@ const { resolveDbPath } = require('./lib/paths');
 
 const { formatDate, formatTime } = require('./lib/format');
 const { resolveNavTabs } = require('./lib/navTabs');
+const { slotName, roundName, bracketSize } = require('./lib/knockoutResult');
 const { parseTrustProxy } = require('./lib/proxy');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
@@ -79,6 +80,9 @@ for (const file of ['css/style.css', 'css/print.css', 'js/register-sw.js', 'js/i
 }
 app.locals.assetVersion = fingerprint.digest('hex').slice(0, 10);
 app.locals.resolveNavTabs = resolveNavTabs;
+app.locals.slotName = slotName;
+app.locals.roundName = roundName;
+app.locals.knockoutSize = bracketSize;
 
 app.use('/', publicRoutes);
 app.use('/admin', adminRoutes);

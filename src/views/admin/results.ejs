@@ -74,9 +74,9 @@
     <p class="muted">Available once every group-stage match has a result.</p>
   <% } %>
 <% } else { %>
-  <h3>Cup (top 4)</h3>
+  <h3>Cup (top <%= knockoutSize(standings.length) %>)</h3>
   <%- include('../partials/round-list', { rounds: cupRounds, editable: true, knockout: true, league }) %>
-  <h3>Plate (bottom 4)</h3>
+  <h3>Plate (places <%= knockoutSize(standings.length) + 1 %> to <%= knockoutSize(standings.length) * 2 %>)</h3>
   <%- include('../partials/round-list', { rounds: plateRounds, editable: true, knockout: true, league }) %>
 
   <details class="reset-brackets">

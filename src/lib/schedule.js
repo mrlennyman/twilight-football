@@ -325,6 +325,9 @@ function generateKnockoutBracket({
   kickoffStartTime,
   slotMinutes,
 }) {
+  if (rankedTeamIds.length === 6) {
+    return generateSixTeamBracket({ rankedTeamIds, pitchIds, roundNumberStart, weekNumber, stage, date, kickoffStartTime, slotMinutes });
+  }
   const [seed1, seed2, seed3, seed4] = rankedTeamIds;
 
   const semis = {
@@ -354,10 +357,39 @@ function generateKnockoutBracket({
 }
 
 /**
- * Cup (top 4) and Plate (bottom 4) brackets that never share a pitch at the same time.
+ * A 6-team bracket: seeds 1 and 2 wait in the semi-finals while 3v6 and 4v5 play the quarter-finals.
+ *   quarter-finals: 3v6 (qf_1), 4v5 (qf_2)    semi-finals: 1 v winner(4v5) (semi_1), 2 v winner(3v6) (semi_2)    final
+ * Later rounds' teams are left null until the matches before them are played.
+ */
+function generateSixTeamBracket({ rankedTeamIds, pitchIds, roundNumberStart, weekNumber, stage, date, kickoffStartTime, slotMinutes }) {
+  const [seed1, seed2, seed3, seed4, seed5, seed6] = rankedTeamIds;
+  const pitch = (i) => pitchIds[i % pitchIds.length];
+  const round = (offset, matches) => ({
+    roundNumber: roundNumberStart + offset,
+    weekNumber,
+    stage,
+    date,
+    kickoffTime: addMinutes(kickoffStartTime, offset * slotMinutes),
+    matches,
+  });
+  return [
+    round(0, [
+      { homeTeamId: seed3, awayTeamId: seed6, pitchId: pitch(0), bracketSlot: 'qf_1' },
+      { homeTeamId: seed4, awayTeamId: seed5, pitchId: pitch(1), bracketSlot: 'qf_2' },
+    ]),
+    round(1, [
+      { homeTeamId: seed1, awayTeamId: null, pitchId: pitch(0), bracketSlot: 'semi_1' },
+      { homeTeamId: seed2, awayTeamId: null, pitchId: pitch(1), bracketSlot: 'semi_2' },
+    ]),
+    round(2, [{ homeTeamId: null, awayTeamId: null, pitchId: pitch(0), bracketSlot: 'final' }]),
+  ];
+}
+
+/**
+ * Cup (top 4, or top 6) and Plate (the next 4 or 6) brackets that never share a pitch at the same time.
  * 4+ pitches: both brackets run side by side (Cup on pitches 1-2, Plate on 3-4), same kickoff times.
  * 2-3 pitches: Plate starts two slots after the Cup, on the same two pitches.
- * Round numbers are distinct: Cup n, n+1; Plate n+2, n+3.
+ * Round numbers are distinct: Cup n, n+1; Plate n+2, n+3 (a 6-team bracket has three rounds: n..n+2, then n+3..n+5).
  */
 function generateCupAndPlate({
   cupTeamIds,
@@ -372,6 +404,7 @@ function generateCupAndPlate({
   if (pitchIds.length < 2) throw new Error('Cup/Plate needs at least 2 pitches');
   const sideBySide = pitchIds.length >= 4;
   const common = { weekNumber, date, slotMinutes };
+  const bracketRounds = cupTeamIds.length === 6 ? 3 : 2;
 
   const cup = generateKnockoutBracket({
     ...common,
@@ -386,8 +419,8 @@ function generateCupAndPlate({
     rankedTeamIds: plateTeamIds,
     stage: 'plate',
     pitchIds: sideBySide ? pitchIds.slice(2, 4) : pitchIds.slice(0, 2),
-    roundNumberStart: roundNumberStart + 2,
-    kickoffStartTime: sideBySide ? kickoffStartTime : addMinutes(kickoffStartTime, 2 * slotMinutes),
+    roundNumberStart: roundNumberStart + bracketRounds,
+    kickoffStartTime: sideBySide ? kickoffStartTime : addMinutes(kickoffStartTime, bracketRounds * slotMinutes),
   });
   return [...cup, ...plate];
 }
