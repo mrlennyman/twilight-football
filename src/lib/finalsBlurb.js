@@ -44,6 +44,16 @@ function getFinalsBlurb(league) {
 
 const finalsBlurbHtml = (league) => renderMarkup(getFinalsBlurb(league));
 
+/** The explanation as { title, html }: a leading "# Heading" line becomes the title and is left out of the body. */
+function finalsBlurbParts(league) {
+  const text = getFinalsBlurb(league);
+  const lines = text.split('\n');
+  const first = lines.findIndex((line) => line.trim() !== '');
+  const heading = first >= 0 ? /^#{1,2}\s+(.+)$/.exec(lines[first].trim()) : null;
+  if (!heading) return { title: 'How the finals work', html: renderMarkup(text) };
+  return { title: heading[1], html: renderMarkup(lines.slice(first + 1).join('\n')) };
+}
+
 /** Admin form -> the value to store: null (use the standard wording) or the league's own text. */
 function parseBlurbInput(body, league) {
   if (body.reset !== undefined) return { errors: [], value: null };
@@ -52,4 +62,4 @@ function parseBlurbInput(body, league) {
   return { errors: [], value: text === '' || text === clean(standardFor(league)) ? null : text };
 }
 
-module.exports = { DEFAULT_BLURB, DEFAULT_BLURB_RR, MAX_LENGTH, getFinalsBlurb, finalsBlurbHtml, parseBlurbInput };
+module.exports = { DEFAULT_BLURB, DEFAULT_BLURB_RR, MAX_LENGTH, getFinalsBlurb, finalsBlurbHtml, finalsBlurbParts, parseBlurbInput };

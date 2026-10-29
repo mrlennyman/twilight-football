@@ -1,0 +1,24 @@
+<%# Expects: rounds (knockout rounds with matches), league %>
+<div class="bracket">
+  <% rounds.forEach(round => { %>
+    <div class="bracket-round">
+      <h4><%= roundName(round.matches[0] && round.matches[0].bracket_slot) %></h4>
+      <% round.matches.forEach(match => { %>
+        <div class="bracket-match" data-team-ids="<%= match.home_team_id || '' %> <%= match.away_team_id || '' %>">
+          <div><% if (match.home_team_id) { %><a href="/league/<%= league.id %>/team/<%= match.home_team_id %>"><%= match.home_team_name %></a><% } else { %>TBD<% } %></div>
+          <div class="bracket-score">
+            <% if (match.status === 'played') { %>
+              <%= match.home_score %> - <%= match.away_score %>
+              <% if (match.penalty_winner_id) { %>
+                <div class="muted small">(<%= match.penalty_winner_id === match.home_team_id ? match.home_team_name : match.away_team_name %> won on pens)</div>
+              <% } %>
+            <% } else { %>
+              v
+            <% } %>
+          </div>
+          <div><% if (match.away_team_id) { %><a href="/league/<%= league.id %>/team/<%= match.away_team_id %>"><%= match.away_team_name %></a><% } else { %>TBD<% } %></div>
+        </div>
+      <% }) %>
+    </div>
+  <% }) %>
+</div>

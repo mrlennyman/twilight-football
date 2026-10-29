@@ -126,8 +126,19 @@ test('after the group stage the three groups are drawn, each with a round robin 
 
   // one table per group, every team on zero, on the Finals page and the Standings page
   const finals = await get('/league/bracket');
-  for (const word of ['Cup', 'Plate', 'Bowl']) assert.match(finals, new RegExp(`<h2>${word} <span`));
-  assert.equal((finals.match(/<table class="standings-table">/g) || []).length, 3);
+  // one group at a time, with tabs: Cup first, the others a tap away
+  assert.match(finals, /class="week-tabs finals-tabs"/);
+  assert.match(finals, /<a href="\?group=cup" class="active">Cup<\/a>/);
+  assert.match(finals, /<a href="\?group=bowl" class="">Bowl<\/a>/);
+  assert.match(finals, /<h2>Cup <span/);
+  assert.doesNotMatch(finals, /<h2>Plate <span/);
+  assert.equal((finals.match(/<table class="standings-table">/g) || []).length, 1);
+  for (const word of ['plate', 'bowl']) {
+    const tab = await h.request('GET', `/league/${id}/bracket?group=${word}`);
+    assert.match(tab.text, new RegExp(`<h2>${word[0].toUpperCase()}${word.slice(1)} <span`));
+    assert.equal((tab.text.match(/<table class="standings-table">/g) || []).length, 1);
+  }
+  assert.match((await h.request('GET', `/league/${id}/bracket?group=nonsense`)).text, /<h2>Cup <span/, 'an unknown tab falls back to the Cup');
   assert.match(await get('/league'), /Finals groups/);
   assert.match(await get('/league'), /Group stage table/);
   assert.equal((await get('/league')).match(/<table class="standings-table">/g).length, 4, 'three mini tables and the group-stage table');
@@ -192,7 +203,7 @@ test('drawing the knockouts seeds each group from its own table: 1st v 4th, 2nd 
   assert.match(locked.text, /Reset the knockouts/);
   assert.equal((await post(`/knockout-results/match/${rowsOf('cup', 'rr')[0].id}/clear`)).status, 400);
   const cupPublic = await get('/league/bracket');
-  assert.match(cupPublic, /Cup knockout/);
+  assert.match(cupPublic, /<h3>Knockout<\/h3>/);
   assert.match(cupPublic, /Semi-finals/);
 });
 

@@ -1,6 +1,15 @@
-<% const blurbHtml = finalsBlurbHtml(league); %>
-<% if (blurbHtml) { %>
+<%# Optional: collapsible (boolean) - a tap-to-open box; open (boolean) - starts open %>
+<% const parts = finalsBlurbParts(league); %>
+<% if (parts.html) { %>
+<% if (typeof collapsible !== 'undefined' && collapsible) { %>
+<details class="finals-blurb finals-blurb-fold" <%= (typeof open !== 'undefined' && open) ? 'open' : '' %>>
+  <summary><%= parts.title %></summary>
+<%- parts.html %>
+</details>
+<% } else { %>
 <div class="finals-blurb">
-<%- blurbHtml %>
+  <h2><%= parts.title %></h2>
+<%- parts.html %>
 </div>
+<% } %>
 <% } %>

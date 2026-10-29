@@ -20,7 +20,7 @@ const { renderMarkup } = require('../lib/markup');
 const { formatUpdated } = require('../lib/format');
 
 const { recordUsage } = require('../lib/usage');
-const { isRoundRobinFirst } = require('../lib/knockoutResult');
+const { isRoundRobinFirst, isThreeGroupFinals } = require('../lib/knockoutResult');
 const { getFinalsGroups } = require('../lib/finalsGroups');
 const { createLimiter } = require('../middleware/loginLimiter');
 
@@ -186,17 +186,17 @@ router.get('/league/:id/bracket', (req, res) => {
   const league = findLeague(req);
   if (!league) return res.status(404).render('404');
 
-  // A round-robin-first league keeps its round robins (shown as three tables) apart from its knockout brackets.
-  const finalsGroups = isRoundRobinFirst(league) ? getFinalsGroups(db, league.id) : [];
-  const bracketRounds = (stage) =>
-    isRoundRobinFirst(league) ? (finalsGroups.find((g) => g.stage === stage) || { koRounds: [] }).koRounds : getRoundsWithMatches(db, league.id, stage);
+  // Cup / Plate / Bowl leagues show one group at a time (tabs); a Cup & Plate league shows both brackets.
+  const finalsGroups = isThreeGroupFinals(league) ? getFinalsGroups(db, league.id) : [];
+  const selectedGroup = finalsGroups.find((g) => g.stage === req.query.group) || finalsGroups[0] || null;
 
   res.render('public/bracket', {
     league,
     finalsGroups,
-    cupRounds: bracketRounds('cup'),
-    plateRounds: bracketRounds('plate'),
-    bowlRounds: bracketRounds('bowl'),
+    selectedGroup,
+    cupRounds: getRoundsWithMatches(db, league.id, 'cup'),
+    plateRounds: getRoundsWithMatches(db, league.id, 'plate'),
+    bowlRounds: getRoundsWithMatches(db, league.id, 'bowl'),
   });
 });
 

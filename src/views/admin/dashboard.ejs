@@ -43,6 +43,9 @@
 <% } %>
 
 <h2>Create a new league</h2>
+<form method="POST" action="/admin/demo-league" class="inline-form demo-form">
+  <p class="muted">Want to see how a finished league looks? <button type="submit" class="btn btn-light btn-sm">Create an example league</button> It's played right through (all 6 weeks, the finals round robins and the Grand Finals) and is <strong>hidden from the public</strong>, so only you can open it. Delete it from the list above when you're done.</p>
+</form>
 <p class="muted">Have the teams and players in a spreadsheet? <a class="btn btn-light btn-sm" href="/admin/import">Create a league from a CSV file</a> instead.</p>
 <form method="POST" action="/admin/leagues" class="admin-form">
   <label>League name

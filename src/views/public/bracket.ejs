@@ -1,40 +1,40 @@
-<%- include('../partials/header', { title: league.name + ' — Cup / Plate' }) %>
+<%- include('../partials/header', { title: league.name + (isThreeGroupFinals(league) ? ' — Finals' : ' — Cup / Plate') }) %>
 <%- include('../partials/nav', { league, active: 'bracket' }) %>
 <%- include('../partials/league-title', { league }) %>
 
-<%- include('../partials/finals-blurb') %>
-<% if (finalsGroups.length > 0) { %>
-  <%- include('../partials/finals-groups', { groups: finalsGroups, league, showRounds: true }) %>
-<% } %>
-<% if (cupRounds.length === 0 && plateRounds.length === 0 && finalsGroups.length === 0) { %>
-  <p>The <%= isThreeGroupFinals(league) ? 'finals' : 'Cup and Plate knockouts' %> haven't started yet — they'll appear here once the group stage is complete.</p>
-<% } else { %>
-  <% [{ label: 'Cup', rounds: cupRounds }, { label: 'Plate', rounds: plateRounds }, { label: 'Bowl', rounds: bowlRounds }].filter(bracket => bracket.rounds.length > 0).forEach(bracket => { %>
-    <h2><%= bracket.label %><%= finalsGroups.length > 0 ? ' knockout' : '' %></h2>
-    <div class="bracket">
-      <% bracket.rounds.forEach(round => { %>
-        <div class="bracket-round">
-          <h4><%= roundName(round.matches[0] && round.matches[0].bracket_slot) %></h4>
-          <% round.matches.forEach(match => { %>
-            <div class="bracket-match" data-team-ids="<%= match.home_team_id || '' %> <%= match.away_team_id || '' %>">
-              <div><% if (match.home_team_id) { %><a href="/league/<%= league.id %>/team/<%= match.home_team_id %>"><%= match.home_team_name %></a><% } else { %>TBD<% } %></div>
-              <div class="bracket-score">
-                <% if (match.status === 'played') { %>
-                  <%= match.home_score %> - <%= match.away_score %>
-                  <% if (match.penalty_winner_id) { %>
-                    <div class="muted small">(<%= match.penalty_winner_id === match.home_team_id ? match.home_team_name : match.away_team_name %> won on pens)</div>
-                  <% } %>
-                <% } else { %>
-                  v
-                <% } %>
-              </div>
-              <div><% if (match.away_team_id) { %><a href="/league/<%= league.id %>/team/<%= match.away_team_id %>"><%= match.away_team_name %></a><% } else { %>TBD<% } %></div>
-            </div>
-          <% }) %>
-        </div>
+<% if (isThreeGroupFinals(league)) { %>
+  <%- include('../partials/finals-blurb', { collapsible: true, open: !selectedGroup }) %>
+  <% if (!selectedGroup) { %>
+    <p>The finals haven't started yet — they'll appear here once the group stage is complete.</p>
+  <% } else { %>
+    <nav class="week-tabs finals-tabs" aria-label="Finals groups">
+      <% finalsGroups.forEach(group => { %>
+        <a href="?group=<%= group.stage %>" class="<%= group.stage === selectedGroup.stage ? 'active' : '' %>"><%= group.name %></a>
       <% }) %>
-    </div>
-  <% }) %>
+    </nav>
+    <h2><%= selectedGroup.name %> <span class="muted small">(places <%= selectedGroup.places[0] %> to <%= selectedGroup.places[1] %>)</span></h2>
+    <% if (selectedGroup.rrRounds.length > 0) { %>
+      <h3>Round robin</h3>
+      <%- include('../partials/standings-table', { standings: selectedGroup.standings, linkTeams: true }) %>
+      <%- include('../partials/round-list', { rounds: selectedGroup.rrRounds, editable: false, linkTeams: true }) %>
+    <% } %>
+    <% if (selectedGroup.koRounds.length > 0) { %>
+      <h3>Knockout</h3>
+      <%- include('../partials/bracket-rounds', { rounds: selectedGroup.koRounds, league }) %>
+    <% } else if (selectedGroup.rrRounds.length > 0) { %>
+      <p class="muted">The semi-finals and Grand Final will appear here after the round robin.</p>
+    <% } %>
+  <% } %>
+<% } else { %>
+  <%- include('../partials/finals-blurb') %>
+  <% if (cupRounds.length === 0 && plateRounds.length === 0) { %>
+    <p>The Cup and Plate knockouts haven't started yet — they'll appear here once the group stage is complete.</p>
+  <% } else { %>
+    <% [{ label: 'Cup', rounds: cupRounds }, { label: 'Plate', rounds: plateRounds }].forEach(bracket => { %>
+      <h2><%= bracket.label %></h2>
+      <%- include('../partials/bracket-rounds', { rounds: bracket.rounds, league }) %>
+    <% }) %>
+  <% } %>
 <% } %>
 
 <%- include('../partials/footer') %>

@@ -139,7 +139,8 @@ test('three groups of four are drawn from the final table, and play through to c
   assert.equal(h.db.prepare('SELECT finals_format FROM leagues WHERE id = ?').get(id).finals_format, 'three');
 
   const pub = (await h.request('GET', `/league/${id}/bracket`)).text;
-  assert.match(pub, /<h2>Bowl<\/h2>/);
+  assert.match(pub, /class="week-tabs finals-tabs"/);
+  assert.match((await h.request('GET', `/league/${id}/bracket?group=bowl`)).text, /<h2>Bowl <span/);
   const adminPage = (await h.request('GET', `/admin/league/${id}/results`)).text;
   assert.match(adminPage, /Bowl \(places 9 to 12\)/);
 
@@ -238,7 +239,7 @@ test('the explanation can be edited, shows on the public page, and can be put ba
   assert.equal((await save({ text: mine })).status, 302);
   assert.equal(h.db.prepare('SELECT finals_blurb FROM leagues WHERE id = ?').get(id).finals_blurb, mine);
   const pub = (await h.request('GET', `/league/${id}/bracket`)).text;
-  assert.match(pub, /<h2>Finals night<\/h2>/);
+  assert.match(pub, /<summary>Finals night<\/summary>/);
   assert.match(pub, /Top 4 play for the <strong>Cup<\/strong>/);
   assert.match(pub, /<li>Bowl: 9th-12th<\/li>/);
   assert.doesNotMatch(pub, /How the finals work/);
