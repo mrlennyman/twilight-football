@@ -159,3 +159,10 @@ test('A2: knockout Clear - semi un-sets the final; refused while the final is pl
 
   assert.equal((await h.request('POST', `/admin/league/${leagueId}/knockout-results/match/${roundMatches(1).matches[0].id}/clear`)).status, 404, 'a group match is not a knockout match');
 });
+
+test('the gold split line sits under 4th place, between positions 4 and 5', async () => {
+  const page = (await h.request('GET', `/admin/league/${leagueId}/results`)).text;
+  const rows = [...page.matchAll(/<tr class="([^"]*)" data-team-id="\d+">\s*<td>(\d+)<\/td>/g)];
+  const marked = rows.filter((r) => r[1].includes('split-row')).map((r) => r[2]);
+  assert.deepEqual(marked, ['4'], 'the line is drawn under the 4th row only');
+});
