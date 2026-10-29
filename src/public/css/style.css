@@ -472,23 +472,6 @@ form button[type="submit"].link-button.danger:hover { border-color: var(--error)
 .admin-form .check-row input { width: auto; }
 .help { font-size: 0.82rem; color: var(--muted); margin: 0; }
 
-.bracket {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-  margin-bottom: 32px;
-}
-.bracket-round h4 { margin-bottom: 8px; color: var(--wine-900); }
-.bracket-match {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  min-width: 180px;
-}
-.bracket-score { font-weight: 700; margin: 4px 0; color: var(--wine-700); }
-
 @media (max-width: 600px) {
   .fixtures-table th:nth-child(1), .fixtures-table td:nth-child(1) { display: none; }
 }
@@ -867,10 +850,10 @@ form button[type="submit"].link-button.danger:hover { border-color: var(--error)
 .team-match-when { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
 .team-match-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 2px; font-weight: 600; }
 .team-match .match-meta { text-align: left; margin-top: 2px; }
-.match-team a, .team-card h3 a, .standings-table td a, .bracket-match a { color: inherit; text-decoration: none; }
-.match-team a:hover, .team-card h3 a:hover, .standings-table td a:hover, .bracket-match a:hover { color: var(--wine-500); }
+.match-team a, .team-card h3 a, .standings-table td a { color: inherit; text-decoration: none; }
+.match-team a:hover, .team-card h3 a:hover, .standings-table td a:hover { color: var(--wine-500); }
 
-.match-card.my-team, .bracket-match.my-team, .team-card.my-team { border-left: 5px solid var(--gold); background: #fffaf0; }
+.match-card.my-team, .team-card.my-team { border-left: 5px solid var(--gold); background: #fffaf0; }
 .standings-table tr.my-team td { font-weight: 700; background: #fffaf0; }
 .standings-table tr.my-team td:first-child { box-shadow: inset 5px 0 0 var(--gold); }
 

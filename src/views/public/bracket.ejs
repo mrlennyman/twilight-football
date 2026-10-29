@@ -20,7 +20,7 @@
     <% } %>
     <% if (selectedGroup.koRounds.length > 0) { %>
       <h3>Knockout</h3>
-      <%- include('../partials/bracket-rounds', { rounds: selectedGroup.koRounds, league }) %>
+      <%- include('../partials/round-list', { rounds: selectedGroup.koRounds, editable: false, linkTeams: true, league }) %>
     <% } else if (selectedGroup.rrRounds.length > 0) { %>
       <p class="muted">The semi-finals and Grand Final will appear here after the round robin.</p>
     <% } %>
@@ -32,7 +32,7 @@
   <% } else { %>
     <% [{ label: 'Cup', rounds: cupRounds }, { label: 'Plate', rounds: plateRounds }].forEach(bracket => { %>
       <h2><%= bracket.label %></h2>
-      <%- include('../partials/bracket-rounds', { rounds: bracket.rounds, league }) %>
+      <%- include('../partials/round-list', { rounds: bracket.rounds, editable: false, linkTeams: true, league }) %>
     <% }) %>
   <% } %>
 <% } %>
