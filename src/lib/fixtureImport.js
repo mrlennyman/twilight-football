@@ -68,6 +68,12 @@ function readColumns(headerRow) {
   return cols.home >= 0 && cols.away >= 0 && cols.date >= 0 && cols.time >= 0 ? cols : null;
 }
 
+/** True when the text is a fixture list (its header row names date, time, home and away) rather than a player list. */
+function looksLikeFixtureCsv(text) {
+  const table = parseCsv(text);
+  return table.length > 0 && readColumns(table[0]) !== null;
+}
+
 /** CSV text -> { errors, rows: [{ line, date, time, home, away, pitch }] }. */
 function parseFixtureCsv(text) {
   const errors = [];
@@ -288,4 +294,4 @@ function applyFixtureImport(db, league, plan) {
   }
 }
 
-module.exports = { parseFixtureCsv, planFixtureImport, applyFixtureImport, parseDate, parseTime };
+module.exports = { parseFixtureCsv, planFixtureImport, applyFixtureImport, looksLikeFixtureCsv, parseDate, parseTime };

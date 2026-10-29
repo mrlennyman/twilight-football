@@ -19,7 +19,7 @@ const { snapshot, newestBackup, defaultBackupDir } = require('../lib/backup');
 const { formatNzDateTime } = require('../lib/format');
 const { resolveDbPath } = require('../lib/paths');
 const { getUsageStats } = require('../lib/usage');
-const { parseFixtureCsv, planFixtureImport, applyFixtureImport } = require('../lib/fixtureImport');
+const { parseFixtureCsv, planFixtureImport, applyFixtureImport, looksLikeFixtureCsv } = require('../lib/fixtureImport');
 const { saveScore, clearScore } = require('../lib/results');
 const {
   getPages,
@@ -243,7 +243,31 @@ router.get('/import/sample.csv', (req, res) => {
   res.send(SAMPLE_CSV);
 });
 
+// A fixture list (date, time, home, away, pitch) sets up the whole league in one go: teams, pitches and schedule.
+function createLeagueFromFixtures(req, res) {
+  const parsed = parseFixtureCsv(req.body.csv);
+  const preview = parsed.errors.length ? null : planFixtureImport(db, { id: 0, num_pitches: 4, slot_minutes: 35 }, parsed.rows);
+  const errors = [...parsed.errors, ...(preview ? preview.errors : [])];
+  let value = null;
+  if (preview && errors.length === 0) {
+    const checked = parseLeagueInput({
+      ...req.body,
+      num_teams: String(preview.teams.length),
+      num_pitches: String(preview.pitchCount),
+      rounds_per_week: String(preview.roundsPerWeek),
+    });
+    errors.push(...checked.errors);
+    value = checked.value;
+  }
+  if (errors.length) return fail(res, errors.join(' '));
+  const leagueId = createLeagueFromRoster(db, value, preview.teams.map((t) => ({ name: t.name, kit: '', players: [] })));
+  const league = getLeague(db, leagueId);
+  applyFixtureImport(db, league, planFixtureImport(db, league, parsed.rows));
+  res.redirect(`/admin/league/${leagueId}/schedule`);
+}
+
 router.post('/import', (req, res) => {
+  if (looksLikeFixtureCsv(req.body.csv)) return createLeagueFromFixtures(req, res);
   const csv = parseRosterCsv(req.body.csv);
   const { errors: leagueErrors, value } = parseLeagueInput({ ...req.body, num_teams: String(csv.teams.length) });
   // The team-count message is already covered by the CSV check, so don't show it twice.
@@ -328,6 +352,13 @@ function readRosterPaste(body) {
   const format = body.format === 'blocks' ? 'blocks' : 'csv';
   const text = String(body.text ?? '');
   const replace = body.replace === 'on';
+  if (format === 'csv' && looksLikeFixtureCsv(text)) {
+    return {
+      form: { text, format, replace },
+      teams: [],
+      errors: ['This looks like a fixture list (dates, times, home and away), not a list of players. Load it from the league\'s Schedule page with "Import fixtures from a file".'],
+    };
+  }
   const parsed = format === 'blocks' ? parseBlocks(text) : parseRosterCsv(text, { checkTeamCount: false });
   const errors = [...parsed.errors];
   if (errors.length === 0 && parsed.teams.length === 0) errors.push('Nothing to import - paste at least one team.');

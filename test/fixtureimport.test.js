@@ -148,3 +148,31 @@ test('the schedule page links to the importer, which needs login', async () => {
   const page = await h.request('GET', `/admin/league/${id}/schedule`);
   assert.match(page.text, new RegExp(`href="/admin/league/${id}/fixture-import"`));
 });
+
+test('the "create a league from a CSV" page takes a fixture list and builds the whole league', async () => {
+  const res = await h.request('POST', '/admin/import', { name: 'From Draw', season: 'Summer 2026', num_pitches: '4', rounds_per_week: '3', csv: REAL_CSV });
+  assert.equal(res.status, 302);
+  const id = Number(res.location.match(/league\/(\d+)\/schedule/)[1]);
+  const league = db.prepare('SELECT * FROM leagues WHERE id = ?').get(id);
+  assert.equal(league.name, 'From Draw');
+  assert.equal(league.num_teams, 12);
+  assert.equal(league.num_pitches, 6, 'worked out from the file, not the form box');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM rounds WHERE league_id = ?').get(id).n, 18);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM matches WHERE round_id IN (SELECT id FROM rounds WHERE league_id = ?)').get(id).n, 108);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM pages WHERE league_id = ?").get(id).n > 0, true, 'starter info pages are created');
+});
+
+test('a bad fixture file on that page creates nothing', async () => {
+  const before = db.prepare('SELECT COUNT(*) AS n FROM leagues').get().n;
+  const csv = 'date,time,home,away,pitch\n2026-10-28,17:30,A,B,1\n2026-10-28,17:30,A,C,2';
+  const res = await h.request('POST', '/admin/import', { name: 'Nope', season: 'S', num_pitches: '2', rounds_per_week: '3', csv });
+  assert.equal(res.status, 400);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM leagues').get().n, before);
+});
+
+test('a fixture list pasted into the player-list importer points to the right page', async () => {
+  const id = db.prepare("SELECT id FROM leagues WHERE name = 'Twilight Social'").get().id;
+  const res = await h.request('POST', `/admin/league/${id}/roster-import/preview`, { format: 'csv', text: REAL_CSV });
+  assert.match(res.text, /looks like a fixture list/);
+  assert.match(res.text, /Import fixtures from a file/);
+});
