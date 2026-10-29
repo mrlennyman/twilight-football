@@ -26,6 +26,7 @@
             <a href="/admin/league/<%= league.id %>/pages">Info pages</a>
             <a href="/admin/league/<%= league.id %>/log">Change log</a>
             <a href="/admin/league/<%= league.id %>/navigation">Menu</a>
+            <a href="/admin/league/<%= league.id %>/standings-display">Table display</a>
             <form method="POST" action="/admin/league/<%= league.id %>/visibility" class="inline-form visibility-form">
               <input type="hidden" name="hidden" value="<%= league.hidden ? '0' : '1' %>">
               <button type="submit" class="link-button"><%= league.hidden ? 'Show on public site' : 'Hide from public' %></button>

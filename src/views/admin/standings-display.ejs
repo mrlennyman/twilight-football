@@ -1,0 +1,30 @@
+<%- include('../partials/header', { title: league.name + ' — Standings display' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Standings display</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p class="muted">How the public standings table marks the split between the top and bottom of the table (this league has <%= numTeams %> teams). It's only a display choice: it doesn't change who plays in the Cup or Plate.</p>
+
+<% if (saved) { %><p class="callout">Saved. <a class="btn btn-light btn-sm" href="/league/<%= league.id %>" target="_blank">See the public site</a></p><% } %>
+
+<form method="POST" action="/admin/league/<%= league.id %>/standings-display" class="admin-form admin-form-wide">
+  <fieldset class="format-choice">
+    <legend>Show the split as</legend>
+    <label class="check-row"><input type="radio" name="mode" value="labels" <%= settings.mode === 'labels' ? 'checked' : '' %>> A labelled band above each half (e.g. &ldquo;Top 6&rdquo; and &ldquo;Bottom 6&rdquo;)</label>
+    <label class="check-row"><input type="radio" name="mode" value="line" <%= settings.mode === 'line' ? 'checked' : '' %>> Just a gold line between the halves, no text</label>
+    <label class="check-row"><input type="radio" name="mode" value="off" <%= settings.mode === 'off' ? 'checked' : '' %>> Nothing - a plain table</label>
+  </fieldset>
+
+  <label>Text above the top half <span class="muted">(blank = &ldquo;Top <%= preview.after || 'N' %>&rdquo;)</span>
+    <input type="text" name="top" value="<%= settings.top %>" maxlength="30" placeholder="e.g. Championship">
+  </label>
+  <label>Text above the bottom half <span class="muted">(blank = &ldquo;Bottom <%= preview.after ? numTeams - preview.after : 'N' %>&rdquo;)</span>
+    <input type="text" name="bottom" value="<%= settings.bottom %>" maxlength="30" placeholder="e.g. Challenge">
+  </label>
+  <label>Split after place <span class="muted">(blank = halfway<%= preview.after ? ', which is after ' + preview.after : ' - this league has no automatic split, so type a number to get one' %>)</span>
+    <input type="number" name="after" value="<%= settings.after || '' %>" min="1" max="<%= numTeams - 1 %>" placeholder="automatic">
+  </label>
+  <button type="submit">Save</button>
+</form>
+
+<%- include('../partials/footer') %>

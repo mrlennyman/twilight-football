@@ -23,7 +23,7 @@
 <% } %>
 
 <h2>Standings</h2>
-<%- include('../partials/standings-table', { standings, highlightSplit: true, showGroups: true }) %>
+<%- include('../partials/standings-table', { standings, splitMarks: resolveSplit(league, standings.length, { mode: 'line', after: null }) }) %>
 
 <% if (tieBlocks.length > 0) { %>
   <div class="callout">

@@ -19,6 +19,7 @@ const { snapshot, newestBackup, defaultBackupDir } = require('../lib/backup');
 const { formatNzDateTime } = require('../lib/format');
 const { resolveDbPath } = require('../lib/paths');
 const { getUsageStats } = require('../lib/usage');
+const { getSplitSettings, resolveSplit, parseSplitInput } = require('../lib/standingsSplit');
 const { parseFixtureCsv, planFixtureImport, applyFixtureImport, looksLikeFixtureCsv } = require('../lib/fixtureImport');
 const { saveScore, clearScore } = require('../lib/results');
 const {
@@ -949,6 +950,35 @@ router.post('/league/:id/navigation', (req, res) => {
   if (errors.length) return fail(res, errors.join(' '));
   db.prepare('UPDATE leagues SET nav_tabs = ? WHERE id = ?').run(value, league.id);
   res.redirect(`/admin/league/${league.id}/navigation?saved=1`);
+});
+
+// ---------- Standings display (the top / bottom split marker) ----------
+
+function renderSplitForm(res, league, saved, status = 200) {
+  const numTeams = db.prepare('SELECT COUNT(*) AS n FROM teams WHERE league_id = ?').get(league.id).n;
+  res.status(status).render('admin/standings-display', {
+    league,
+    numTeams,
+    settings: getSplitSettings(league),
+    preview: resolveSplit(league, numTeams, { mode: 'labels', after: null }),
+    saved,
+  });
+}
+
+router.get('/league/:id/standings-display', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  renderSplitForm(res, league, req.query.saved === '1');
+});
+
+router.post('/league/:id/standings-display', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const numTeams = db.prepare('SELECT COUNT(*) AS n FROM teams WHERE league_id = ?').get(league.id).n;
+  const { errors, value } = parseSplitInput(req.body, numTeams);
+  if (errors.length) return fail(res, errors.join(' '));
+  db.prepare('UPDATE leagues SET standings_split = ? WHERE id = ?').run(value, league.id);
+  res.redirect(`/admin/league/${league.id}/standings-display?saved=1`);
 });
 
 // ---------- Info pages (rules, referee guide, parents...) ----------
