@@ -7,6 +7,9 @@
  * One row per match. Matches with the same date and time are one round; each new date is a new week. The header row
  * is optional, "match" and "pitch" may be left out, and dates/times can be written the way a draw sheet writes them
  * ("28 Oct 2026", "28/10/2026", "5:30 PM").
+ *
+ * Results can ride along in two extra columns, home_score and away_score. A match with both filled in is loaded as
+ * played; leave both blank for a match still to come.
  */
 const { parseCsv } = require('./rosterImport');
 
@@ -55,7 +58,7 @@ const minutesOf = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3)
 
 /** Finds which column holds what: from the header row when there is one, else date,time,match,home,away,pitch. */
 function readColumns(headerRow) {
-  const names = headerRow.map((c) => clean(c).toLowerCase());
+  const names = headerRow.map((c) => clean(c).toLowerCase().replace(/_/g, ' '));
   const find = (...options) => names.findIndex((n) => options.includes(n));
   const cols = {
     date: find('date', 'day', 'week'),
@@ -64,6 +67,8 @@ function readColumns(headerRow) {
     home: find('home', 'home team'),
     away: find('away', 'away team'),
     pitch: find('pitch', 'pitch #', 'field', 'ground'),
+    homeScore: find('home score', 'home goals'),
+    awayScore: find('away score', 'away goals'),
   };
   return cols.home >= 0 && cols.away >= 0 && cols.date >= 0 && cols.time >= 0 ? cols : null;
 }
@@ -100,6 +105,8 @@ function parseFixtureCsv(text) {
     const home = cell(cols.home);
     const away = cell(cols.away);
     const pitchRaw = cell(cols.pitch);
+    const homeScoreRaw = cell(cols.homeScore);
+    const awayScoreRaw = cell(cols.awayScore);
     const pitchNum = pitchRaw ? Number((pitchRaw.match(/\d+/) || [])[0]) : null;
     if (!date) errors.push(`Row ${line}: "${cell(cols.date)}" is not a date I can read (try 2026-10-28 or 28 Oct 2026).`);
     if (!time) errors.push(`Row ${line}: "${cell(cols.time)}" is not a time I can read (try 17:30 or 5:30 PM).`);
@@ -107,7 +114,18 @@ function parseFixtureCsv(text) {
     else if (home.toLowerCase() === away.toLowerCase()) errors.push(`Row ${line}: ${home} can't play itself.`);
     if (home.length > 60 || away.length > 60) errors.push(`Row ${line}: a team name is too long (max 60 characters).`);
     if (pitchRaw && !(pitchNum >= 1 && pitchNum <= MAX_PITCHES)) errors.push(`Row ${line}: pitch "${pitchRaw}" should be a number from 1 to ${MAX_PITCHES}.`);
-    rows.push({ line, date, time, home, away, pitch: pitchRaw ? pitchNum : null });
+    let homeScore = null;
+    let awayScore = null;
+    if (homeScoreRaw !== '' || awayScoreRaw !== '') {
+      const ok = (v) => /^\d{1,2}$/.test(v);
+      if (homeScoreRaw === '' || awayScoreRaw === '') errors.push(`Row ${line}: give both scores, or leave both blank.`);
+      else if (!ok(homeScoreRaw) || !ok(awayScoreRaw)) errors.push(`Row ${line}: scores must be whole numbers from 0 to 99.`);
+      else {
+        homeScore = Number(homeScoreRaw);
+        awayScore = Number(awayScoreRaw);
+      }
+    }
+    rows.push({ line, date, time, home, away, pitch: pitchRaw ? pitchNum : null, homeScore, awayScore });
   }
   if (rows.length === 0) errors.push('The file has no matches in it.');
   return { errors, rows };
@@ -234,6 +252,7 @@ function planFixtureImport(db, league, rows) {
     teams,
     removals,
     matchCount: rows.length,
+    resultCount: rows.filter((r) => r.homeScore !== null).length,
     pitchCount,
     slotMinutes,
     roundsPerWeek,
@@ -270,15 +289,23 @@ function applyFixtureImport(db, league, plan) {
     const insertRound = db.prepare(
       "INSERT INTO rounds (league_id, round_number, week_number, stage, date, kickoff_time) VALUES (?, ?, ?, 'group', ?, ?)"
     );
-    const insertMatch = db.prepare('INSERT INTO matches (round_id, pitch_id, home_team_id, away_team_id) VALUES (?, ?, ?, ?)');
+    const insertMatch = db.prepare(
+      `INSERT INTO matches (round_id, pitch_id, home_team_id, away_team_id, home_score, away_score, status, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'played' THEN datetime('now') END)`
+    );
     for (const round of plan.rounds) {
       const info = insertRound.run(league.id, round.roundNumber, round.weekNumber, round.date, round.time);
       for (const m of round.matches) {
+        const status = m.homeScore !== null && m.homeScore !== undefined ? 'played' : 'scheduled';
         insertMatch.run(
           info.lastInsertRowid,
           m.pitch ? pitchIds.get(`Pitch ${m.pitch}`) : null,
           idByName.get(m.home.toLowerCase()),
-          idByName.get(m.away.toLowerCase())
+          idByName.get(m.away.toLowerCase()),
+          status === 'played' ? m.homeScore : null,
+          status === 'played' ? m.awayScore : null,
+          status,
+          status
         );
       }
     }

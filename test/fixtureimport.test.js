@@ -176,3 +176,47 @@ test('a fixture list pasted into the player-list importer points to the right pa
   assert.match(res.text, /looks like a fixture list/);
   assert.match(res.text, /Import fixtures from a file/);
 });
+
+test('score columns load played matches with their results, and half-filled scores are refused', async () => {
+  const csv = [
+    'date,time,match,home,away,pitch,home_score,away_score',
+    '2026-10-14,17:00,1,Reds,Blues,1,3,1',
+    '2026-10-14,17:00,2,Greens,Golds,2,0,0',
+    '2026-10-21,17:00,1,Reds,Greens,1,,',
+    '2026-10-21,17:00,2,Blues,Golds,2,,',
+  ].join('\n');
+  const parsed = parseFixtureCsv(csv);
+  assert.deepEqual(parsed.errors, []);
+  assert.deepEqual(parsed.rows.map((r) => [r.homeScore, r.awayScore]), [[3, 1], [0, 0], [null, null], [null, null]]);
+
+  const res = await h.request('POST', '/admin/import', { name: 'With Scores', season: 'S', num_pitches: '2', rounds_per_week: '1', csv });
+  assert.equal(res.status, 302);
+  const id = Number(res.location.match(/league\/(\d+)\/schedule/)[1]);
+  const matches = db
+    .prepare(
+      `SELECT ht.name h, at.name a, m.home_score hs, m.away_score aw, m.status, m.updated_at FROM matches m
+       JOIN rounds r ON r.id = m.round_id JOIN teams ht ON ht.id = m.home_team_id JOIN teams at ON at.id = m.away_team_id
+       WHERE r.league_id = ? ORDER BY r.round_number, m.id`
+    )
+    .all(id);
+  assert.deepEqual(matches.map((m) => [m.h, m.a, m.hs, m.aw, m.status]), [
+    ['Reds', 'Blues', 3, 1, 'played'],
+    ['Greens', 'Golds', 0, 0, 'played'],
+    ['Reds', 'Greens', null, null, 'scheduled'],
+    ['Blues', 'Golds', null, null, 'scheduled'],
+  ]);
+  assert.ok(matches[0].updated_at && !matches[2].updated_at);
+
+  // the table is worked out from the loaded results
+  const table = (await h.request('GET', `/league/${id}`)).text;
+  assert.match(table, /Reds[\s\S]*?<td>1<\/td>[\s\S]*?<strong>3<\/strong>/);
+
+  // the preview says how many results are included
+  const preview = await h.request('POST', `/admin/league/${id}/fixture-import/preview`, { text: csv });
+  assert.match(preview.text, /<strong>2<\/strong> matches already played/);
+
+  // one score without the other is refused
+  const bad = parseFixtureCsv('date,time,home,away,home_score,away_score\n2026-10-14,17:00,A,B,2,\n2026-10-14,17:00,C,D,x,1');
+  assert.match(bad.errors.join(' '), /Row 2: give both scores/);
+  assert.match(bad.errors.join(' '), /Row 3: scores must be whole numbers/);
+});

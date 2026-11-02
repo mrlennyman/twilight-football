@@ -28,6 +28,7 @@
   <table class="admin-table usage-totals">
     <tbody>
       <tr><th>Matches</th><td><strong><%= plan.matchCount %></strong> in <%= plan.rounds.length %> rounds over <%= plan.weeks %> weeks (<%= plan.roundsPerWeek %> rounds a week)</td></tr>
+      <% if (plan.resultCount > 0) { %><tr><th>Results</th><td><strong><%= plan.resultCount %></strong> match<%= plan.resultCount === 1 ? '' : 'es' %> already played - the scores load with the fixtures</td></tr><% } %>
       <tr><th>First match</th><td><%= plan.startDate %> at <%= plan.kickoffStartTime %>, <%= plan.slotMinutes %> minutes between rounds</td></tr>
       <tr><th>Pitches</th><td><%= plan.pitchCount %></td></tr>
       <tr><th>Teams</th><td><%= plan.teams.length %></td></tr>
@@ -102,7 +103,7 @@
   </script>
 
   <div class="callout">
-    <strong>Layout</strong> (one row per match; the header row is optional)
+    <strong>Layout</strong> (one row per match; the header row is optional; add <code>home_score,away_score</code> columns to load played results too)
     <div class="example-grid">
       <pre>date,time,match,home,away,pitch
 2026-10-28,17:30,1,Rovers,Wanderers,1

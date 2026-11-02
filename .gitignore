@@ -8,3 +8,6 @@ data/
 
 # Linux Node runtime kept on the server only (too big for GitHub)
 node-runtime/
+
+# One-off recovery files (results sheets, rosters) - not part of the app
+rebuild/
