@@ -2,12 +2,16 @@
 <footer class="site-footer no-print">
   <div class="container footer-inner">
     <p class="footer-club"><span class="footer-name">Bream Bay Twilight Football</span><span class="install-link"><a class="footer-btn" href="/install">Get the app</a></span></p>
-    <% if (typeof adminPage === 'undefined' || !adminPage) { %><p class="staff-link"><% if (typeof staff !== 'undefined' && staff === 'admin') { %><a href="/admin">Admin</a><% } else if (typeof staff !== 'undefined' && staff === 'scorer') { %><a href="/admin">My scoring page</a><% } else { %><a href="/admin/login">Staff login</a><% } %></p><% } %>
   </div>
   <a class="sponsor" href="https://websitealchemy.com/" target="_blank" rel="noopener sponsored">
     <span class="sponsor-logo"><img src="/img/websitealchemy-logo-dark.png" alt="" width="98" height="24" loading="lazy" decoding="async"></span>
     <span class="sponsor-text">Sponsored by <strong>websitealchemy.com</strong></span>
   </a>
+  <% if (typeof adminPage === 'undefined' || !adminPage) { %>
+    <%# A little person in the bottom-right corner of the bar: the way in for staff and scorers (works inside the installed app too) %>
+    <% const staffNow = typeof staff !== 'undefined' ? staff : null; const staffLabel = staffNow === 'admin' ? 'Admin' : staffNow === 'scorer' ? 'My scoring page' : 'Staff login'; %>
+    <a class="staff-icon" href="<%= staffNow ? '/admin' : '/admin/login' %>" aria-label="<%= staffLabel %>" title="<%= staffLabel %>"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></a>
+  <% } %>
 </footer>
 <script src="/js/register-sw.js?v=<%= assetVersion %>"></script>
 <script src="/js/install.js?v=<%= assetVersion %>" defer></script>

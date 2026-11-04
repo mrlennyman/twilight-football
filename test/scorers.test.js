@@ -218,17 +218,17 @@ test('the main admin login still works exactly as before', async () => {
 
 test('every public page has a quiet staff link that goes to the login, or to the right place once logged in', async () => {
   const anon = await (await fetch(h.base + '/leagues')).text();
-  assert.match(anon, /<p class="staff-link"><a href="\/admin\/login">Staff login<\/a><\/p>/);
+  assert.match(anon, /<a class="staff-icon" href="\/admin\/login" aria-label="Staff login" title="Staff login"><svg/);
   const league = await (await fetch(h.base + `/league/${adults}`)).text();
-  assert.match(league, /href="\/admin\/login">Staff login/);
+  assert.match(league, /class="staff-icon" href="\/admin\/login"/);
   // admin pages themselves do not get it
-  assert.doesNotMatch((await h.request('GET', '/admin')).text, /Staff login/);
+  assert.doesNotMatch((await h.request('GET', '/admin')).text, /staff-icon/);
   // logged in as the admin on a public page: a link to the dashboard
-  assert.match((await h.request('GET', `/league/${adults}`)).text, /<a href="\/admin">Admin<\/a>/);
+  assert.match((await h.request('GET', `/league/${adults}`)).text, /class="staff-icon" href="\/admin" aria-label="Admin"/);
   // a scorer sees a link to their scoring page
   await h.request('POST', '/admin/scorers', { name: 'Pat', password: 'pitchside-1', league_id: String(adults) });
   const login = await fetch(h.base + '/admin/login', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ name: 'Pat', password: 'pitchside-1' }).toString() });
   const cookie = login.headers.get('set-cookie').split(';')[0];
   const page = await (await fetch(h.base + '/leagues', { headers: { cookie } })).text();
-  assert.match(page, /<a href="\/admin">My scoring page<\/a>/);
+  assert.match(page, /class="staff-icon" href="\/admin" aria-label="My scoring page"/);
 });

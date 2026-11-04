@@ -60,6 +60,7 @@ body {
 .site-header .brand img { display: block; border-radius: 6px; }
 
 .site-footer {
+  position: relative;
   margin-top: auto;
   padding: 20px 0 0;
   color: var(--muted);
@@ -1212,11 +1213,24 @@ html.home-page-root, html.login-page-root {
    fixed overshoot, colour-scheme, manifest background_color. A white bar makes that strip invisible. */
 .footer-inner { text-align: center; }
 .footer-club { margin: 0 0 14px; }
-/* A quiet way into the admin (also reachable from inside the installed app, which has no address bar) */
-.staff-link { margin: -6px 0 12px; font-size: 0.72rem; }
-.staff-link a { color: var(--muted); opacity: 0.8; text-decoration: none; }
-.home-page .staff-link { margin: 0 0 8px; }
-.home-page .site-footer .staff-link a { color: rgba(255, 255, 255, 0.55); }
+/* A quiet way into the admin: a little person in the bottom-right corner of the sponsor bar (also reachable from
+   inside the installed app, which has no address bar). */
+.site-footer a.staff-icon, .home-page .site-footer a.staff-icon {
+  position: absolute;
+  right: 8px;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--wine-700);
+  opacity: 0.45;
+  border-radius: 50%;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.site-footer a.staff-icon:hover, .site-footer a.staff-icon:focus-visible { opacity: 1; }
 .sponsor {
   display: flex;
   align-items: center;
