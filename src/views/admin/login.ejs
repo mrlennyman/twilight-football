@@ -20,9 +20,15 @@
 
     <form method="POST" action="/admin/login" id="login-form">
       <label class="login-field">
+        <span>Name <small>(only if you were given a scorer login - leave empty for the main admin)</small></span>
+        <span class="login-input">
+          <input type="text" name="name" id="login-name" autocomplete="username" autocapitalize="words" maxlength="30">
+        </span>
+      </label>
+      <label class="login-field">
         <span>Password</span>
         <span class="login-input">
-          <input type="password" name="password" id="login-password" required autofocus autocomplete="current-password">
+          <input type="password" name="password" id="login-password" required autocomplete="current-password">
           <button type="button" id="login-toggle" class="login-toggle" aria-label="Show password" aria-pressed="false">Show</button>
         </span>
       </label>

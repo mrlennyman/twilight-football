@@ -94,7 +94,8 @@ CREATE TABLE IF NOT EXISTS result_log (
   new_home INTEGER,
   new_away INTEGER,
   new_status TEXT,
-  ip TEXT
+  ip TEXT,
+  by_name TEXT
 );
 
 -- Anonymous install / usage counter: one random id per phone (kept in the phone's own storage), no names or addresses.
@@ -115,3 +116,13 @@ CREATE TABLE IF NOT EXISTS app_daily (
   PRIMARY KEY (day, device_id, mode)
 );
 CREATE INDEX IF NOT EXISTS idx_app_daily_day ON app_daily(day);
+
+-- People who may enter scores for one league (and nothing else). Passwords are salted scrypt hashes.
+CREATE TABLE IF NOT EXISTS scorers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT NOT NULL,
+  league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

@@ -39,6 +39,8 @@ if (!playerColumns.includes('is_captain')) db.exec('ALTER TABLE players ADD COLU
 const matchColumns = db.prepare('PRAGMA table_info(matches)').all().map((c) => c.name);
 if (!matchColumns.includes('updated_at')) db.exec('ALTER TABLE matches ADD COLUMN updated_at TEXT');
 
+const logColumns = db.prepare('PRAGMA table_info(result_log)').all().map((c) => c.name);
+if (!logColumns.includes('by_name')) db.exec('ALTER TABLE result_log ADD COLUMN by_name TEXT');
 const tieBreakColumns = db.prepare('PRAGMA table_info(tie_breaks)').all().map((c) => c.name);
 if (!tieBreakColumns.includes('stage')) db.exec("ALTER TABLE tie_breaks ADD COLUMN stage TEXT NOT NULL DEFAULT 'group'");
 if (!leagueColumns.includes('finals_blurb')) db.exec('ALTER TABLE leagues ADD COLUMN finals_blurb TEXT');

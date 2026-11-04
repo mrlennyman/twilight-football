@@ -1,0 +1,68 @@
+<%- include('../partials/header', { title: 'Scorer logins' }) %>
+<div class="admin-bar">
+  <h1>Scorer logins</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+<p class="muted">A scorer logs in with their own name and password and can <strong>enter and correct scores for one league, and nothing else</strong>: no changing teams, schedules, finals or settings, and no deleting. The change log shows their name next to each score they enter.</p>
+
+<% if (errors.length) { %>
+  <div class="callout callout-warn"><strong>Nothing was changed.</strong>
+    <ul><% errors.forEach(e => { %><li><%= e %></li><% }) %></ul>
+  </div>
+<% } %>
+<% if (notice) { %><p class="callout"><%= notice %></p><% } %>
+
+<% if (scorers.length > 0) { %>
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead><tr><th>Name</th><th>League</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% scorers.forEach(s => { %>
+        <tr>
+          <td><strong><%= s.name %></strong></td>
+          <td><%= s.league_name %></td>
+          <td><%= s.active ? 'Can log in' : 'Switched off' %></td>
+          <td class="admin-actions">
+            <form method="POST" action="/admin/scorers/<%= s.id %>/active" class="inline-form">
+              <input type="hidden" name="active" value="<%= s.active ? '0' : '1' %>">
+              <button type="submit" class="link-button"><%= s.active ? 'Switch off' : 'Switch on' %></button>
+            </form>
+            <form method="POST" action="/admin/scorers/<%= s.id %>/password" class="inline-form">
+              <input type="password" name="password" placeholder="new password" autocomplete="new-password" minlength="8" required>
+              <button type="submit" class="link-button">Change password</button>
+            </form>
+            <form method="POST" action="/admin/scorers/<%= s.id %>/delete" class="inline-form" onsubmit="return confirm('Remove <%= s.name.replace(/'/g, "") %>?')">
+              <button type="submit" class="link-button danger">Remove</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+<% } else { %>
+  <p>No scorer logins yet.</p>
+<% } %>
+
+<h2>Add a scorer</h2>
+<% if (leagues.length === 0) { %>
+  <p>Create a league first.</p>
+<% } else { %>
+<form method="POST" action="/admin/scorers" class="admin-form">
+  <label>Name <span class="muted">(what they type to log in, and what shows in the change log)</span>
+    <input type="text" name="name" maxlength="30" required autocomplete="off" value="<%= form.name %>">
+  </label>
+  <label>Password <span class="muted">(at least 8 characters - tell them in person, not in a public chat)</span>
+    <input type="password" name="password" minlength="8" required autocomplete="new-password">
+  </label>
+  <label>League they can enter scores for
+    <select name="league_id">
+      <% leagues.forEach(l => { %><option value="<%= l.id %>" <%= String(form.league_id) === String(l.id) ? 'selected' : '' %>><%= l.name %></option><% }) %>
+    </select>
+  </label>
+  <button type="submit">Add scorer</button>
+</form>
+<p class="help">To log in, a scorer opens <code>/admin/login</code>, types their <strong>name</strong> in the first box and their password in the second.</p>
+<% } %>
+
+<%- include('../partials/footer') %>

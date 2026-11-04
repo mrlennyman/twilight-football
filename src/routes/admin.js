@@ -26,6 +26,7 @@ const { getSplitSettings, resolveSplit, parseSplitInput } = require('../lib/stan
 const { DEFAULT_BLURB, MAX_LENGTH: BLURB_MAX, getFinalsBlurb, parseBlurbInput } = require('../lib/finalsBlurb');
 const { parseFixtureCsv, planFixtureImport, applyFixtureImport, looksLikeFixtureCsv } = require('../lib/fixtureImport');
 const { saveScore, clearScore } = require('../lib/results');
+const { hashPassword, authenticateScorer, parseScorerInput, cleanName, MIN_PASSWORD } = require('../lib/scorers');
 const {
   getPages,
   getPageById,
@@ -52,6 +53,9 @@ router.use((req, res, next) => {
   res.locals.adminPage = true;
   next();
 });
+
+/** Who is making a change, for the change log: the scorer's name, or "Admin" for the main login. */
+const actor = (req) => ({ ip: req.ip, who: req.session && req.session.scorer ? req.session.scorer.name : 'Admin' });
 
 function fail(res, message, status = 400) {
   return res.status(status).render('admin/error', { message });
@@ -154,17 +158,21 @@ router.post('/login', (req, res) => {
     });
   }
 
-  if (!checkPassword(req.body.password)) {
+  // A name means a scorer login; no name means the main admin password, exactly as before.
+  const name = cleanName(req.body.name);
+  const scorer = name ? authenticateScorer(db, name, req.body.password) : null;
+  if (name ? !scorer : !checkPassword(req.body.password)) {
     loginLimiter.recordFailure(req.ip);
-    return res.status(401).render('admin/login', { error: 'Incorrect password.' });
+    return res.status(401).render('admin/login', { error: name ? 'Incorrect name or password.' : 'Incorrect password.' });
   }
 
   loginLimiter.reset(req.ip);
-  const returnTo = safeReturnTo(req.session && req.session.returnTo); // read before the session is replaced
+  const returnTo = scorer ? `/admin/league/${scorer.league_id}/results` : safeReturnTo(req.session && req.session.returnTo); // read before the session is replaced
   // New session id on login so a pre-login cookie can't be reused.
   req.session.regenerate((err) => {
     if (err) return fail(res, 'Could not start a session. Please try again.', 500);
-    req.session.isAdmin = true;
+    if (scorer) req.session.scorer = { id: scorer.id, name: scorer.name, leagueId: scorer.league_id };
+    else req.session.isAdmin = true;
     req.session.save(() => res.redirect(returnTo));
   });
 });
@@ -234,6 +242,46 @@ router.post('/leagues', (req, res) => {
   });
 
   res.redirect(`/admin/league/${create()}/teams`);
+});
+
+// ---------- Scorer logins ----------
+
+function renderScorers(res, { errors = [], notice = null, form = {}, status = 200 } = {}) {
+  res.status(status).render('admin/scorers', {
+    scorers: db
+      .prepare('SELECT s.*, l.name AS league_name FROM scorers s JOIN leagues l ON l.id = s.league_id ORDER BY s.name')
+      .all(),
+    leagues: getAllLeagues(db),
+    errors,
+    notice,
+    form: { name: form.name || '', league_id: form.league_id || '' },
+  });
+}
+
+router.get('/scorers', (req, res) => renderScorers(res, { notice: req.query.saved === '1' ? 'Saved.' : null }));
+
+router.post('/scorers', (req, res) => {
+  const { errors, value } = parseScorerInput(db, req.body);
+  if (errors.length) return renderScorers(res, { errors, form: req.body, status: 400 });
+  db.prepare('INSERT INTO scorers (name, password_hash, league_id) VALUES (?, ?, ?)').run(value.name, hashPassword(value.password), value.leagueId);
+  res.redirect('/admin/scorers?saved=1');
+});
+
+router.post('/scorers/:id/active', (req, res) => {
+  db.prepare('UPDATE scorers SET active = ? WHERE id = ?').run(req.body.active === '1' ? 1 : 0, Number(req.params.id));
+  res.redirect('/admin/scorers?saved=1');
+});
+
+router.post('/scorers/:id/password', (req, res) => {
+  const password = String(req.body.password ?? '');
+  if (password.length < MIN_PASSWORD) return renderScorers(res, { errors: [`The password needs at least ${MIN_PASSWORD} characters.`], status: 400 });
+  db.prepare('UPDATE scorers SET password_hash = ? WHERE id = ?').run(hashPassword(password), Number(req.params.id));
+  res.redirect('/admin/scorers?saved=1');
+});
+
+router.post('/scorers/:id/delete', (req, res) => {
+  db.prepare('DELETE FROM scorers WHERE id = ?').run(Number(req.params.id));
+  res.redirect('/admin/scorers?saved=1');
 });
 
 // ---------- Example league (fully played, hidden from the public) ----------
@@ -639,7 +687,7 @@ router.post('/league/:id/results/match/:matchId', (req, res) => {
     return fail(res, 'Scores must be whole numbers between 0 and 99.');
   }
 
-  saveScore(db, match.id, homeScore, awayScore, null, { ip: req.ip });
+  saveScore(db, match.id, homeScore, awayScore, null, actor(req));
   res.redirect(`/admin/league/${req.params.id}/results?week=${match.week_number}#round-${match.round_id}`);
 });
 
@@ -667,7 +715,7 @@ router.post('/league/:id/results/round/:roundId', (req, res) => {
   if (req.body.clear !== undefined && req.body.clear !== '') {
     const target = matches.find((m) => String(m.id) === String(req.body.clear));
     if (!target) return res.status(404).render('404');
-    clearScore(db, target.id, { ip: req.ip });
+    clearScore(db, target.id, actor(req));
     return res.redirect(back);
   }
 
@@ -694,7 +742,7 @@ router.post('/league/:id/results/round/:roundId', (req, res) => {
   if (problems.length) return fail(res, `${problems.join(' ')} Nothing in this round was saved.`);
 
   db.transaction(() => {
-    for (const s of toSave) saveScore(db, s.id, s.homeScore, s.awayScore, null, { ip: req.ip });
+    for (const s of toSave) saveScore(db, s.id, s.homeScore, s.awayScore, null, actor(req));
   })();
   res.redirect(back);
 });
@@ -928,7 +976,7 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
     penaltyWinnerId = picked;
   }
 
-  saveScore(db, match.id, homeScore, awayScore, penaltyWinnerId, { ip: req.ip });
+  saveScore(db, match.id, homeScore, awayScore, penaltyWinnerId, actor(req));
 
   tryFillFinal(db, leagueId, match.stage);
   if (allBracketsComplete(leagueId)) {
@@ -1020,7 +1068,7 @@ router.post('/league/:id/knockout-results/match/:matchId/clear', (req, res) => {
   }
 
   db.transaction(() => {
-    clearScore(db, match.id, { ip: req.ip });
+    clearScore(db, match.id, actor(req));
     if (later) {
       // A quarter-final feeds one side of its semi; a semi-final feeds both sides of the final.
       const feed = feedOf(match.bracket_slot);

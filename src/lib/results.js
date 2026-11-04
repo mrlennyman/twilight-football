@@ -16,10 +16,10 @@ function atomically(db, fn) {
   }
 }
 
-function logChange(db, matchId, before, after, ip) {
+function logChange(db, matchId, before, after, ip, who) {
   db.prepare(
-    `INSERT INTO result_log (league_id, match_id, old_home, old_away, old_status, new_home, new_away, new_status, ip)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO result_log (league_id, match_id, old_home, old_away, old_status, new_home, new_away, new_status, ip, by_name)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     before.league_id,
     matchId,
@@ -29,7 +29,8 @@ function logChange(db, matchId, before, after, ip) {
     after.home,
     after.away,
     after.status,
-    ip || null
+    ip || null,
+    who || null
   );
 }
 
@@ -42,26 +43,26 @@ function currentRow(db, matchId) {
     .get(matchId);
 }
 
-function saveScore(db, matchId, homeScore, awayScore, penaltyWinnerId = null, { ip = null } = {}) {
+function saveScore(db, matchId, homeScore, awayScore, penaltyWinnerId = null, { ip = null, who = null } = {}) {
   atomically(db, () => {
     const before = currentRow(db, matchId);
     db.prepare(
       `UPDATE matches SET home_score = ?, away_score = ?, status = 'played', penalty_winner_id = ?,
          updated_at = datetime('now') WHERE id = ?`
     ).run(homeScore, awayScore, penaltyWinnerId, matchId);
-    logChange(db, matchId, before, { home: homeScore, away: awayScore, status: 'played' }, ip);
+    logChange(db, matchId, before, { home: homeScore, away: awayScore, status: 'played' }, ip, who);
   });
 }
 
 /** Back to an unplayed match: no score, no shootout winner. */
-function clearScore(db, matchId, { ip = null } = {}) {
+function clearScore(db, matchId, { ip = null, who = null } = {}) {
   atomically(db, () => {
     const before = currentRow(db, matchId);
     db.prepare(
       `UPDATE matches SET home_score = NULL, away_score = NULL, status = 'scheduled', penalty_winner_id = NULL,
          updated_at = datetime('now') WHERE id = ?`
     ).run(matchId);
-    logChange(db, matchId, before, { home: null, away: null, status: 'scheduled' }, ip);
+    logChange(db, matchId, before, { home: null, away: null, status: 'scheduled' }, ip, who);
   });
 }
 

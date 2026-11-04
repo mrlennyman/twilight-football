@@ -18,7 +18,7 @@
           <td><%= e.where %>: <%= e.home_name || 'TBD' %> v <%= e.away_name || 'TBD' %></td>
           <td><%= e.oldText %></td>
           <td><strong><%= e.newText %></strong></td>
-          <td class="muted"><%= e.ip || '' %></td>
+          <td class="muted"><%= e.by_name ? e.by_name + (e.ip ? ' (' + e.ip + ')' : '') : (e.ip || '') %></td>
         </tr>
       <% }) %>
     </tbody>
