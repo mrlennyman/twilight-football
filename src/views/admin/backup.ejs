@@ -1,0 +1,28 @@
+<%- include('../partials/header', { title: 'Download a backup' }) %>
+<div class="admin-bar">
+  <h1>Download a backup</h1>
+  <a href="/admin">&larr; Dashboard</a>
+</div>
+
+<p>This saves <strong>a copy of everything in the app</strong> onto your own computer or phone: every league, team, player, fixture, score, Info page and setting. If anything ever happens to the server, the copy can put it all back.</p>
+
+<p><a class="btn" href="/admin/backup/download">Download a backup now</a></p>
+
+<p class="muted">
+  <% if (backupDays === null) { %>You haven't downloaded a backup yet.
+  <% } else if (backupDays === 0) { %>Last downloaded: today.
+  <% } else { %>Last downloaded: <%= backupDays %> day<%= backupDays === 1 ? '' : 's' %> ago.<% } %>
+  Right now it holds <%= counts.leagues %> league<%= counts.leagues === 1 ? '' : 's' %>, <%= counts.teams %> teams, <%= counts.players %> players and <%= counts.results %> played match<%= counts.results === 1 ? '' : 'es' %><% if (dbBytes) { %> (about <%= Math.max(1, Math.round(dbBytes / 1024)) %> KB)<% } %>.
+</p>
+
+<div class="callout">
+  <strong>Please keep the file private.</strong> It contains the children's names, and the scorer logins (as scrambled passwords). Don't post it or send it to anyone you wouldn't trust with the lists themselves. A folder on your computer that is also saved to OneDrive or Google Drive is a good home for it.
+</div>
+
+<h2>How often?</h2>
+<p>A good habit is <strong>after each match night</strong>, once the scores are in. It takes a few seconds. The dashboard reminds you if it has been more than a week.</p>
+
+<h2>If you ever need to put it back</h2>
+<p>Send the file to your developer (or to Claude) and say "restore this backup". Or, on the server: stop the app in Supervisor, put the file into the app's <code>data</code> folder named <code>bream-bay.sqlite</code> (replacing the one there), and start the app again.</p>
+
+<%- include('../partials/footer') %>

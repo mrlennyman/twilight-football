@@ -4,6 +4,13 @@
   <form method="POST" action="/admin/logout"><button type="submit" class="link-button">Log out</button></form>
 </div>
 
+<% if (backupDays === null || backupDays >= 7) { %>
+  <div class="callout callout-warn">
+    <strong><%= backupDays === null ? "You haven't downloaded a backup yet." : "It's been " + backupDays + " days since you last downloaded a backup." %></strong>
+    Everything lives on one server, so a copy on your own computer protects your season's work. <a class="btn btn-light btn-sm" href="/admin/backup">Download a backup</a>
+  </div>
+<% } %>
+
 <h2>Leagues</h2>
 <% if (leagues.length === 0) { %>
   <p>No leagues yet — create the first one below.</p>
@@ -66,6 +73,6 @@
   <button type="submit">Create league</button>
 </form>
 
-<p class="muted admin-footer-links"><a class="btn btn-light btn-sm" href="/admin/scorers">Scorer logins</a> <a class="btn btn-light btn-sm" href="/admin/usage">Installs &amp; usage</a> <a class="btn btn-light btn-sm" href="/admin/diagnostics">Server check</a> <a class="btn btn-light btn-sm" href="/edge-test">Screen edge test</a></p>
+<p class="muted admin-footer-links"><a class="btn btn-light btn-sm" href="/admin/backup">Download backup</a> <a class="btn btn-light btn-sm" href="/admin/scorers">Scorer logins</a> <a class="btn btn-light btn-sm" href="/admin/usage">Installs &amp; usage</a> <a class="btn btn-light btn-sm" href="/admin/diagnostics">Server check</a> <a class="btn btn-light btn-sm" href="/edge-test">Screen edge test</a></p>
 
 <%- include('../partials/footer') %>

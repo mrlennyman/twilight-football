@@ -126,3 +126,9 @@ CREATE TABLE IF NOT EXISTS scorers (
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Small facts about the app itself (e.g. when a backup was last downloaded).
+CREATE TABLE IF NOT EXISTS app_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);

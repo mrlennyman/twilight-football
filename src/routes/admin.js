@@ -18,7 +18,7 @@ const {
 const { createPage, seedStarterPages } = require('../lib/pages');
 const { renderMarkup } = require('../lib/markup');
 const fs = require('fs');
-const { snapshot, newestBackup, defaultBackupDir } = require('../lib/backup');
+const { snapshot, newestBackup, defaultBackupDir, makeDownloadCopy, markBackupDownloaded, daysSinceDownload } = require('../lib/backup');
 const { formatNzDateTime } = require('../lib/format');
 const { resolveDbPath } = require('../lib/paths');
 const { getUsageStats } = require('../lib/usage');
@@ -187,7 +187,47 @@ router.use(requireAdmin);
 
 router.get('/', (req, res) => {
   const leagues = getAllLeagues(db);
-  res.render('admin/dashboard', { leagues });
+  res.render('admin/dashboard', { leagues, backupDays: daysSinceDownload(db) });
+});
+
+// ---------- Download a backup of all the data ----------
+
+router.get('/backup', (req, res) => {
+  let dbBytes = null;
+  try {
+    dbBytes = fs.statSync(resolveDbPath(process.env.DATABASE_PATH)).size;
+  } catch (err) {
+    /* shown as unknown */
+  }
+  res.render('admin/backup', {
+    dbBytes,
+    backupDays: daysSinceDownload(db),
+    counts: {
+      leagues: db.prepare('SELECT COUNT(*) AS n FROM leagues').get().n,
+      teams: db.prepare('SELECT COUNT(*) AS n FROM teams').get().n,
+      players: db.prepare('SELECT COUNT(*) AS n FROM players').get().n,
+      results: db.prepare("SELECT COUNT(*) AS n FROM matches WHERE status = 'played'").get().n,
+    },
+  });
+});
+
+router.get('/backup/download', (req, res) => {
+  let copy;
+  try {
+    copy = makeDownloadCopy(db);
+  } catch (err) {
+    console.error('Could not make a backup to download:', err);
+    return fail(res, 'Could not make a backup just now. Please try again.', 500);
+  }
+  res.set('Cache-Control', 'no-store');
+  res.download(copy.file, copy.name, (err) => {
+    copy.remove();
+    if (err) {
+      if (!res.headersSent) fail(res, 'The download did not finish. Please try again.', 500);
+      return;
+    }
+    markBackupDownloaded(db);
+  });
 });
 
 // What the server sees about this request and its own housekeeping (for checking the proxy set-up).

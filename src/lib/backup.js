@@ -72,4 +72,29 @@ function newestBackup(dir = defaultBackupDir()) {
   }
 }
 
-module.exports = { defaultBackupDir, snapshot, nightly, newestBackup, stamp };
+/**
+ * A consistent copy of the live database in a temporary file, for the admin to download.
+ * Returns { file, name, remove() } - call remove() when the download has finished.
+ */
+function makeDownloadCopy(db, { now = new Date() } = {}) {
+  const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'bb-download-'));
+  const name = `bream-bay-backup-${stamp(now)}.sqlite`;
+  const file = path.join(dir, name);
+  vacuumInto(db, file);
+  return { file, name, remove: () => fs.rmSync(dir, { recursive: true, force: true }) };
+}
+
+const LAST_DOWNLOAD_KEY = 'last_backup_download';
+
+function markBackupDownloaded(db, now = new Date()) {
+  db.prepare('INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(LAST_DOWNLOAD_KEY, now.toISOString());
+}
+
+/** Days since a backup was last downloaded, or null if one never has been. */
+function daysSinceDownload(db, now = new Date()) {
+  const row = db.prepare('SELECT value FROM app_meta WHERE key = ?').get(LAST_DOWNLOAD_KEY);
+  if (!row) return null;
+  return Math.floor((now - new Date(row.value)) / 86400000);
+}
+
+module.exports = { defaultBackupDir, snapshot, nightly, newestBackup, stamp, makeDownloadCopy, markBackupDownloaded, daysSinceDownload };
