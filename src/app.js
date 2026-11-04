@@ -66,6 +66,8 @@ app.use(
 app.use((req, res, next) => {
   res.locals.baseUrl = `${req.protocol}://${req.get('host')}`;
   res.locals.currentPath = req.path === '/' ? '' : req.path;
+  // For the footer's staff link: who (if anyone) is logged in on this device.
+  res.locals.staff = req.session && req.session.isAdmin ? 'admin' : req.session && req.session.scorer ? 'scorer' : null;
   next();
 });
 

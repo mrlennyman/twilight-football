@@ -1,5 +1,10 @@
 <%- include('../partials/header', { title: 'Something to fix' }) %>
 <h1>Something to fix</h1>
 <p class="error"><%= message %></p>
+<% if (typeof scorer !== 'undefined' && scorer) { %>
+<p><a class="btn btn-light" href="javascript:history.back()">&larr; Go back</a> <a class="btn" href="/admin">My results page</a></p>
+<form method="POST" action="/admin/logout"><button type="submit" class="btn btn-light btn-sm">Log out (<%= scorer.name %>)</button></form>
+<% } else { %>
 <p><a class="btn btn-light" href="javascript:history.back()">&larr; Go back</a> <a class="btn" href="/admin">Dashboard</a></p>
+<% } %>
 <%- include('../partials/footer') %>

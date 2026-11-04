@@ -51,6 +51,7 @@ const router = express.Router();
 // Marks every admin page so the footer leaves out the public-only scripts (auto-refresh, follow-a-team).
 router.use((req, res, next) => {
   res.locals.adminPage = true;
+  res.locals.scorer = (req.session && req.session.scorer) || null; // set for a scorer login, so pages can show "Log out"
   next();
 });
 

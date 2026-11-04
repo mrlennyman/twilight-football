@@ -108,6 +108,17 @@ test('a scorer logs in with a name and password, and lands on their league resul
   assert.equal(results.status, 200);
   assert.match(results.text, /Adults/);
   assert.equal((await b('GET', '/admin')).location, `/admin/league/${adults}/results`, 'the dashboard is only a doorway');
+  // a scorer can always log out: the button is on their results page and on the "not allowed" page
+  assert.match(results.text, /action="\/admin\/logout"[\s\S]*?Signed in as Sam[\s\S]*?Log out/);
+  assert.doesNotMatch(results.text, /&larr; Dashboard/);
+  const refused = await b('GET', `/admin/league/${adults}/teams`);
+  assert.equal(refused.status, 403);
+  assert.match(refused.text, /Log out \(Sam\)/);
+  const out = await b('POST', '/admin/logout');
+  assert.equal(out.status, 302);
+  assert.equal((await b('GET', `/admin/league/${adults}/results`)).status, 302, 'logged out after pressing the button');
+  // and the main admin still sees the Dashboard link, not a scorer logout
+  assert.match((await h.request('GET', `/admin/league/${adults}/results`)).text, /&larr; Dashboard/);
 });
 
 test('a scorer can enter and correct scores, and the log shows their name', async () => {
@@ -203,4 +214,21 @@ test('the main admin login still works exactly as before', async () => {
   assert.equal((await b('POST', '/admin/login', { password: 'wrong' })).status, 401);
   assert.equal((await b('POST', '/admin/login', { password: 'Goal-Keeper-Test-2026' })).status, 302);
   assert.equal((await b('GET', '/admin/scorers')).status, 200);
+});
+
+test('every public page has a quiet staff link that goes to the login, or to the right place once logged in', async () => {
+  const anon = await (await fetch(h.base + '/leagues')).text();
+  assert.match(anon, /<p class="staff-link"><a href="\/admin\/login">Staff login<\/a><\/p>/);
+  const league = await (await fetch(h.base + `/league/${adults}`)).text();
+  assert.match(league, /href="\/admin\/login">Staff login/);
+  // admin pages themselves do not get it
+  assert.doesNotMatch((await h.request('GET', '/admin')).text, /Staff login/);
+  // logged in as the admin on a public page: a link to the dashboard
+  assert.match((await h.request('GET', `/league/${adults}`)).text, /<a href="\/admin">Admin<\/a>/);
+  // a scorer sees a link to their scoring page
+  await h.request('POST', '/admin/scorers', { name: 'Pat', password: 'pitchside-1', league_id: String(adults) });
+  const login = await fetch(h.base + '/admin/login', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ name: 'Pat', password: 'pitchside-1' }).toString() });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const page = await (await fetch(h.base + '/leagues', { headers: { cookie } })).text();
+  assert.match(page, /<a href="\/admin">My scoring page<\/a>/);
 });

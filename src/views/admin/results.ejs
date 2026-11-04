@@ -1,7 +1,11 @@
 <%- include('../partials/header', { title: league.name + ' — Results' }) %>
 <div class="admin-bar">
   <h1><%= league.name %> — Results</h1>
-  <a href="/admin">&larr; Dashboard</a>
+  <% if (scorer) { %>
+    <form method="POST" action="/admin/logout" class="inline-form"><span class="muted">Signed in as <%= scorer.name %></span> <button type="submit" class="btn btn-light btn-sm">Log out</button></form>
+  <% } else { %>
+    <a href="/admin">&larr; Dashboard</a>
+  <% } %>
 </div>
 
 <h2>Group stage</h2>

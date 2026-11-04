@@ -1212,6 +1212,11 @@ html.home-page-root, html.login-page-root {
    fixed overshoot, colour-scheme, manifest background_color. A white bar makes that strip invisible. */
 .footer-inner { text-align: center; }
 .footer-club { margin: 0 0 14px; }
+/* A quiet way into the admin (also reachable from inside the installed app, which has no address bar) */
+.staff-link { margin: -6px 0 12px; font-size: 0.72rem; }
+.staff-link a { color: var(--muted); opacity: 0.8; text-decoration: none; }
+.home-page .staff-link { margin: 0 0 8px; }
+.home-page .site-footer .staff-link a { color: rgba(255, 255, 255, 0.55); }
 .sponsor {
   display: flex;
   align-items: center;

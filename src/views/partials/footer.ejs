@@ -2,6 +2,7 @@
 <footer class="site-footer no-print">
   <div class="container footer-inner">
     <p class="footer-club"><span class="footer-name">Bream Bay Twilight Football</span><span class="install-link"><a class="footer-btn" href="/install">Get the app</a></span></p>
+    <% if (typeof adminPage === 'undefined' || !adminPage) { %><p class="staff-link"><% if (typeof staff !== 'undefined' && staff === 'admin') { %><a href="/admin">Admin</a><% } else if (typeof staff !== 'undefined' && staff === 'scorer') { %><a href="/admin">My scoring page</a><% } else { %><a href="/admin/login">Staff login</a><% } %></p><% } %>
   </div>
   <a class="sponsor" href="https://websitealchemy.com/" target="_blank" rel="noopener sponsored">
     <span class="sponsor-logo"><img src="/img/websitealchemy-logo-dark.png" alt="" width="98" height="24" loading="lazy" decoding="async"></span>
