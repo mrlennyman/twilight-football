@@ -20,7 +20,7 @@ const { renderMarkup } = require('../lib/markup');
 const { formatUpdated } = require('../lib/format');
 
 const { recordUsage } = require('../lib/usage');
-const { isRoundRobinFirst, isThreeGroupFinals } = require('../lib/knockoutResult');
+const { isRoundRobinFirst, isThreeGroupFinals, isPlacementFinal, finalPlacings } = require('../lib/knockoutResult');
 const { getFinalsGroups } = require('../lib/finalsGroups');
 const { createLimiter } = require('../middleware/loginLimiter');
 
@@ -189,8 +189,13 @@ router.get('/league/:id/bracket', (req, res) => {
   const finalsGroups = isThreeGroupFinals(league) ? getFinalsGroups(db, league.id) : [];
   const selectedGroup = finalsGroups.find((g) => g.stage === req.query.group) || finalsGroups[0] || null;
 
+  const placementRounds = isPlacementFinal(league) ? getRoundsWithMatches(db, league.id, 'cup') : [];
+  const placings = isPlacementFinal(league) ? finalPlacings(placementRounds.flatMap((r) => r.matches)) : null;
+
   res.render('public/bracket', {
     league,
+    placementRounds,
+    placings,
     finalsGroups,
     selectedGroup,
     cupRounds: getRoundsWithMatches(db, league.id, 'cup'),

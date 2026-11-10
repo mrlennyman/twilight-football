@@ -61,6 +61,7 @@ const canLink = typeof linkTeams !== 'undefined' && linkTeams && typeof league !
           </div>
           <div class="match-meta">
             <span><%= match.pitch_label || '—' %></span>
+            <% if (match.bracket_slot && match.bracket_slot.indexOf('place_') === 0) { %><span>&middot; <%= placeLabel(match.bracket_slot) %></span><% } %>
             <% if (match.penalty_winner_id) { %>
               <span>&middot; <%= match.penalty_winner_id === match.home_team_id ? match.home_team_name : match.away_team_name %> won on pens</span>
             <% } %>

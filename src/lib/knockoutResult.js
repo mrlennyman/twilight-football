@@ -21,8 +21,24 @@ const FEEDS = {
   semi_2: { slot: 'final', side: 'away_team_id' },
 };
 
+const isPlacementSlot = (slot) => typeof slot === 'string' && slot.startsWith('place_');
+
+function ordinal(n) {
+  const v = n % 100;
+  const suffix = v > 10 && v < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10 < 4 ? n % 10 : 0];
+  return `${n}${suffix}`;
+}
+
+/** "The final: 1st & 2nd place", "3rd & 4th place" ... for a final-round match (slot place_1, place_2 ...). */
+function placeLabel(slot) {
+  if (!isPlacementSlot(slot)) return '';
+  const k = Number(slot.slice(6));
+  return k === 1 ? 'The final: 1st & 2nd place' : `${ordinal(2 * k - 1)} & ${ordinal(2 * k)} place`;
+}
+
 /** "quarter-final", "semi-final" or "final" for a bracket slot. */
 function slotName(slot) {
+  if (isPlacementSlot(slot)) return 'placement match';
   if (slot === 'rr') return 'round-robin match';
   if (slot === 'final') return 'final';
   if (slot && slot.startsWith('semi')) return 'semi-final';
@@ -32,6 +48,7 @@ function slotName(slot) {
 
 /** The plural heading for a round of a bracket, from the slot of its first match. */
 function roundName(slot) {
+  if (isPlacementSlot(slot)) return 'Final round';
   if (slot === 'rr') return 'Round robin';
   const name = slotName(slot);
   return name === 'final' ? 'Final' : name === 'match' ? 'Matches' : `${name.charAt(0).toUpperCase()}${name.slice(1)}s`;
@@ -90,10 +107,33 @@ function feedOf(slot) {
 const STAGE_NAMES = { cup: 'Cup', plate: 'Plate', bowl: 'Bowl' };
 const stageName = (stage) => STAGE_NAMES[stage] || 'Group';
 
+/** What to call a finals match in lists: "Cup semi-final", "Bowl round-robin match", "Final round" ... */
+const matchLabel = (stage, slot) => (isPlacementSlot(slot) ? 'Final round' : `${stageName(stage)} ${slotName(slot)}`);
+
+/** True when the league ends with a final round (1st v 2nd, 3rd v 4th ...) straight after its last group round. */
+const isPlacementFinal = (league) => !!league && league.finals_format === 'placement';
+
+/**
+ * Final placings from the final-round matches: each pair's winner takes the higher place (a draw goes to the
+ * shootout winner, else the team that finished higher in the group table). Null until every match is played.
+ */
+function finalPlacings(matches) {
+  const list = matches.filter((m) => isPlacementSlot(m.bracket_slot)).sort((a, b) => Number(a.bracket_slot.slice(6)) - Number(b.bracket_slot.slice(6)));
+  if (list.length === 0 || list.some((m) => m.status !== 'played')) return null;
+  const placings = [];
+  list.forEach((m, k) => {
+    const winner = matchWinner(m) || m.home_team_id; // an unexplained draw: the higher seed (the home side) keeps the place
+    const homeWon = winner === m.home_team_id;
+    placings.push({ place: 2 * k + 1, teamId: winner, name: homeWon ? m.home_team_name : m.away_team_name });
+    placings.push({ place: 2 * k + 2, teamId: homeWon ? m.away_team_id : m.home_team_id, name: homeWon ? m.away_team_name : m.home_team_name });
+  });
+  return placings;
+}
+
 /** True when the league plays the finals as Cup / Plate / Bowl (three groups of 4) rather than Cup and Plate. */
 const isThreeGroupFinals = (league) => !!league && (league.finals_format === 'three' || league.finals_format === 'three_rr');
 
 /** True when those three groups play a round robin first and the knockouts the week after. */
 const isRoundRobinFirst = (league) => !!league && league.finals_format === 'three_rr';
 
-module.exports = { matchWinner, tryFillFinal, feedOf, slotName, roundName, bracketSize, stageName, isThreeGroupFinals, isRoundRobinFirst };
+module.exports = { matchWinner, tryFillFinal, feedOf, slotName, roundName, bracketSize, stageName, isThreeGroupFinals, isRoundRobinFirst, isPlacementFinal, isPlacementSlot, placeLabel, matchLabel, finalPlacings };

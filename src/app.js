@@ -8,7 +8,7 @@ const { resolveDbPath } = require('./lib/paths');
 
 const { formatDate, formatTime } = require('./lib/format');
 const { resolveNavTabs } = require('./lib/navTabs');
-const { slotName, roundName, bracketSize, stageName, isThreeGroupFinals, isRoundRobinFirst } = require('./lib/knockoutResult');
+const { slotName, roundName, bracketSize, stageName, isThreeGroupFinals, isRoundRobinFirst, isPlacementFinal, placeLabel, matchLabel } = require('./lib/knockoutResult');
 const { resolveSplit } = require('./lib/standingsSplit');
 const { finalsBlurbHtml, finalsBlurbParts } = require('./lib/finalsBlurb');
 const { parseTrustProxy } = require('./lib/proxy');
@@ -93,6 +93,9 @@ app.locals.finalsBlurbHtml = finalsBlurbHtml;
 app.locals.finalsBlurbParts = finalsBlurbParts;
 app.locals.isThreeGroupFinals = isThreeGroupFinals;
 app.locals.isRoundRobinFirst = isRoundRobinFirst;
+app.locals.isPlacementFinal = isPlacementFinal;
+app.locals.placeLabel = placeLabel;
+app.locals.matchLabel = matchLabel;
 
 app.use('/', publicRoutes);
 app.use('/admin', adminRoutes);

@@ -487,7 +487,24 @@ function generateFinalsRoundRobins({ groups, pitchIds, roundNumberStart, weekNum
   });
 }
 
+/**
+ * The "final round": straight after the last group round, the table is paired off from the top:
+ * 1st v 2nd, 3rd v 4th, 5th v 6th ... Each pair plays for those two places. One round, one match per pitch.
+ * (Stored as stage 'cup' with bracket slots place_1, place_2 ... so no database change is needed.)
+ */
+function generatePlacementRound({ rankedTeamIds, pitchIds, roundNumber, weekNumber, date, kickoffTime }) {
+  if (rankedTeamIds.length < 2 || rankedTeamIds.length % 2 !== 0) throw new Error('A final round needs an even number of teams');
+  const pairs = rankedTeamIds.length / 2;
+  if (pitchIds.length < pairs) throw new Error(`A final round for ${rankedTeamIds.length} teams needs ${pairs} pitches`);
+  const matches = [];
+  for (let k = 0; k < pairs; k++) {
+    matches.push({ homeTeamId: rankedTeamIds[2 * k], awayTeamId: rankedTeamIds[2 * k + 1], pitchId: pitchIds[k], bracketSlot: `place_${k + 1}` });
+  }
+  return [{ roundNumber, weekNumber, stage: 'cup', date, kickoffTime, matches }];
+}
+
 module.exports = {
+  generatePlacementRound,
   generateFinalsRoundRobins,
   generateCupPlateBowl,
   generateCupAndPlate,

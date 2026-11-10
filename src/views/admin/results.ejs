@@ -31,8 +31,10 @@
 
 <%- include('../partials/tie-blocks', { blocks: tieBlocks, league, note: isRoundRobinFirst(league) ? "The finals groups can't be drawn until every tie is settled." : "The Cup & Plate brackets can't be drawn until every tie is settled." }) %>
 
-<h2><%- isThreeGroupFinals(league) ? 'Cup, Plate &amp; Bowl finals' : 'Cup &amp; Plate knockouts' %></h2>
-<% if (isRoundRobinFirst(league)) { %>
+<h2><%- isPlacementFinal(league) ? 'The final round' : isThreeGroupFinals(league) ? 'Cup, Plate &amp; Bowl finals' : 'Cup &amp; Plate knockouts' %></h2>
+<% if (isPlacementFinal(league)) { %>
+  <%- include('../partials/placement-admin', { league, stageComplete, tieBlocks, cupRounds }) %>
+<% } else if (isRoundRobinFirst(league)) { %>
   <%- include('../partials/finals-admin', { league, stageComplete, tieBlocks, finalsGroups, finalsState }) %>
 <% } else { %>
 <% if (cupRounds.length === 0 && plateRounds.length === 0) { %>

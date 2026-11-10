@@ -1,8 +1,29 @@
-<%- include('../partials/header', { title: league.name + (isThreeGroupFinals(league) ? ' — Finals' : ' — Cup / Plate') }) %>
+<%- include('../partials/header', { title: league.name + (isPlacementFinal(league) ? ' — Final round' : isThreeGroupFinals(league) ? ' — Finals' : ' — Cup / Plate') }) %>
 <%- include('../partials/nav', { league, active: 'bracket' }) %>
 <%- include('../partials/league-title', { league }) %>
 
-<% if (isThreeGroupFinals(league)) { %>
+<% if (isPlacementFinal(league)) { %>
+  <%- include('../partials/finals-blurb', { collapsible: true, open: placementRounds.length === 0 }) %>
+  <% if (placementRounds.length === 0) { %>
+    <p>The final round will appear here once the last group game has been played.</p>
+  <% } else { %>
+    <h2>The final round</h2>
+    <%- include('../partials/round-list', { rounds: placementRounds, editable: false, linkTeams: true, league }) %>
+    <% if (placings) { %>
+      <h2>Final placings</h2>
+      <div class="table-scroll">
+      <table class="standings-table">
+        <thead><tr><th>#</th><th>Team</th></tr></thead>
+        <tbody>
+          <% placings.forEach(p => { %>
+            <tr data-team-id="<%= p.teamId %>"><td><%= p.place %></td><td><a href="/league/<%= league.id %>/team/<%= p.teamId %>"><%= p.name %></a></td></tr>
+          <% }) %>
+        </tbody>
+      </table>
+      </div>
+    <% } %>
+  <% } %>
+<% } else if (isThreeGroupFinals(league)) { %>
   <%- include('../partials/finals-blurb', { collapsible: true, open: !selectedGroup }) %>
   <% if (!selectedGroup) { %>
     <p>The finals haven't started yet — they'll appear here once the group stage is complete.</p>

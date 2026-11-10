@@ -3,8 +3,8 @@ const db = require('../db');
 const { checkPassword, requireAdmin, safeReturnTo } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/loginLimiter');
 const { computeStandings, getOpenTieBlocks, groupStageComplete } = require('../lib/standings');
-const { generateGroupStageSchedule, generateCupAndPlate, generateCupPlateBowl, addDays } = require('../lib/schedule');
-const { tryFillFinal, feedOf, slotName, bracketSize, stageName, isThreeGroupFinals, isRoundRobinFirst } = require('../lib/knockoutResult');
+const { generateGroupStageSchedule, generateCupAndPlate, generateCupPlateBowl, generatePlacementRound, addDays, addMinutes } = require('../lib/schedule');
+const { tryFillFinal, feedOf, slotName, bracketSize, stageName, isThreeGroupFinals, isRoundRobinFirst, isPlacementFinal, isPlacementSlot, matchLabel } = require('../lib/knockoutResult');
 const { getFinalsGroups, getFinalsState } = require('../lib/finalsGroups');
 const { planFinalsGroups, planFinalsKnockouts, insertFinalsRounds } = require('../lib/finalsActions');
 const { findDemoLeague, createDemoLeague } = require('../lib/demoLeague');
@@ -821,7 +821,7 @@ router.post('/league/:id/tie-break', (req, res) => {
 router.post('/league/:id/generate-knockouts', (req, res) => {
   const league = getLeague(db, req.params.id);
   if (!league) return res.status(404).render('404');
-  if (isRoundRobinFirst(league)) return res.redirect(`/admin/league/${league.id}/results`);
+  if (isRoundRobinFirst(league) || isPlacementFinal(league)) return res.redirect(`/admin/league/${league.id}/results`);
 
   const alreadyGenerated = db
     .prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')")
@@ -922,6 +922,40 @@ router.post('/league/:id/generate-knockouts', (req, res) => {
   res.redirect(`/admin/league/${league.id}/results`);
 });
 
+// Final round: pair the finished group table off from the top (1v2, 3v4 ...) in one more round, straight after the
+// last group round on the same night.
+router.post('/league/:id/generate-final-round', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const back = `/admin/league/${league.id}/results`;
+  if (!isPlacementFinal(league)) return res.redirect(back);
+  const already = db.prepare("SELECT COUNT(*) AS c FROM rounds WHERE league_id = ? AND stage IN ('cup', 'plate', 'bowl')").get(league.id).c;
+  if (already > 0 || !groupStageComplete(db, league.id)) return res.redirect(back);
+
+  const standings = computeStandings(db, league.id);
+  const openTies = standings.filter((s) => s.tied && !s.tieResolved);
+  if (openTies.length > 0) {
+    return fail(res, `${openTies.length} teams are still tied on points and goal difference (${openTies.map((t) => t.name).join(', ')}). Record the shootout results on the Results page first, then draw the final round.`);
+  }
+  const pitchIds = getPitches(db).slice(0, league.num_pitches).map((p) => p.id);
+  if (pitchIds.length < standings.length / 2) return fail(res, `The final round for ${standings.length} teams needs ${standings.length / 2} pitches.`);
+
+  const last = db
+    .prepare("SELECT round_number, week_number, date, kickoff_time FROM rounds WHERE league_id = ? AND stage = 'group' ORDER BY round_number DESC LIMIT 1")
+    .get(league.id);
+  const rounds = generatePlacementRound({
+    rankedTeamIds: standings.map((s) => s.teamId),
+    pitchIds,
+    roundNumber: last.round_number + 1,
+    weekNumber: last.week_number,
+    date: last.date,
+    kickoffTime: addMinutes(last.kickoff_time || league.kickoff_start_time || '17:00', league.slot_minutes || 15),
+  });
+  if (!safetyBackup(res, 'final-round')) return;
+  insertFinalsRounds(db, league.id, rounds);
+  res.redirect(back);
+});
+
 // Round-robin-first finals, step 1: draw the three groups of 4 from the final group-stage table.
 router.post('/league/:id/generate-finals-groups', (req, res) => {
   const league = getLeague(db, req.params.id);
@@ -1009,7 +1043,11 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
   }
 
   let penaltyWinnerId = null;
-  if (homeScore === awayScore && !isRoundRobinMatch) {
+  if (homeScore === awayScore && isPlacementSlot(match.bracket_slot)) {
+    // A drawn final-round match is allowed; a shootout winner can be recorded but is not required.
+    const picked = Number(req.body.penalty_winner_id);
+    if (picked === match.home_team_id || picked === match.away_team_id) penaltyWinnerId = picked;
+  } else if (homeScore === awayScore && !isRoundRobinMatch) {
     const picked = Number(req.body.penalty_winner_id);
     if (picked !== match.home_team_id && picked !== match.away_team_id) {
       return fail(res, 'A drawn knockout match needs a shootout winner - pick one and save again.');
@@ -1020,7 +1058,7 @@ router.post('/league/:id/knockout-results/match/:matchId', (req, res) => {
   saveScore(db, match.id, homeScore, awayScore, penaltyWinnerId, actor(req));
 
   tryFillFinal(db, leagueId, match.stage);
-  if (allBracketsComplete(leagueId)) {
+  if (allBracketsComplete(leagueId) || placementComplete(leagueId)) {
     db.prepare("UPDATE leagues SET status = 'complete' WHERE id = ?").run(leagueId);
   }
 
@@ -1049,7 +1087,7 @@ router.get('/league/:id/log', (req, res) => {
       where:
         e.stage === 'group'
           ? `Round ${e.round_number}`
-          : `${stageName(e.stage)} ${slotName(e.bracket_slot)}`,
+          : matchLabel(e.stage, e.bracket_slot),
       oldText: e.old_status === 'played' ? `${e.old_home}-${e.old_away}` : 'no result',
       newText: e.new_status === 'played' ? `${e.new_home}-${e.new_away}` : 'cleared',
     }));
@@ -1121,6 +1159,19 @@ router.post('/league/:id/knockout-results/match/:matchId/clear', (req, res) => {
   res.redirect(`/admin/league/${leagueId}/results#round-${match.round_id}`);
 });
 
+/** A final-round league is finished once every one of its final-round matches has a result. */
+function placementComplete(leagueId) {
+  const league = getLeague(db, leagueId);
+  if (!isPlacementFinal(league)) return false;
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS total, SUM(CASE WHEN m.status = 'played' THEN 1 ELSE 0 END) AS played
+       FROM matches m JOIN rounds r ON r.id = m.round_id WHERE r.league_id = ? AND r.stage = 'cup' AND m.bracket_slot LIKE 'place_%'`
+    )
+    .get(leagueId);
+  return row.total > 0 && row.played === row.total;
+}
+
 /** True once there are finals brackets and every match in every one of them (Cup, Plate, Bowl) has been played. */
 function allBracketsComplete(leagueId) {
   const rows = db
@@ -1179,12 +1230,15 @@ router.get('/league/:id/finals-format', (req, res) => {
 router.post('/league/:id/finals-format', (req, res) => {
   const league = getLeague(db, req.params.id);
   if (!league) return res.status(404).render('404');
-  const wanted = ['three', 'three_rr'].includes(req.body.format) ? req.body.format : 'standard';
+  const wanted = ['three', 'three_rr', 'placement'].includes(req.body.format) ? req.body.format : 'standard';
   const numTeams = db.prepare('SELECT COUNT(*) AS n FROM teams WHERE league_id = ?').get(league.id).n;
   if (scheduleStats(league.id).knockoutRounds > 0) {
     return renderFinalsForm(res, league, { errors: ['The finals have already been drawn, so the format is locked. Reset the brackets on the Results page first if you need to change it.'] });
   }
-  if (wanted !== 'standard' && numTeams !== 12) {
+  if (wanted === 'placement' && (numTeams < 4 || numTeams % 2 !== 0 || league.num_pitches < numTeams / 2)) {
+    return renderFinalsForm(res, league, { errors: [`The final round needs an even number of teams (4 or more) and a pitch for every pair. This league has ${numTeams} teams and ${league.num_pitches} pitches.`] });
+  }
+  if ((wanted === 'three' || wanted === 'three_rr') && numTeams !== 12) {
     return renderFinalsForm(res, league, { errors: [`Cup / Plate / Bowl needs exactly 12 teams (three groups of 4). This league has ${numTeams}.`] });
   }
   db.prepare('UPDATE leagues SET finals_format = ? WHERE id = ?').run(wanted === 'standard' ? null : wanted, league.id);

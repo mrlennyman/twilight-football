@@ -31,7 +31,20 @@ After the 6 weeks of games, every team is ranked by where it finishes in the tab
 **Finals week 2: knockout.** The mini table decides the seeds. 1st plays 4th and 2nd plays 3rd in the **semi-finals**, then the two winners meet in the **Grand Final**. Every group crowns its own champion, so every team is playing for something.
 `;
 
-const standardFor = (league) => (league && league.finals_format === 'three_rr' ? DEFAULT_BLURB_RR : DEFAULT_BLURB);
+const DEFAULT_BLURB_PLACEMENT = `# The final round
+
+When the last group game has been played, there is one more round. The table is paired off from the top:
+
+- **1st v 2nd** - the final
+- **3rd v 4th**
+- **5th v 6th**
+- **7th v 8th**
+
+Each pair plays for those two places, so every team plays one more game and finishes with a final placing.
+`;
+
+const standardFor = (league) =>
+  league && league.finals_format === 'three_rr' ? DEFAULT_BLURB_RR : league && league.finals_format === 'placement' ? DEFAULT_BLURB_PLACEMENT : DEFAULT_BLURB;
 
 const clean = (text) => String(text ?? '').replace(/\r\n?/g, '\n').trim();
 
@@ -39,7 +52,7 @@ const clean = (text) => String(text ?? '').replace(/\r\n?/g, '\n').trim();
 function getFinalsBlurb(league) {
   const saved = clean(league && league.finals_blurb);
   if (saved) return saved;
-  return league && (league.finals_format === 'three' || league.finals_format === 'three_rr') ? clean(standardFor(league)) : '';
+  return league && (league.finals_format === 'three' || league.finals_format === 'three_rr' || league.finals_format === 'placement') ? clean(standardFor(league)) : '';
 }
 
 const finalsBlurbHtml = (league) => renderMarkup(getFinalsBlurb(league));

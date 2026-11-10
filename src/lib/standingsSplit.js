@@ -35,6 +35,10 @@ function readSaved(league) {
 function getSplitSettings(league) {
   const saved = readSaved(league);
   // Until someone saves their own choice, a Cup / Plate / Bowl league shows its three groups.
+  // A final-round league pairs the table 1v2, 3v4 ...: no top/bottom bands unless someone asks for them.
+  if (Object.keys(saved).length === 0 && league && league.finals_format === 'placement') {
+    return { mode: 'off', three: false, after: null, after2: null, top: '', middle: '', bottom: '' };
+  }
   if (Object.keys(saved).length === 0 && league && (league.finals_format === 'three' || league.finals_format === 'three_rr')) {
     return { mode: 'labels', three: true, after: null, after2: null, top: 'Cup', middle: 'Plate', bottom: 'Bowl' };
   }
