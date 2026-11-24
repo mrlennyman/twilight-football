@@ -1,0 +1,66 @@
+<%- include('../partials/header', { title: league.name + ' — Postponed night' }) %>
+<div class="admin-bar">
+  <h1><%= league.name %> — Postponed night</h1>
+  <a href="/admin/league/<%= league.id %>/schedule">&larr; Schedule</a>
+</div>
+
+<p class="muted">Rained off? The rounds from that night move onto the following nights, with more rounds per night. Rounds that still don't fit are cancelled, so every team plays one game fewer. Results already entered are never touched, a safety copy of the database is saved first, and you can undo it.</p>
+
+<% if (done === 'moved') { %><p class="callout">Done - the rounds have been moved. Check the <a class="btn btn-light btn-sm" href="/admin/league/<%= league.id %>/schedule">Schedule</a>.</p><% } %>
+<% if (done === 'undone') { %><p class="callout">Undone - every round is back on its original night and time.</p><% } %>
+<% if (errors.length) { %>
+  <div class="callout callout-warn"><strong>Nothing was changed.</strong>
+    <ul><% errors.forEach(e => { %><li><%= e %></li><% }) %></ul>
+  </div>
+<% } %>
+
+<% if (nights.length === 0) { %>
+  <p>There are no upcoming match nights that can be moved (a night needs to have no results entered on it or any later night).</p>
+<% } else { %>
+  <form method="GET" action="/admin/league/<%= league.id %>/postpone" class="admin-form">
+    <label>Which night was postponed?
+      <select name="night">
+        <% nights.forEach(n => { %><option value="<%= n %>" <%= n === night ? 'selected' : '' %>><%= formatDate(n) %></option><% }) %>
+      </select>
+    </label>
+    <label>Rounds per night from now on
+      <input type="number" name="per_night" value="<%= perNight %>" min="1" max="8" required>
+    </label>
+    <button type="submit">Show me the new schedule</button>
+    <p class="muted">This only shows a preview. Nothing changes until you press Apply.</p>
+  </form>
+<% } %>
+
+<% if (plan) { %>
+  <h2>Preview</h2>
+  <p><strong><%= formatDate(plan.night) %></strong> is removed from the schedule.</p>
+  <% plan.nights.forEach(n => { %>
+    <h3><%= formatDate(n.date) %> - <%= n.rounds.length %> round<%= n.rounds.length === 1 ? '' : 's' %></h3>
+    <ul>
+      <% n.rounds.forEach(r => { %>
+        <li><%= formatTime(r.kickoff) %>: Round <%= r.round_number %><% if (r.from !== n.date) { %> <span class="muted">(was <%= formatDate(r.from) %>)</span><% } %></li>
+      <% }) %>
+    </ul>
+  <% }) %>
+  <% if (plan.cancelled.length) { %>
+    <p class="callout callout-warn">Cancelled (doesn't fit): <% plan.cancelled.forEach((r, i) => { %><%= i ? ', ' : '' %>Round <%= r.round_number %><% }) %>. Every team plays one game fewer for each cancelled round. Undo brings it back.</p>
+  <% } else { %>
+    <p class="muted">Every round fits, nothing is cancelled.</p>
+  <% } %>
+  <p class="muted">The finals are drawn once the last group round is played, as usual (they go one week after the last group night).</p>
+  <form method="POST" action="/admin/league/<%= league.id %>/postpone" class="admin-form">
+    <input type="hidden" name="night" value="<%= plan.night %>">
+    <input type="hidden" name="per_night" value="<%= plan.perNight %>">
+    <button type="submit">Apply this schedule</button>
+  </form>
+<% } %>
+
+<% if (undo) { %>
+  <h2>Undo</h2>
+  <p>The last change (postponing <%= formatDate(undo.night) %>) can be undone: every round goes back to its original night and time<%= undo.removed.length ? ', and the cancelled round' + (undo.removed.length === 1 ? ' comes' : 's come') + ' back' : '' %>. Results entered since are kept.</p>
+  <form method="POST" action="/admin/league/<%= league.id %>/postpone/undo" class="admin-form">
+    <button type="submit" class="btn-light">Undo the postponement</button>
+  </form>
+<% } %>
+
+<%- include('../partials/footer') %>

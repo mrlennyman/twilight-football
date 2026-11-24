@@ -26,6 +26,7 @@ const { getSplitSettings, resolveSplit, parseSplitInput } = require('../lib/stan
 const { DEFAULT_BLURB, MAX_LENGTH: BLURB_MAX, getFinalsBlurb, parseBlurbInput } = require('../lib/finalsBlurb');
 const { parseFixtureCsv, planFixtureImport, applyFixtureImport, looksLikeFixtureCsv } = require('../lib/fixtureImport');
 const { saveScore, clearScore } = require('../lib/results');
+const { postponableNights, planPostpone, applyPostpone, undoPostpone, getUndo } = require('../lib/postpone');
 const { hashPassword, authenticateScorer, parseScorerInput, cleanName, MIN_PASSWORD } = require('../lib/scorers');
 const {
   getPages,
@@ -730,6 +731,53 @@ router.post('/league/:id/results/match/:matchId', (req, res) => {
 
   saveScore(db, match.id, homeScore, awayScore, null, actor(req));
   res.redirect(`/admin/league/${req.params.id}/results?week=${match.week_number}#round-${match.round_id}`);
+});
+
+// ---------- Postponed (rained-off) night ----------
+
+function renderPostpone(res, league, { night, perNight, plan = null, errors = [], done = null } = {}) {
+  const nights = postponableNights(db, league.id);
+  res.render('admin/postpone', {
+    league,
+    nights,
+    night: night || nights[0] || '',
+    perNight: perNight || league.rounds_per_week + 1,
+    plan,
+    errors,
+    done,
+    undo: getUndo(db, league.id),
+  });
+}
+
+router.get('/league/:id/postpone', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  if (!req.query.night) return renderPostpone(res, league, { done: req.query.done || null });
+  const perNight = Number.parseInt(req.query.per_night, 10);
+  const plan = planPostpone(db, league, String(req.query.night), perNight);
+  if (plan.error) return renderPostpone(res, league, { night: req.query.night, perNight, errors: [plan.error] });
+  renderPostpone(res, league, { night: plan.night, perNight, plan });
+});
+
+router.post('/league/:id/postpone', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  const perNight = Number.parseInt(req.body.per_night, 10);
+  const plan = planPostpone(db, league, String(req.body.night ?? ''), perNight);
+  if (plan.error) return renderPostpone(res, league, { night: req.body.night, perNight, errors: [plan.error] });
+  if (!safetyBackup(res, 'postpone')) return;
+  applyPostpone(db, league, plan);
+  res.redirect(`/admin/league/${league.id}/postpone?done=moved`);
+});
+
+router.post('/league/:id/postpone/undo', (req, res) => {
+  const league = getLeague(db, req.params.id);
+  if (!league) return res.status(404).render('404');
+  if (!getUndo(db, league.id)) return res.redirect(`/admin/league/${league.id}/postpone`);
+  if (!safetyBackup(res, 'postpone-undo')) return;
+  const result = undoPostpone(db, league);
+  if (result.error) return renderPostpone(res, league, { errors: [result.error] });
+  res.redirect(`/admin/league/${league.id}/postpone?done=undone`);
 });
 
 // One form per round: all of a round's scores in a single Save (and a per-match Clear).
