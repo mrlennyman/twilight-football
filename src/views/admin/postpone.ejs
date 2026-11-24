@@ -38,7 +38,7 @@
     <h3><%= formatDate(n.date) %> - <%= n.rounds.length %> round<%= n.rounds.length === 1 ? '' : 's' %></h3>
     <ul>
       <% n.rounds.forEach(r => { %>
-        <li><%= formatTime(r.kickoff) %>: Round <%= r.round_number %><% if (r.from !== n.date) { %> <span class="muted">(was <%= formatDate(r.from) %>)</span><% } %></li>
+        <li>Round <%= r.round_number %><% if (r.from !== n.date) { %> <span class="muted">(was <%= formatDate(r.from) %>)</span><% } %></li>
       <% }) %>
     </ul>
   <% }) %>
